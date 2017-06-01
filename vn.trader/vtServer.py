@@ -102,6 +102,9 @@ def runServer():
         printLog(u"CTP connect... ")
         server.engine.connect("CTP")
 
+    # if VT_setting.get('drall'):
+    #     server.engine.gatewayDict['CTP'].tdApi.ReqQryInstrument()
+
     if VT_setting.get('autoshutdown'):
         # 自动关闭 线程阻塞
         wait2shutdown = autoshutdown()

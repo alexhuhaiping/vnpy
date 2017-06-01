@@ -6,7 +6,7 @@ author:[@lamter](https://github.com/lamter)
 > _关于Docker_
 > - _`Docker` 是基于 `Linux`的一个服务。通过模拟了整个 `Linux`的系统文件，来实现沙盒，所以`Docker`不是虚拟机，更类似于在`Linux`中模拟`Windows`的`Wine`。_
 > - _在`Linux`中，`Docker`可以直接运行在宿主中，而在`Mac`和`Windows`中，是通过`VirtualBox`等先建立一个`Linux`的虚拟机，然后再在这个虚拟机中运行`Docker`。这样的话可能会有些许差异，比如`--host`的与宿主共享网络的模式。_
-> - _在`Linux`系统下，模式下会使得`Docker`的容器与宿主共享网络端口，但是在`Mac`或者`Windows`中，该模式是容器与虚拟机中的`Linux`共享网络端口，而不是直接跟宿主`Mac`或者`Windows`共享端口。_
+> - _在`Linux`系统下，`--host`模式下会使得`Docker`的容器与宿主共享网络端口，但是在`Mac`或者`Windows`中，该模式是容器与虚拟机中的`Linux`共享网络端口，而不是直接跟宿主`Mac`或者`Windows`共享端口。_
 
 1. 使用 docker 镜像来提供运行和编译环境。
 2. 将策略打包到 docker 镜像中以便直接在生产环境部署。

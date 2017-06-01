@@ -99,6 +99,7 @@ class CtpGateway(VtGateway):
         """连接"""
         # 载入json文件
         fileName = vtGlobal.VT_setting.get(self.gatewayName + '_connect')
+
         if fileName is None:
             fileName = self.gatewayName + '_connect.json'
             path = os.path.abspath(os.path.dirname(__file__))
@@ -112,7 +113,7 @@ class CtpGateway(VtGateway):
             log.logContent = text.LOADING_ERROR
             self.onLog(log)
             return
-        
+
         # 解析json文件
         setting = json.load(f)
         try:
@@ -121,7 +122,7 @@ class CtpGateway(VtGateway):
             brokerID = str(setting['brokerID'])
             tdAddress = str(setting['tdAddress'])
             mdAddress = str(setting['mdAddress'])
-            
+
             # 如果json文件提供了验证码
             if 'authCode' in setting: 
                 authCode = str(setting['authCode'])
@@ -136,12 +137,12 @@ class CtpGateway(VtGateway):
             log.gatewayName = self.gatewayName
             log.logContent = text.CONFIG_KEY_MISSING
             self.onLog(log)
-            return            
-        
+            return
+
         # 创建行情和交易接口对象
         self.mdApi.connect(userID, password, brokerID, mdAddress)
         self.tdApi.connect(userID, password, brokerID, tdAddress,authCode, userProductInfo)
-        
+
         # 初始化并启动查询
         self.initQuery()
     
@@ -1485,6 +1486,51 @@ def test():
     
     sys.exit(app.exec_())
 
+
+class FixDay:
+    """
+    直接使用本地时间作为 ActionDay
+    对是否零点前做判定，并对tick赋值
+    """
+
+    def __init__(self):
+        # 是否夜盘
+        self.start_time = datetime.datetime.now()
+
+        if NIGHT_TRADING_END_TIME < self.start_time.time() < DAY_TRADING_END_TIME:
+            self.is_night_trading = False
+
+        if self.is_night_trading:
+            # 夜盘时
+            if self.start_time > NIGHT_TRADING_START_TIME:
+                # 零点前
+                self.today = self.start_time.date()
+                self.tomorrow = self.today + datetime.timedelta(days=1)
+            else:
+                # 零点后
+                self.today = self.start_time.date() - datetime.timedelta(days=1)
+                self.tomorrow = self.start_time.date()
+
+        else:  # 日盘时
+            self.today = self.start_time.date()
+            self.tomorrow = self.today + datetime.timedelta(days=1)
+
+    def get_ActionDay(self, item):
+        """
+
+        :param updateTime: tick 数据的 钟点
+        :return:
+        """
+        if self.is_night_trading:
+            # 夜盘
+            if item.UpdateTime.decode() >=  '2100':
+                # 没过零点
+                return self.today
+            else:
+                # 过了零点
+                return self.tomorrow
+        else: # 日盘
+            return self.today
 
 if __name__ == '__main__':
     test()

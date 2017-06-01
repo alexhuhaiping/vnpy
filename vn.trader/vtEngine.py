@@ -295,7 +295,7 @@ class DataEngine(object):
         contract = event.dict_['data']
         self.contractDict[contract.vtSymbol] = contract
         self.contractDict[contract.symbol] = contract       # 使用常规代码（不包括交易所）可能导致重复
-        
+
     #----------------------------------------------------------------------
     def getContract(self, vtSymbol):
         """查询合约对象"""

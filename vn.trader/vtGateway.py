@@ -97,7 +97,8 @@ class VtGateway(object):
         event1 = Event(type_=EVENT_LOG)
         event1.dict_['data'] = log
         self.eventEngine.put(event1)
-        
+        print(log.logContent)
+
     #----------------------------------------------------------------------
     def onContract(self, contract):
         """合约基础信息推送"""

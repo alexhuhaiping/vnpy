@@ -21,7 +21,7 @@ for root, subdirs, files in os.walk(path):
 
     for foldername in subdirs:
         # 接口目录名中必须含有Gateway
-        if 'Gateway' in foldername:
+        if 'ctpGateway' in foldername:
             # 模块名称需要上前缀
             moduleName = 'gateway.' + foldername
 
@@ -30,7 +30,7 @@ for root, subdirs, files in os.walk(path):
                 module = importlib.import_module(moduleName)
                 GATEWAY_DICT[module.gatewayName] = module
                 print('load %s' % moduleName)
-            except ImportError:
-                print('module %s not find ' % moduleName)
+            # except ImportError:
+            #     print('module %s not find ' % moduleName)
             except:
                 traceback.print_exc()
