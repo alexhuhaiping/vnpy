@@ -5,6 +5,7 @@
 '''
 
 from __future__ import division
+import pymongo
 
 
 # 把vn.trader根目录添加到python环境变量中
@@ -17,6 +18,8 @@ SETTING_DB_NAME = 'VnTrader_Setting_Db'
 TICK_DB_NAME = 'VnTrader_Tick_Db'
 DAILY_DB_NAME = 'VnTrader_Daily_Db'
 MINUTE_DB_NAME = 'VnTrader_1Min_Db'
+CONTRACT_DB_NAME = 'VnTrader_Contract_Db'
+CONTRACT_INFO_COLLECTION_NAME = 'info'
 
 
 # CTA引擎中涉及的数据类定义

@@ -371,6 +371,15 @@ class VtContractData(VtBaseData):
         self.underlyingSymbol = EMPTY_STRING    # 标的物合约代码
         self.optionType = EMPTY_UNICODE         # 期权类型
 
+    def toFuturesDB(self):
+        """
+
+        :return:
+        """
+        dic = self.__dict__.copy()
+        dic.pop('rawData')
+        return dic
+
 
 ########################################################################
 class VtSubscribeReq(object):

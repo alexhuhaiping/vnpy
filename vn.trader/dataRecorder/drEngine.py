@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 
+import tradingtime
+
 from eventEngine import *
 from vtGateway import VtSubscribeReq, VtLogData
 from drBase import *
@@ -55,7 +57,7 @@ class DrEngine(object):
         # 载入设置，订阅行情
         self.loadSetting()
 
-    def subscribeTick(self, event):
+    def subscribeDrContract(self, event):
         """
 
         :param symbol:
@@ -75,6 +77,32 @@ class DrEngine(object):
 
         print(u'订阅 {}'.format(symbol))
         self.mainEngine.subscribe(req, 'CTP')
+
+        data = contract.toFuturesDB()
+        # 获得 ActionDay
+        isAD, actionDay = tradingtime.get_tradingday(datetime.now())
+        collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+        actionDay = actionDay.strftime('%Y%m%d')
+
+        # 对比差异
+        isChange = False
+        try:
+            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('ActionDay', pymongo.DESCENDING).limit(1).next()
+            for k, v in data.items():
+                if v != oldContract[k]:
+                    # 合约内容有变换
+                    isChange = True
+                    break
+        except StopIteration:
+            isChange = True
+
+        data['ActionDay'] = actionDay
+        if isChange:
+            # 合约有变换，插入一条新的
+            collection.insert_one(data)
+        else:
+            # 没变化，直接更新
+            collection.update({'vtSymbol': vtSymbol, 'ActionDay': actionDay}, data)
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
@@ -231,7 +259,7 @@ class DrEngine(object):
     def registerEvent(self):
         """注册事件监听"""
         self.eventEngine.register(EVENT_TICK, self.procecssTickEvent)
-        self.eventEngine.register(EVENT_CONTRACT, self.subscribeTick)
+        self.eventEngine.register(EVENT_CONTRACT, self.subscribeDrContract)
 
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
