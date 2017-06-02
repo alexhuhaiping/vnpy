@@ -38,7 +38,11 @@ class DrBarData(object):
         self.high = EMPTY_FLOAT
         self.low = EMPTY_FLOAT
         self.close = EMPTY_FLOAT
-        
+
+        self.upperLimit = EMPTY_FLOAT   # 涨停价
+        self.lowerLimit = EMPTY_FLOAT  # 跌停价
+
+
         self.date = EMPTY_STRING            # bar开始的时间，日期
         self.time = EMPTY_STRING            # 时间
         self.datetime = None                # python的datetime时间对象

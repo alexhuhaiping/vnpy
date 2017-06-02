@@ -57,7 +57,7 @@ RUN    echo "开始配置系vnpy环境" \
     && echo "设置 conda 国内源, 从 conda 安装 python 库" \
     && conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/ \
     && conda config --set show_channel_urls yes \
-    && conda install -y pymongo pyzmq numpy msgpack-python \
+    && conda install -y pymongo pyzmq numpy msgpack-python pandas \
     && echo "更改 pip 源" \
     && mkdir ~/.pip \
     && echo "[global]" >> ~/.pip/pip.conf \

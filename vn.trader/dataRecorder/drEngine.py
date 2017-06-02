@@ -64,10 +64,14 @@ class DrEngine(object):
         contract = event.dict_['data']
         if contract.productClass != u'期货':
             return
-        symbol = contract.symbol
+        vtSymbol = symbol = contract.symbol
 
         req = VtSubscribeReq()
         req.symbol = symbol
+
+        # 记录 1min bar
+        bar = DrBarData()
+        self.barDict[vtSymbol] = bar
 
         print(u'订阅 {}'.format(symbol))
         self.mainEngine.subscribe(req, 'CTP')
@@ -211,11 +215,16 @@ class DrEngine(object):
                 bar.datetime = drTick.datetime
                 bar.volume = drTick.volume
                 bar.openInterest = drTick.openInterest
+
+                bar.upperLimit = drTick.upperLimit
+                bar.lowerLimit = drTick.lowerLimit
                 # 否则继续累加新的K线
             else:
                 bar.high = max(bar.high, drTick.lastPrice)
                 bar.low = min(bar.low, drTick.lastPrice)
                 bar.close = drTick.lastPrice
+                bar.upperLimit = drTick.upperLimit
+                bar.lowerLimit = drTick.lowerLimit
 
                 # ----------------------------------------------------------------------
 
