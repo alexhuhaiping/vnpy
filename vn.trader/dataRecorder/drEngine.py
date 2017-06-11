@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 
-import tradingtime
+# import tradingtime
 
 from eventEngine import *
 from vtGateway import VtSubscribeReq, VtLogData

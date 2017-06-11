@@ -61,9 +61,9 @@ RUN    echo "开始配置系vnpy环境" \
     && echo "更改 pip 源" \
     && mkdir ~/.pip \
     && echo "[global]" >> ~/.pip/pip.conf \
-    && echo "index-url = http://pypi.douban.com/simple" >> ~/.pip/pip.conf \
+    && echo "index-url = https://pypi.douban.com/simple" >> ~/.pip/pip.conf \
     && echo "使用 pip 安装 python 库" \
-    && pip install TA-Lib pandas \
+    && pip install TA-Lib pandas tradingtime \
     && conda clean -ay \
     && echo "安装结束"
 
