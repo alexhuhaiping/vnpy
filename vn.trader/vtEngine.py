@@ -167,8 +167,9 @@ class MainEngine(object):
             # 读取MongoDB的设置
             logging = vtGlobal.VT_setting['mongoLogging']
 
-            url = 'mongodb://{mongoUsername}:{mongoPassword}@{mongoHost}:{mongoPort}/{dbn}'.format(**vtGlobal.VT_setting)
-
+            url = 'mongodb://{mongoUsername}:{mongoPassword}@{mongoHost}:{mongoPort}/{dbn}?authMechanism=SCRAM-SHA-1'.format(
+                **vtGlobal.VT_setting)
+            print(url)
             try:
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(url, connectTimeoutMS=500)
@@ -188,7 +189,7 @@ class MainEngine(object):
     # ----------------------------------------------------------------------
     def dbInsert(self, dbName, collectionName, d):
         """向MongoDB中插入数据，d是具体数据"""
-        dbName = vtGlobal.VT_setting.dbn
+        # dbName = vtGlobal.VT_setting.dbn
 
         if self.dbClient:
             db = self.dbClient[dbName]
