@@ -76,20 +76,29 @@ class DrEngine(object):
         bar = DrBarData()
         self.barDict[vtSymbol] = bar
 
-        print(u'订阅 {}'.format(symbol))
         self.mainEngine.subscribe(req, 'CTP')
 
+        # ====================================================
         # 创建collection，并设置索引
-        db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
-
-        # assert isinstance(db, pymong)
-
-        names = set(db.collection_names())
-        tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
-        barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
-
-        # 创建collection
-        # if tickColName not in names:
+        # db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
+        # names = set(db.collection_names())
+        # tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
+        # barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
+        # for n in tickColName, barColName:
+        #     if n not in names:
+        #         try:
+        #             # 创建数据库
+        #             col = db.create_collection(n)
+        #             # 创建索引
+        #             print(n)
+        #             r = col.create_index('datetime', unique=True)
+        #             print(r)
+        #         except OperationFailure as e:
+        #             if e.message == 'collection test already exists':
+        #                 pass
+        #             else:
+        #                 raise
+        # ====================================================
 
         data = contract.toFuturesDB()
         # 获得 ActionDay
