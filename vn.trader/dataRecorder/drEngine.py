@@ -80,24 +80,25 @@ class DrEngine(object):
 
         # ====================================================
         # 创建collection，并设置索引
-        # db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
-        # names = set(db.collection_names())
-        # tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
-        # barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
-        # for n in tickColName, barColName:
-        #     if n not in names:
-        #         try:
-        #             # 创建数据库
-        #             col = db.create_collection(n)
-        #             # 创建索引
-        #             print(n)
-        #             r = col.create_index('datetime', unique=True)
-        #             print(r)
-        #         except OperationFailure as e:
-        #             if e.message == 'collection test already exists':
-        #                 pass
-        #             else:
-        #                 raise
+        db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
+        names = set(db.collection_names())
+        tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
+        barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
+        for n in tickColName, barColName:
+            if n not in names:
+                try:
+                    # 创建数据库
+                    print(u'创建数据库 {}'.format(n))
+                    col = db.create_collection(n)
+                    # # 创建索引
+                    # r = col.create_index('datetime', unique=True)
+                except OperationFailure as e:
+                    if e.message == 'collection test already exists':
+                        pass
+                    else:
+                        raise
+            else:
+                print(u'已经存在数据库 {}'.format(n))
         # ====================================================
 
         data = contract.toFuturesDB()
