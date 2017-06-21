@@ -58,6 +58,8 @@ class DrEngine(object):
         # 载入设置，订阅行情
         self.loadSetting()
 
+        self.collectionNames = []
+
     def subscribeDrContract(self, event):
         """
 
@@ -81,7 +83,10 @@ class DrEngine(object):
         # ====================================================
         # 创建collection，并设置索引
         db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
-        names = set(db.collection_names())
+        if not self.collectionNames:
+            self.collectionNames = set(db.collection_names())
+
+        names = self.collectionNames
         tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
         barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
         for n in tickColName, barColName:
