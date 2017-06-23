@@ -118,6 +118,7 @@ class DrEngine(object):
         isChange = False
         try:
             oldContract = collection.find({'vtSymbol': vtSymbol}).sort('ActionDay', pymongo.DESCENDING).limit(1).next()
+            oldActionDay = oldContract['ActionDay']
             for k, v in data.items():
                 if v != oldContract[k]:
                     # 合约内容有变换
@@ -135,8 +136,8 @@ class DrEngine(object):
             collection.insert_one(data)
         else:
             # 没变化，直接更新
-            print('更新 合约 {}'.format(str(data)))
-            collection.find_one_and_update({'vtSymbol': vtSymbol, 'ActionDay': actionDay}, {'$set': data})
+            sql = {'vtSymbol': vtSymbol, 'ActionDay': oldActionDay}
+            r = collection.find_one_and_update(sql, {'$set': {'ActionDay': actionDay}})
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
