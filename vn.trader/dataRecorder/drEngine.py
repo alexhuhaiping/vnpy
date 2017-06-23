@@ -135,6 +135,7 @@ class DrEngine(object):
             collection.insert_one(data)
         else:
             # 没变化，直接更新
+            print('更新 合约 {}'.format(str(data)))
             collection.find_one_and_update({'vtSymbol': vtSymbol, 'ActionDay': actionDay}, {'$set': data})
 
     # ----------------------------------------------------------------------
