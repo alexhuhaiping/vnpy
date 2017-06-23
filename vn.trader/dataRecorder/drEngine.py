@@ -93,7 +93,7 @@ class DrEngine(object):
             if n not in names:
                 try:
                     # 创建数据库
-                    print(u'创建数据库 {}'.format(n))
+                    self.writeDrLog(u'创建数据库 {}'.format(n))
                     col = db.create_collection(n)
                     # # 创建索引
                     # r = col.create_index('datetime', unique=True)
@@ -103,7 +103,8 @@ class DrEngine(object):
                     else:
                         raise
             else:
-                print(u'已经存在数据库 {}'.format(n))
+                pass
+                # print(u'已经存在数据库 {}'.format(n))
         # ====================================================
 
         data = contract.toFuturesDB()
@@ -134,7 +135,7 @@ class DrEngine(object):
             collection.insert_one(data)
         else:
             # 没变化，直接更新
-            collection.update({'vtSymbol': vtSymbol, 'ActionDay': actionDay}, data)
+            collection.find_one_and_update({'vtSymbol': vtSymbol, 'ActionDay': actionDay}, {'$set': data})
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
