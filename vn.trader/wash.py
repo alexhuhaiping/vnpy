@@ -126,15 +126,14 @@ class Washer(object):
             }
         }
 
-        w = self
         cursor = self.db.contract.find(sql)
-        w.contracts = pd.DataFrame([i for i in cursor])
+        self.contracts = pd.DataFrame([i for i in cursor])
 
         # 添加对应的数据库名
-        w.contracts[self.tickcol] = w.contracts.vtSymbol.map(lambda x: '{}_tick'.format(x))
+        self.contracts[self.tickcol] = self.contracts.vtSymbol.map(lambda x: '{}_tick'.format(x))
 
         # 增加对应的商品名，如螺纹钢就是 'rb'
-        w.contracts['objectName'] = w.contracts.vtSymbol.map(self.objectNameFilter)
+        self.contracts['objectName'] = self.contracts.vtSymbol.map(self.objectNameFilter)
 
     def checkIndexes(self):
         """
