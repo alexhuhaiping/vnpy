@@ -104,7 +104,7 @@ class DrEngine(object):
                         raise
             else:
                 pass
-                # print(u'已经存在数据库 {}'.format(n))
+                print(u'已经存在数据库 {}'.format(n))
         # ====================================================
 
         data = contract.toFuturesDB()
