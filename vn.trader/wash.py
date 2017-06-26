@@ -4,7 +4,8 @@ import os
 import json
 import datetime
 import re
-
+import traceback
+import logging
 
 import pandas as pd
 import pymongo
@@ -29,6 +30,13 @@ class Washer(object):
         except:
             VT_setting = './tmp/VT_setting.json'
 
+        # 日志
+        self.logger = logging.getLogger('drwasher')
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(name)s[line:%(lineno)d] - %(message)s'))
+        self.logger.addHandler(sh)
+
         with open(VT_setting, 'r') as f:
             self.VT_setting = json.load(f)
 
@@ -41,6 +49,8 @@ class Washer(object):
         self.dbClient = None  # pymongo.MongoClient()
         self.db = None  # pymongo.MongoClient.database()
         self.contracts = None  # pd.DataFrame()
+
+        self._tickData = None
 
     def do(self):
         """
@@ -58,15 +68,22 @@ class Washer(object):
         self.checkIndexes()
 
         for index, tickInfo in self.contracts.iterrows():
+            if __debug__:
+                testSymbol = 'ag1712'
+                if tickInfo.vtSymbol != testSymbol:
+                    continue
             # 有索引时的操作
-            tickData = self.getTickData(tickInfo)
+            self._tickData = self.getTickData(tickInfo)
+
+            if self._tickData.shape[0] == 0:
+                continue
 
             if not tickInfo.hasIndex:
                 # 没有索引，需要去重
-                tickData = self.dropDunplicateTickData(tickData)
+                self._tickData = self.dropDunplicateTickData(self._tickData)
 
             # TODO 去掉非交易时间的数据
-            # tickData = self.clearNotInTradetime(tickInfo, tickData)
+            # self._tickData = self.clearNotInTradetime(tickInfo, tickData)
 
             # TODO 添加 ActionDay 和 TradeDay
 
@@ -74,12 +91,16 @@ class Washer(object):
                 pass
                 # TODO 创建索引
 
+            if __debug__:
+                if tickInfo.vtSymbol != testSymbol:
+                    break
+
     def __del__(self):
         try:
-            print('close mongodb ...')
+            self.logger.info('close mongodb ...')
             self.dbClient.close()
         except:
-            print('mongdb close error ...')
+            self.logger.warning('mongdb close error ...')
 
     def dbConnect(self):
         """
@@ -91,7 +112,6 @@ class Washer(object):
         self.dbClient = pymongo.MongoClient(self.mongodUrl, connectTimeoutMS=500)
         self.dbClient.server_info()
         self.db = self.dbClient[self.VT_setting['dbn']]
-
 
     def initContracts(self):
         """
