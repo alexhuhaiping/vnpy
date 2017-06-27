@@ -9,7 +9,7 @@ import logging
 
 import pandas as pd
 import pymongo
-import tradingtime
+import tradingtime as tt
 
 
 class Washer(object):
@@ -20,7 +20,7 @@ class Washer(object):
     # 处理几天内的数据
     PRE_DAYS = 2
 
-    objectNameFilter = re.compile(r'^\D*').match
+    goodsNameFilter = re.compile(r'^\D*').match
 
     def __init__(self):
         try:
@@ -70,6 +70,7 @@ class Washer(object):
         for index, tickInfo in self.contracts.iterrows():
             if __debug__:
                 testSymbol = 'ag1712'
+                # testSymbol = 'rb1710'
                 if tickInfo.vtSymbol != testSymbol:
                     continue
             # 有索引时的操作
@@ -83,7 +84,7 @@ class Washer(object):
                 self._tickData = self.dropDunplicateTickData(self._tickData)
 
             # TODO 去掉非交易时间的数据
-            # self._tickData = self.clearNotInTradetime(tickInfo, tickData)
+            # self._tickData = self.clearNotInTradetime(tickInfo, self._tickData)
 
             # TODO 添加 ActionDay 和 TradeDay
 
@@ -133,7 +134,7 @@ class Washer(object):
         self.contracts[self.tickcol] = self.contracts.vtSymbol.map(lambda x: '{}_tick'.format(x))
 
         # 增加对应的商品名，如螺纹钢就是 'rb'
-        self.contracts['objectName'] = self.contracts.vtSymbol.map(self.objectNameFilter)
+        self.contracts['goods'] = self.contracts.vtSymbol.map(self.goodsNameFilter)
 
     def checkIndexes(self):
         """
@@ -201,10 +202,18 @@ class Washer(object):
         :param tickData: pd.DataFrame()
         :return:
         """
-        # TODO 找出交易时间
-        tradingtime.get_tradingtime_by_status()
+        goods = tickInfo.goods
 
-        # TODO 剔除非交易时间段的数据
+        # 找出交易时间
+        def filter(dt):
+            # 这个 tick 要处于连续交易的状态
+            return tt.get_trading_status(goods, dt.time()) == tt.continuous_auction
+
+        # 根据tickData.datetime 来判定是否处于交易时间段
+        result = tickData.datetime.map(filter)
+
+        # 剔除非交易时间段的数据
+        return tickData[result]
 
 
 if __name__ == '__main__':

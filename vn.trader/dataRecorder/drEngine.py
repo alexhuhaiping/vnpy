@@ -108,17 +108,17 @@ class DrEngine(object):
         # ====================================================
 
         data = contract.toFuturesDB()
-        # 获得 ActionDay
-        isAD, actionDay = tradingtime.get_tradingday(datetime.now())
+        # 获得 tradingDay
+        isAD, tradingDay = tradingtime.get_tradingday(datetime.now())
 
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
 
-        actionDay = actionDay.strftime('%Y%m%d')
+        tradingDay = tradingDay.strftime('%Y%m%d')
         # 对比差异
         isChange = False
         try:
-            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('ActionDay', pymongo.DESCENDING).limit(1).next()
-            oldActionDay = oldContract['ActionDay']
+            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('tradingDay', pymongo.DESCENDING).limit(1).next()
+            oldTradingDay = oldContract['TradingDay']
             for k, v in data.items():
                 if v != oldContract[k]:
                     # 合约内容有变换
@@ -130,14 +130,14 @@ class DrEngine(object):
             # 没有数据库
             isChange = True
 
-        data['ActionDay'] = actionDay
+        data['TradingDay'] = tradingDay
         if isChange:
             # 合约有变换，插入一条新的
             collection.insert_one(data)
         else:
             # 没变化，直接更新
-            sql = {'vtSymbol': vtSymbol, 'ActionDay': oldActionDay}
-            r = collection.find_one_and_update(sql, {'$set': {'ActionDay': actionDay}})
+            sql = {'vtSymbol': vtSymbol, 'TradingDay': oldTradingDay}
+            r = collection.find_one_and_update(sql, {'$set': {'TradingDay': tradingDay}})
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
