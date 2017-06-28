@@ -200,6 +200,24 @@ class MainEngine(object):
                 pass
         else:
             self.writeLog(text.DATA_INSERT_FAILED)
+    # ----------------------------------------------------------------------
+    def dbInsertMany(self, dbName, collectionName, ld):
+        """
+        向MongoDB中批量插入数据, ld 是数据队列
+        :param dbName:
+        :param collectionName:
+        :param ld:
+        :return:
+        """
+        if self.dbClient:
+            db = self.dbClient[dbName]
+            collection = db[collectionName]
+            try:
+                collection.insert_many(ld)
+            except DuplicateKeyError:
+                pass
+        else:
+            self.writeLog(text.DATA_INSERT_FAILED)
 
     # ----------------------------------------------------------------------
     def dbQuery(self, dbName, collectionName, d):

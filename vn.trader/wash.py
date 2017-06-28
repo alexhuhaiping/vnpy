@@ -11,6 +11,8 @@ import pandas as pd
 import pymongo
 import tradingtime as tt
 
+_goodsNameFilter = re.compile(r'^\D*').match
+
 
 class Washer(object):
     """
@@ -20,7 +22,9 @@ class Washer(object):
     # 处理几天内的数据
     PRE_DAYS = 2
 
-    goodsNameFilter = re.compile(r'^\D*').match
+    @staticmethod
+    def goodsNameFilter(x):
+        return _goodsNameFilter(x).group()
 
     def __init__(self):
         try:
@@ -83,8 +87,8 @@ class Washer(object):
                 # 没有索引，需要去重
                 self._tickData = self.dropDunplicateTickData(self._tickData)
 
-            # TODO 去掉非交易时间的数据
-            # self._tickData = self.clearNotInTradetime(tickInfo, self._tickData)
+            # 去掉非交易时间的数据
+            self._tickData = self.clearNotInTradetime(tickInfo, self._tickData)
 
             # TODO 添加 ActionDay 和 TradeDay
 
@@ -122,7 +126,7 @@ class Washer(object):
 
         # 获取这几天来的合约信息
         sql = {
-            'ActionDay': {
+            'TradingDay': {
                 '$gte': self.preDate.strftime('%Y%m%d')
             }
         }
