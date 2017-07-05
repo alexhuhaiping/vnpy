@@ -14,8 +14,11 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 from pymongo.errors import OperationFailure
+import traceback
 
 import tradingtime
+import pymongo
+import vtGlobal
 
 from eventEngine import *
 from vtGateway import VtSubscribeReq, VtLogData
@@ -56,6 +59,10 @@ class DrEngine(object):
         # self.queue = Queue()  # 队列
         self.thread = Thread(target=self.run)  # 线程
 
+        # 启动标志
+        self._subcribeNum = 0
+        self.startReport = False
+
         # 载入设置，订阅行情
         self.loadSetting()
 
@@ -84,6 +91,7 @@ class DrEngine(object):
         # ====================================================
         # 创建collection，并设置索引
         db = self.mainEngine.dbClient[CONTRACT_DB_NAME]
+
         if not self.collectionNames:
             self.collectionNames = set(db.collection_names())
 
@@ -143,9 +151,41 @@ class DrEngine(object):
             sql = {'vtSymbol': vtSymbol, 'TradingDay': oldTradingDay}
             r = collection.find_one_and_update(sql, {'$set': {'TradingDay': tradingDay}})
 
+        self._subcribeNum += 1
+        if not self.startReport and self._subcribeNum > 400:
+            # 汇报启动
+            self.startReport = True
+            url = 'mongodb://{slavemUsername}:{slavemPassword}@{slavemHost}:{slavemPort}/{slavemdbn}?authMechanism=SCRAM-SHA-1'.format(
+                **vtGlobal.VT_setting)
+            try:
+                # 设置MongoDB操作的超时时间为0.5秒
+                self.dbClient = pymongo.MongoClient(url, connectTimeoutMS=500)
+
+                # 调用server_info查询服务器状态，防止服务器异常并未连接成功
+                self.dbClient.server_info()
+
+                # 提交报告的 collection
+                report = self.dbClient.slavem['resport']
+                r = {
+                    'name': vtGlobal.VT_setting['slavemName'],
+                    'type': vtGlobal.VT_setting['slavemType'],
+                    'datetime': datetime.now()
+                }
+
+                r = report.insert_one(r)
+                if not r.acknowledged:
+                    print(u'启动汇报失败!')
+                else:
+                    print(u'启动汇报完成')
+            except:
+                print(u'启动汇报失败!')
+                traceback.print_exc()
+
+
     # ----------------------------------------------------------------------
     def loadSetting(self):
         """载入设置"""
+
         with open(self.settingFileName) as f:
             drSetting = json.load(f)
 
