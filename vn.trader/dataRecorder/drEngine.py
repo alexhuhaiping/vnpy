@@ -169,7 +169,8 @@ class DrEngine(object):
                 r = {
                     'name': vtGlobal.VT_setting['slavemName'],
                     'type': vtGlobal.VT_setting['slavemType'],
-                    'datetime': datetime.now()
+                    'datetime': datetime.now(),
+                    'host': vtGlobal.VT_setting['slaveMLocalhost'],
                 }
 
                 r = report.insert_one(r)
