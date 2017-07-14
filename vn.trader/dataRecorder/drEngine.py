@@ -165,7 +165,7 @@ class DrEngine(object):
                 self.dbClient.server_info()
 
                 # 提交报告的 collection
-                report = self.dbClient.slavem['resport']
+                report = self.dbClient.slavem['report']
                 r = {
                     'name': vtGlobal.VT_setting['slavemName'],
                     'type': vtGlobal.VT_setting['slavemType'],
