@@ -129,7 +129,7 @@ class DrEngine(object):
         # 对比差异
         isChange = False
         try:
-            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('tradingDay', pymongo.DESCENDING).limit(1).next()
+            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('TradingDay', pymongo.DESCENDING).limit(1).next()
             oldTradingDay = oldContract['TradingDay']
             for k, v in data.items():
                 if v != oldContract[k]:
