@@ -129,17 +129,20 @@ class DrEngine(object):
         # 对比差异
         isChange = False
         try:
-            oldContract = collection.find({'vtSymbol': vtSymbol}).sort('TradingDay', pymongo.DESCENDING).limit(1).next()
+            oldContract = collection.find({'vtSymbol': vtSymbol}, {'_id': 0}).sort('TradingDay', pymongo.DESCENDING).limit(1).next()
             oldTradingDay = oldContract['TradingDay']
-            for k, v in data.items():
-                if v != oldContract[k]:
+            for k, v in oldContract.items():
+                if v != data[k]:
                     # 合约内容有变换
                     isChange = True
+                    print(u'{}合约的字段{}存在不一致 oldContract:{} data:{}'.format(symbol, k, v, data[k]))
                     break
         except StopIteration:
+            print(u'{}合约因为 StopIteration 不一致')
             isChange = True
         except OperationFailure:
-            # 没有数据库
+            # 没有数据
+            print(u'{}合约因为 OperationFailure 不一致')
             isChange = True
 
         data['TradingDay'] = tradingDay
