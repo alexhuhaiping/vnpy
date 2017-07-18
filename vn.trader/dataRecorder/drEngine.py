@@ -132,6 +132,8 @@ class DrEngine(object):
             oldContract = collection.find({'vtSymbol': vtSymbol}, {'_id': 0}).sort('TradingDay', pymongo.DESCENDING).limit(1).next()
             oldTradingDay = oldContract['TradingDay']
             for k, v in oldContract.items():
+                if k == 'TradingDay':
+                    continue
                 if v != data[k]:
                     # 合约内容有变换
                     isChange = True
