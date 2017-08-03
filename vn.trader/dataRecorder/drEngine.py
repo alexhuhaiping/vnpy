@@ -68,7 +68,6 @@ class DrEngine(object):
         self.loadSetting()
 
         self.collectionNames = []
-        self.count = 0
 
     def subscribeDrContract(self, event):
         """
@@ -350,7 +349,6 @@ class DrEngine(object):
         dbName = TICK_DB_NAME
 
         while self.active:
-            count = 0
             try:
                 ticks = []
                 # while self.tickQueue._qsize() > 100:
@@ -359,15 +357,12 @@ class DrEngine(object):
                         data = self.tickQueue.get_nowait()
                         t = data.__dict__.copy()
                         ticks.append(t)
-                        self.count += 1
-                        count += 1
                 except Empty:
                     pass
 
                 if ticks:
                     # 批量存储
                     self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
-                print(datetime.now(), self.count)
                 time.sleep(5)
 
             except:
