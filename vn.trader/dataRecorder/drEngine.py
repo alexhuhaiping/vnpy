@@ -68,6 +68,7 @@ class DrEngine(object):
         self.loadSetting()
 
         self.collectionNames = []
+        self.count = 0
 
     def subscribeDrContract(self, event):
         """
@@ -354,17 +355,19 @@ class DrEngine(object):
                 ticks = []
                 try:
                     while count < 1000:
-                        count += 1
                         data = self.tickQueue.get(timeout=1)
                         t = data.__dict__.copy()
                         ticks.append(t)
+                        self.count += 1
+                        count += 1
                 except Empty:
                     pass
 
                 if ticks:
                     # 批量存储
                     self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
-                time.sleep(10)
+                print(self.count)
+                time.sleep(5)
 
             except:
                 traceback.print_exc()
