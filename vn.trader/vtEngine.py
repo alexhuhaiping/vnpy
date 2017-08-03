@@ -206,7 +206,7 @@ class MainEngine(object):
         向MongoDB中批量插入数据, ld 是数据队列
         :param dbName:
         :param collectionName:
-        :param ld:
+        :param ld: [{}, {}]
         :return:
         """
         if self.dbClient:

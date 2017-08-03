@@ -6,12 +6,13 @@
 使用DR_setting.json来配置需要收集的合约，以及主力合约代码。
 '''
 
+import time
 import json
 import os
 import copy
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from Queue import Queue
+from Queue import Queue, Empty
 from threading import Thread
 from pymongo.errors import OperationFailure
 import traceback
@@ -55,8 +56,8 @@ class DrEngine(object):
 
         # 负责执行数据库插入的单独线程相关
         self.active = False  # 工作状态
-        self.tickCache = {}  # 缓存队列 {'collcectionName': Queue()}
-        # self.queue = Queue()  # 队列
+        # self.tickCache = {}  # 缓存队列 {'collcectionName': Queue()}
+        self.tickQueue = Queue()  # 队列
         self.thread = Thread(target=self.run)  # 线程
 
         # 启动标志
@@ -129,7 +130,8 @@ class DrEngine(object):
         # 对比差异
         isChange = False
         try:
-            oldContract = collection.find({'vtSymbol': vtSymbol}, {'_id': 0}).sort('TradingDay', pymongo.DESCENDING).limit(1).next()
+            oldContract = collection.find({'vtSymbol': vtSymbol}, {'_id': 0}).sort('TradingDay',
+                                                                                   pymongo.DESCENDING).limit(1).next()
             oldTradingDay = oldContract['TradingDay']
             for k, v in oldContract.items():
                 if k == 'TradingDay':
@@ -186,7 +188,6 @@ class DrEngine(object):
             except:
                 print(u'启动汇报失败!')
                 traceback.print_exc()
-
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
@@ -332,34 +333,38 @@ class DrEngine(object):
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
         """插入数据到数据库（这里的data可以是CtaTickData或者CtaBarData）"""
-        # self.queue.put((dbName, collectionName, data.__dict__))
-        try:
-            q = self.tickCache[collectionName]
-        except KeyError:
-            q = Queue()
-            self.tickCache[collectionName] = q
+        self.tickQueue.put(data.__dict__)
+        # try:
+        #     q = self.tickCache[collectionName]
+        # except KeyError:
+        #     q = Queue()
+        #     self.tickCache[collectionName] = q
 
-        # 将tick数据放入队列
-        q.put(data)
+        # # 将tick数据放入队列
+        # q.put(data)
 
     # ----------------------------------------------------------------------
     def run(self):
         """运行插入线程"""
+        dbName = TICK_DB_NAME
+
         while self.active:
-            dbName = TICK_DB_NAME
-            for collectionName, q in self.tickCache.items():
+            try:
                 ticks = []
-                assert isinstance(q, Queue)
                 try:
                     while True:
-                        data = q.get_nowait()
-                        ticks.append(data.__dict__)
+                        t = self.tickQueue.get(timeout=1)
+                        ticks.append(t)
                 except Empty:
-                    pass
+                    traceback.print_exc()
+
                 if ticks:
                     # 批量存储
-                    self.mainEngine.dbInsertMany(dbName, collectionName, ticks)
-
+                    print(dbName, TICK_COLLECTION_SUBFIX)
+                    self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
+            except:
+                traceback.print_exc()
+        print(19191919)
     # ----------------------------------------------------------------------
     def start(self):
         """启动"""
