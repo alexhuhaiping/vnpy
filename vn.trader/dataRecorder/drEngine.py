@@ -364,7 +364,7 @@ class DrEngine(object):
                 if ticks:
                     # 批量存储
                     self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
-                time.sleep(5)
+                time.sleep(10)
 
             except:
                 traceback.print_exc()
