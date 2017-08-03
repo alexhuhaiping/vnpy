@@ -333,7 +333,7 @@ class DrEngine(object):
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
         """插入数据到数据库（这里的data可以是CtaTickData或者CtaBarData）"""
-        self.tickQueue.put(data.__dict__)
+        self.tickQueue.put(data)
         # try:
         #     q = self.tickCache[collectionName]
         # except KeyError:
@@ -350,21 +350,25 @@ class DrEngine(object):
 
         while self.active:
             try:
+                count = 0
                 ticks = []
                 try:
-                    while True:
-                        t = self.tickQueue.get(timeout=1)
+                    while count < 1000:
+                        count += 1
+                        data = self.tickQueue.get(timeout=1)
+                        t = data.__dict__.copy()
                         ticks.append(t)
                 except Empty:
-                    traceback.print_exc()
+                    pass
 
                 if ticks:
                     # 批量存储
-                    print(dbName, TICK_COLLECTION_SUBFIX)
                     self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
+                time.sleep(5)
+
             except:
                 traceback.print_exc()
-        print(19191919)
+
     # ----------------------------------------------------------------------
     def start(self):
         """启动"""
