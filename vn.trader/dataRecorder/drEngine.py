@@ -350,12 +350,13 @@ class DrEngine(object):
         dbName = TICK_DB_NAME
 
         while self.active:
+            count = 0
             try:
-                count = 0
                 ticks = []
+                # while self.tickQueue._qsize() > 100:
                 try:
-                    while count < 1000:
-                        data = self.tickQueue.get(timeout=1)
+                    while True:
+                        data = self.tickQueue.get_nowait()
                         t = data.__dict__.copy()
                         ticks.append(t)
                         self.count += 1
@@ -366,7 +367,7 @@ class DrEngine(object):
                 if ticks:
                     # 批量存储
                     self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
-                print(self.count)
+                print(datetime.now(), self.count)
                 time.sleep(5)
 
             except:
