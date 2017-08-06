@@ -97,9 +97,13 @@ def runServer():
         printLog(u'MongoDB connect... ')
         server.engine.dbConnect()
 
+    # 建立数据库
+    server.engine.drEngine.initDRCollection()
+
     if VT_setting.get('autoctp'):
         # 自动建立CTP链接
         printLog(u"CTP connect... ")
+        # 建立 CTP 链接后就会开始获取所有合约信息
         server.engine.connect("CTP")
 
     # if VT_setting.get('drall'):

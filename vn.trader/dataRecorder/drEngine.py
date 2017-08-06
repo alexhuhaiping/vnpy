@@ -57,7 +57,8 @@ class DrEngine(object):
         # 负责执行数据库插入的单独线程相关
         self.active = False  # 工作状态
         # self.tickCache = {}  # 缓存队列 {'collcectionName': Queue()}
-        self.tickQueue = Queue()  # 队列
+        # self.tickQueue = Queue()  # 队列
+        self.queue = Queue()
         self.thread = Thread(target=self.run)  # 线程
 
         # 启动标志
@@ -122,7 +123,7 @@ class DrEngine(object):
 
         data = contract.toFuturesDB()
         # 获得 tradingDay
-        isAD, tradingDay = tradingtime.get_tradingday(datetime.now())
+        isCanTrade, tradingDay = tradingtime.get_tradingday(datetime.datetime.now())
 
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
 
@@ -176,7 +177,7 @@ class DrEngine(object):
                 r = {
                     'name': vtGlobal.VT_setting['slavemName'],
                     'type': vtGlobal.VT_setting['slavemType'],
-                    'datetime': datetime.now(),
+                    'datetime': datetime.datetime.now(),
                     'host': vtGlobal.VT_setting['slaveMLocalhost'],
                 }
 
@@ -275,16 +276,16 @@ class DrEngine(object):
         for key in d.keys():
             if key != 'datetime':
                 d[key] = tick.__getattribute__(key)
-        drTick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+        drTick.datetime = datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
 
         # 更新Tick数据 ====================
         # if vtSymbol in self.tickDict:
-        tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
-        barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
+        # tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
+        # barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
 
         # self.insertData(TICK_DB_NAME, vtSymbol, drTick)
         # self.insertData(TICK_DB_NAME, tickColName, drTick)
-        self.insertData('ctp', 'tick', drTick)
+        # self.insertData('ctp', 'tick', drTick)
 
         # if vtSymbol in self.activeSymbolDict:
         #     activeSymbol = self.activeSymbolDict[vtSymbol]
@@ -301,29 +302,34 @@ class DrEngine(object):
         # 更新分钟线数据 ================================================================
         #
         # if vtSymbol in self.barDict:
-        # bar = self.barDict.get(vtSymbol, DrBarData())
-        # # 如果第一个TICK或者新的一分钟
-        # if not bar.datetime or bar.datetime.minute != drTick.datetime.minute:
-        #     if bar.vtSymbol:
-        #         newBar = copy.copy(bar)
-        #         # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
-        #         self.insertData(MINUTE_DB_NAME, barColName, newBar)
-        #
-        #         if vtSymbol in self.activeSymbolDict:
-        #             activeSymbol = self.activeSymbolDict[vtSymbol]
-        #             self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
-        #
-        #         self.writeDrLog(text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
-        #                                                         time=bar.time,
-        #                                                         open=bar.open,
-        #                                                         high=bar.high,
-        #                                                         low=bar.low,
-        #                                                         close=bar.close))
-        #     bar.tickNew(drTick)
-        #     # 否则继续累加新的K线
-        # else:
-        #     bar.tickUpdate(drTick)
-        # 更新分钟线数据 ================================================================
+        bar = self.barDict.get(vtSymbol)
+
+        # 如果第一个TICK或者新的一分钟
+        if not bar.datetime:
+            # 刚开盘，没有任何数据
+            bar.tickNew(drTick)
+        elif bar.datetime != bar.dt2DTM(drTick.datetime):
+            # 新的1分钟
+            if bar.vtSymbol:
+                newBar = copy.copy(bar)
+                # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
+                self.insertData(MINUTE_DB_NAME, BAR_COLLECTION_NAME, newBar)
+                # if vtSymbol in self.activeSymbolDict:
+                #     保存主力合约
+                #     activeSymbol = self.activeSymbolDict[vtSymbol]
+                #     self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
+
+                self.writeDrLog(text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
+                                                                time=bar.time,
+                                                                open=bar.open,
+                                                                high=bar.high,
+                                                                low=bar.low,
+                                                                close=bar.close))
+            bar.tickNew(drTick)
+            # 否则继续累加新的K线
+        else:
+            bar.tickUpdate(drTick)
+            # 更新分钟线数据 ================================================================
 
     def registerEvent(self):
         """注册事件监听"""
@@ -333,40 +339,26 @@ class DrEngine(object):
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
         """插入数据到数据库（这里的data可以是CtaTickData或者CtaBarData）"""
-        self.tickQueue.put(data)
-        # try:
-        #     q = self.tickCache[collectionName]
-        # except KeyError:
-        #     q = Queue()
-        #     self.tickCache[collectionName] = q
-
-        # # 将tick数据放入队列
-        # q.put(data)
+        # self.queue.put((dbName, collectionName, data))
+        self.queue.put(data)
 
     # ----------------------------------------------------------------------
     def run(self):
         """运行插入线程"""
-        dbName = TICK_DB_NAME
-
         while self.active:
-            try:
-                ticks = []
-                # while self.tickQueue._qsize() > 100:
+            count = 0
+            datas = []
+            while True:
                 try:
-                    while True:
-                        data = self.tickQueue.get_nowait()
-                        t = data.__dict__.copy()
-                        ticks.append(t)
+                    data = self.queue.get_nowait()
+                    datas.append(data.__dict__.copy())
+                    count += 1
                 except Empty:
-                    pass
-
-                if ticks:
-                    # 批量存储
-                    self.mainEngine.dbInsertMany(dbName, TICK_COLLECTION_SUBFIX, ticks)
-                time.sleep(5)
-
-            except:
-                traceback.print_exc()
+                    break
+            if datas:
+                self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME, datas)
+            print(count)
+            time.sleep(5)
 
     # ----------------------------------------------------------------------
     def start(self):
@@ -407,3 +399,30 @@ class DrEngine(object):
         :return:
         """
         return '{}_{}{}'.format(vtSymbol, min, BAR_COLLECTION_SUBFIX)
+
+    def initDRCollection(self):
+        """
+
+        :return:
+        """
+        self.initContractCollection()
+        self.initBarCollection()
+
+    def initContractCollection(self):
+        if CONTRACT_INFO_COLLECTION_NAME in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
+            # colleciton contract 已经存在
+            return
+        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(CONTRACT_INFO_COLLECTION_NAME)
+
+    def initBarCollection(self):
+        if BAR_COLLECTION_NAME in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
+            # colleciton bar_1min 已经存在
+            return
+        # 创建新的 collection
+        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(BAR_COLLECTION_NAME)
+        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][BAR_COLLECTION_NAME]
+
+        collection.create_index([
+            ('symbol', 1),
+            ('datetime', -1)
+        ])

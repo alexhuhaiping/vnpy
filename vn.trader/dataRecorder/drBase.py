@@ -9,6 +9,9 @@ import pymongo
 
 # 把vn.trader根目录添加到python环境变量中
 import sys
+import datetime
+import tradingtime as tt
+
 
 sys.path.append('..')
 
@@ -22,8 +25,9 @@ TICK_DB_NAME = 'ctp'
 DAILY_DB_NAME = 'ctp'
 MINUTE_DB_NAME = 'ctp'
 CONTRACT_DB_NAME = 'ctp'
-TICK_COLLECTION_SUBFIX = 'tick'
+# TICK_COLLECTION_SUBFIX = 'tick'
 BAR_COLLECTION_SUBFIX = 'min'
+BAR_COLLECTION_NAME = 'bar_1min'
 CONTRACT_INFO_COLLECTION_NAME = 'contract'
 
 # CTA引擎中涉及的数据类定义
@@ -40,6 +44,7 @@ class DrBarData(object):
         self.vtSymbol = EMPTY_STRING  # vt系统代码
         self.symbol = EMPTY_STRING  # 代码
         self.exchange = EMPTY_STRING  # 交易所
+        self.tradingDay = EMPTY_STRING
 
         self.open = EMPTY_FLOAT  # OHLC
         self.high = EMPTY_FLOAT
@@ -75,7 +80,10 @@ class DrBarData(object):
 
         bar.date = drTick.date
         bar.time = drTick.time
-        bar.datetime = drTick.datetime
+        bar.datetime = self.dt2DTM(drTick.datetime)
+        isTrading, bar.tradingDay = tt.get_tradingday(drTick.datetime)
+        if not isTrading:
+            bar.vtSymbol = None
         bar.volume = drTick.volume
         bar.openInterest = drTick.openInterest
 
@@ -94,6 +102,20 @@ class DrBarData(object):
         bar.close = drTick.lastPrice
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
+
+    @staticmethod
+    def dt2DTM(dt):
+        """
+        将某一时刻的 dt 转为对应的 dtm
+        :return:
+        """
+        assert isinstance(dt, datetime.datetime)
+
+        if dt.second == 0 and dt.microsecond == 0:
+            # 整分钟时的 tick，算入上一个 1min bar 中，比如 11:30:00 的tick算作 11:29:00 的 1min bar
+            return dt - datetime.timedelta(seconds=60)
+        else:
+            return dt.replace(second=0, microsecond=0)
 
 ########################################################################
 class DrTickData(object):
