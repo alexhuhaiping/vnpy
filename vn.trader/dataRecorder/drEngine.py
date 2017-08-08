@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from Queue import Queue, Empty
 from threading import Thread
 from pymongo.errors import OperationFailure
+from pymongo import IndexModel, ASCENDING, DESCENDING
 import traceback
 
 import tradingtime
@@ -351,13 +352,14 @@ class DrEngine(object):
             while True:
                 try:
                     data = self.queue.get_nowait()
-                    datas.append(data.__dict__.copy())
+                    datas.append(data.toSave())
                     count += 1
                 except Empty:
                     break
             if datas:
                 self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME, datas)
-            print(count)
+                self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME_BAK, datas)
+
             time.sleep(5)
 
     # ----------------------------------------------------------------------
@@ -406,7 +408,9 @@ class DrEngine(object):
         :return:
         """
         self.initContractCollection()
-        self.initBarCollection()
+
+        self.initBarCollection(BAR_COLLECTION_NAME)
+        self.initBarCollection(BAR_COLLECTION_NAME_BAK)
 
     def initContractCollection(self):
         if CONTRACT_INFO_COLLECTION_NAME in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
@@ -414,15 +418,19 @@ class DrEngine(object):
             return
         self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(CONTRACT_INFO_COLLECTION_NAME)
 
-    def initBarCollection(self):
-        if BAR_COLLECTION_NAME in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
+    def initBarCollection(self, barCollectionName):
+        if barCollectionName in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
             # colleciton bar_1min 已经存在
             return
         # 创建新的 collection
-        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(BAR_COLLECTION_NAME)
-        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][BAR_COLLECTION_NAME]
+        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(barCollectionName)
+        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][barCollectionName]
 
-        collection.create_index([
-            ('symbol', 1),
-            ('datetime', -1)
-        ])
+        indexSymbol = IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
+        indexTradingDay = IndexModel([('tradingDay', DESCENDING)], name='tradingDay', background=True)
+        collection.create_indexes(
+            [
+                indexSymbol,
+                indexTradingDay,
+            ],
+        )

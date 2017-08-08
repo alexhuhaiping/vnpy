@@ -10,8 +10,8 @@ import pymongo
 # 把vn.trader根目录添加到python环境变量中
 import sys
 import datetime
+import pytz
 import tradingtime as tt
-
 
 sys.path.append('..')
 
@@ -28,10 +28,13 @@ CONTRACT_DB_NAME = 'ctp'
 # TICK_COLLECTION_SUBFIX = 'tick'
 BAR_COLLECTION_SUBFIX = 'min'
 BAR_COLLECTION_NAME = 'bar_1min'
+BAR_COLLECTION_NAME_BAK = 'bar_1min_bak'
 CONTRACT_INFO_COLLECTION_NAME = 'contract'
 
 # CTA引擎中涉及的数据类定义
 from vtConstant import EMPTY_UNICODE, EMPTY_STRING, EMPTY_FLOAT, EMPTY_INT
+
+LOCAL_TZINFO = pytz.timezone('Asia/Shanghai')
 
 
 ########################################################################
@@ -78,12 +81,13 @@ class DrBarData(object):
         bar.low = drTick.lastPrice
         bar.close = drTick.lastPrice
 
-        bar.date = drTick.date
-        bar.time = drTick.time
         bar.datetime = self.dt2DTM(drTick.datetime)
         isTrading, bar.tradingDay = tt.get_tradingday(drTick.datetime)
         if not isTrading:
             bar.vtSymbol = None
+        assert isinstance(bar.datetime, datetime.datetime)
+        bar.date = bar.datetime.strftime('%Y%m%d')
+        bar.time = bar.datetime.strftime('%H:%M:%S')
         bar.volume = drTick.volume
         bar.openInterest = drTick.openInterest
 
@@ -110,12 +114,35 @@ class DrBarData(object):
         :return:
         """
         assert isinstance(dt, datetime.datetime)
-
+        dt = dt.replace(tzinfo=LOCAL_TZINFO)
         if dt.second == 0 and dt.microsecond == 0:
-            # 整分钟时的 tick，算入上一个 1min bar 中，比如 11:30:00 的tick算作 11:29:00 的 1min bar
-            return dt - datetime.timedelta(seconds=60)
+            # 11:29:00.500 ~ 11:30:00 算作 bar 11:30:00.
+            # 第一个bar 是 9:01:00，最后一个 bar 是 11:30:00
+            return dt
         else:
-            return dt.replace(second=0, microsecond=0)
+            return dt.replace(second=0, microsecond=0) + datetime.timedelta(seconds=60)
+
+    def toSave(self):
+        """
+
+        :return:
+        """
+        return {
+            'symbol': self.symbol,
+            'tradingDay': self.tradingDay,
+            'open': self.open,
+            'high': self.high,
+            'low': self.low,
+            'close': self.close,
+            'upperLimit': self.upperLimit,
+            'lowerLimit': self.lowerLimit,
+            'date': self.date,
+            'time': self.time,
+            'datetime': self.datetime,
+            'volume': self.volume,
+            'openInterest': self.openInterest,
+        }
+
 
 ########################################################################
 class DrTickData(object):
