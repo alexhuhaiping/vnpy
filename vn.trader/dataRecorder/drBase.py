@@ -81,10 +81,12 @@ class DrBarData(object):
         bar.low = drTick.lastPrice
         bar.close = drTick.lastPrice
 
-        bar.datetime = self.dt2DTM(drTick.datetime)
         isTrading, bar.tradingDay = tt.get_tradingday(drTick.datetime)
         if not isTrading:
             bar.vtSymbol = None
+        else:
+            bar.vtSymbol = drTick.vtSymbol
+        bar.datetime = self.dt2DTM(drTick.datetime)
         assert isinstance(bar.datetime, datetime.datetime)
         bar.date = bar.datetime.strftime('%Y%m%d')
         bar.time = bar.datetime.strftime('%H:%M:%S')
