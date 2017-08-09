@@ -75,7 +75,7 @@ def autoshutdown(clocks=None):
     clocks = clocks or [
         dt.time(2, 31),  # 夜盘后关闭
         dt.time(8, 39),  # 日盘前关闭
-        dt.time(15, 39),  # 日盘后关闭
+        dt.time(15, 16),  # 日盘后关闭
         dt.time(20, 39),  # 夜盘前关闭
     ]
     from threading import Thread
