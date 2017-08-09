@@ -60,6 +60,7 @@ class DrBarData(object):
         self.date = EMPTY_STRING  # bar开始的时间，日期
         self.time = EMPTY_STRING  # 时间
         self.datetime = None  # python的datetime时间对象
+        self.last = None  # 最后一个tick 的 datetime
 
         self.volume = EMPTY_INT  # 成交量
         self.openInterest = EMPTY_INT  # 持仓量
@@ -81,17 +82,25 @@ class DrBarData(object):
         bar.low = drTick.lastPrice
         bar.close = drTick.lastPrice
 
-        isTrading, bar.tradingDay = tt.get_tradingday(drTick.datetime)
+        bar.last = drTick.datetime
+        bar.vtSymbol = drTick.vtSymbol
+        isTrading, tradingDay = tt.get_tradingday(drTick.datetime)
+        bar.tradingDay = LOCAL_TZINFO.localize(tradingDay)
+
         if not isTrading:
+            # 非交易时间 bar 不保存
             bar.vtSymbol = None
-        else:
-            bar.vtSymbol = drTick.vtSymbol
+
         bar.datetime = self.dt2DTM(drTick.datetime)
         assert isinstance(bar.datetime, datetime.datetime)
+
         bar.date = bar.datetime.strftime('%Y%m%d')
         bar.time = bar.datetime.strftime('%H:%M:%S')
-        bar.volume = drTick.volume
         bar.openInterest = drTick.openInterest
+        if bar.volume == drTick.volume:
+            # bar 没更新，不保存
+            bar.vtSymbol = None
+        bar.volume = drTick.volume
 
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
@@ -103,11 +112,18 @@ class DrBarData(object):
         :return:
         """
         bar = self
+        bar.last = drTick.datetime
         bar.high = max(bar.high, drTick.lastPrice)
         bar.low = min(bar.low, drTick.lastPrice)
         bar.close = drTick.lastPrice
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
+        if not bar.vtSymbol and bar.volume != drTick.volume:
+            if __debug__:
+                print(u'{} bar 更新，要保存'.format(drTick.vtSymbol))
+            bar.vtSymbol = drTick.vtSymbol
+        bar.volume = drTick.volume
+        bar.openInterest = drTick.openInterest
 
     @staticmethod
     def dt2DTM(dt):
@@ -116,7 +132,6 @@ class DrBarData(object):
         :return:
         """
         assert isinstance(dt, datetime.datetime)
-        dt = dt.replace(tzinfo=LOCAL_TZINFO)
         if dt.second == 0 and dt.microsecond == 0:
             # 11:29:00.500 ~ 11:30:00 算作 bar 11:30:00.
             # 第一个bar 是 9:01:00，最后一个 bar 是 11:30:00

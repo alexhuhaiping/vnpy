@@ -7,7 +7,7 @@ from datetime import datetime
 import traceback
 
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, DuplicateKeyError
+from pymongo.errors import ConnectionFailure, DuplicateKeyError, AutoReconnect
 
 from eventEngine import *
 from vtGateway import *
@@ -214,8 +214,12 @@ class MainEngine(object):
             collection = db[collectionName]
             try:
                 collection.insert_many(ld)
-            except DuplicateKeyError:
-                pass
+            except AutoReconnect:
+                self.dbClient.close()
+                self.dbConnect()
+                self.dbInsertMany(self, dbName, collectionName, ld)
+
+
         else:
             self.writeLog(text.DATA_INSERT_FAILED)
 

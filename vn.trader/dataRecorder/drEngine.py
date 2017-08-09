@@ -82,6 +82,10 @@ class DrEngine(object):
             return
         vtSymbol = symbol = contract.symbol
 
+        if __debug__:
+            if symbol != 'rb1802':
+                return
+
         req = VtSubscribeReq()
         req.symbol = symbol
 
@@ -124,7 +128,7 @@ class DrEngine(object):
 
         data = contract.toFuturesDB()
         # 获得 tradingDay
-        isCanTrade, tradingDay = tradingtime.get_tradingday(datetime.datetime.now())
+        isCanTrade, tradingDay = tradingtime.get_tradingday(datetime.datetime.now(LOCAL_TZINFO))
 
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
 
@@ -273,11 +277,12 @@ class DrEngine(object):
 
         # 转化Tic k格式
         drTick = DrTickData()
-        d = drTick.__dict__
-        for key in d.keys():
-            if key != 'datetime':
-                d[key] = tick.__getattribute__(key)
-        drTick.datetime = datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+        # d = drTick.__dict__
+        # for key in d.keys():
+        #     if key != 'datetime':
+        #         d[key] = tick.__getattribute__(key)
+        drTick.datetime = LOCAL_TZINFO.localize(datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f'))
+
 
         # 更新Tick数据 ====================
         # if vtSymbol in self.tickDict:
@@ -312,9 +317,9 @@ class DrEngine(object):
         elif bar.datetime != bar.dt2DTM(drTick.datetime):
             # 新的1分钟
             if bar.vtSymbol:
-                newBar = copy.copy(bar)
+                oldBar = copy.copy(bar)
                 # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
-                self.insertData(MINUTE_DB_NAME, BAR_COLLECTION_NAME, newBar)
+                self.insertData(MINUTE_DB_NAME, BAR_COLLECTION_NAME, oldBar)
                 # if vtSymbol in self.activeSymbolDict:
                 #     保存主力合约
                 #     activeSymbol = self.activeSymbolDict[vtSymbol]
