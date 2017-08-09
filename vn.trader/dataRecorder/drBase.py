@@ -85,10 +85,13 @@ class DrBarData(object):
         bar.last = drTick.datetime
         bar.vtSymbol = drTick.vtSymbol
         isTrading, tradingDay = tt.get_tradingday(drTick.datetime)
+
         bar.tradingDay = LOCAL_TZINFO.localize(tradingDay)
 
         if not isTrading:
-            # 非交易时间 bar 不保存
+            # if __debug__:
+            #     print(u'{} # 非交易时间 bar 不保存'.format(self.symbol))
+
             bar.vtSymbol = None
 
         bar.datetime = self.dt2DTM(drTick.datetime)
@@ -98,6 +101,8 @@ class DrBarData(object):
         bar.time = bar.datetime.strftime('%H:%M:%S')
         bar.openInterest = drTick.openInterest
         if bar.volume == drTick.volume:
+            # if __debug__:
+            #     print(u'{} bar 没更新，不保存'.format(self.symbol))
             # bar 没更新，不保存
             bar.vtSymbol = None
         bar.volume = drTick.volume
@@ -119,8 +124,8 @@ class DrBarData(object):
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
         if not bar.vtSymbol and bar.volume != drTick.volume:
-            if __debug__:
-                print(u'{} bar 更新，要保存'.format(drTick.vtSymbol))
+            # if __debug__:
+            #     print(u'{} bar 更新，要保存'.format(self.symbol))
             bar.vtSymbol = drTick.vtSymbol
         bar.volume = drTick.volume
         bar.openInterest = drTick.openInterest

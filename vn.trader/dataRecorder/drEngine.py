@@ -82,10 +82,6 @@ class DrEngine(object):
             return
         vtSymbol = symbol = contract.symbol
 
-        if __debug__:
-            if symbol != 'rb1802':
-                return
-
         req = VtSubscribeReq()
         req.symbol = symbol
 
@@ -277,12 +273,11 @@ class DrEngine(object):
 
         # 转化Tic k格式
         drTick = DrTickData()
-        # d = drTick.__dict__
-        # for key in d.keys():
-        #     if key != 'datetime':
-        #         d[key] = tick.__getattribute__(key)
+        d = drTick.__dict__
+        for key in d.keys():
+            if key != 'datetime':
+                d[key] = tick.__getattribute__(key)
         drTick.datetime = LOCAL_TZINFO.localize(datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f'))
-
 
         # 更新Tick数据 ====================
         # if vtSymbol in self.tickDict:
