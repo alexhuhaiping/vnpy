@@ -13,6 +13,7 @@ from eventEngine import *
 from vtGateway import *
 from vtFunction import loadMongoSetting
 from language import text
+from slavem import Reporter
 
 import vtGlobal
 from gateway import GATEWAY_DICT
@@ -30,6 +31,11 @@ class MainEngine(object):
         """Constructor"""
         # 记录今日日期
         self.todayDate = datetime.now().strftime('%Y%m%d')
+
+        # slavem的汇报实例
+        self.slavemReport = Reporter(
+            **vtGlobal.VT_setting['slavem']
+        )
 
         # 创建事件引擎
         self.eventEngine = EventEngine2()
