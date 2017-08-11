@@ -178,7 +178,7 @@ class DrEngine(object):
                 r = {
                     'name': vtGlobal.VT_setting['slavemName'],
                     'type': vtGlobal.VT_setting['slavemType'],
-                    'datetime': datetime.datetime.now(),
+                    'datetime': datetime.datetime.now(LOCAL_TZINFO),
                     'host': vtGlobal.VT_setting['slaveMLocalhost'],
                 }
 
