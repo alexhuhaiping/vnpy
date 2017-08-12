@@ -164,32 +164,34 @@ class DrEngine(object):
         if not self.startReport and self._subcribeNum > 400:
             # 汇报启动
             self.startReport = True
-            url = 'mongodb://{slavemUsername}:{slavemPassword}@{slavemHost}:{slavemPort}/{slavemdbn}?authMechanism=SCRAM-SHA-1'.format(
-                **vtGlobal.VT_setting)
-            try:
-                # 设置MongoDB操作的超时时间为0.5秒
-                self.dbClient = pymongo.MongoClient(url, connectTimeoutMS=500)
-
-                # 调用server_info查询服务器状态，防止服务器异常并未连接成功
-                self.dbClient.server_info()
-
-                # 提交报告的 collection
-                report = self.dbClient.slavem['report']
-                r = {
-                    'name': vtGlobal.VT_setting['slavemName'],
-                    'type': vtGlobal.VT_setting['slavemType'],
-                    'datetime': datetime.datetime.now(LOCAL_TZINFO),
-                    'host': vtGlobal.VT_setting['slaveMLocalhost'],
-                }
-
-                r = report.insert_one(r)
-                if not r.acknowledged:
-                    print(u'启动汇报失败!')
-                else:
-                    print(u'启动汇报完成')
-            except:
-                print(u'启动汇报失败!')
-                traceback.print_exc()
+            self.mainEngine.slavemReport.lanuchReport()
+            # slavem = vtGlobal.VT_setting['slavem']
+            # url = 'mongodb://{username}:{password}@{host}:{port}/{dbn}?authMechanism=SCRAM-SHA-1'.format(
+            #     **slavem)
+            # try:
+            #     # 设置MongoDB操作的超时时间为0.5秒
+            #     self.dbClient = pymongo.MongoClient(url, connectTimeoutMS=500)
+            #
+            #     # 调用server_info查询服务器状态，防止服务器异常并未连接成功
+            #     self.dbClient.server_info()
+            #
+            #     # 提交报告的 collection
+            #     report = self.dbClient.slavem['report']
+            #     r = {
+            #         'name': slavem['name'],
+            #         'type': slavem['type'],
+            #         'datetime': datetime.datetime.now(LOCAL_TZINFO),
+            #         'host': slavem['localhost'],
+            #     }
+            #
+            #     r = report.insert_one(r)
+            #     if not r.acknowledged:
+            #         print(u'启动汇报失败!')
+            #     else:
+            #         print(u'启动汇报完成')
+            # except:
+            #     print(u'启动汇报失败!')
+            #     traceback.print_exc()
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
@@ -293,7 +295,7 @@ class DrEngine(object):
         #     self.insertData(TICK_DB_NAME, activeSymbol, drTick)
 
         # 发出日志
-        # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
+         # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
         #                                                  time=drTick.time,
         #                                                  last=drTick.lastPrice,
         #                                                  bid=drTick.bidPrice1,
@@ -361,6 +363,10 @@ class DrEngine(object):
                 self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME_BAK, datas)
 
             time.sleep(5)
+            # slavem 的心跳
+            self.mainEngine.slavemReport.heartBeat()
+
+        self.mainEngine.slavemReport.endHeartBeat()
 
     # ----------------------------------------------------------------------
     def start(self):
