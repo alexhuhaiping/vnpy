@@ -63,7 +63,7 @@ RUN    echo "开始配置系vnpy环境" \
     && echo "[global]" >> ~/.pip/pip.conf \
     && echo "index-url = https://pypi.douban.com/simple" >> ~/.pip/pip.conf \
     && echo "使用 pip 安装 python 库" \
-    && pip install TA-Lib pandas tradingtime git+git://github.com/lamter/slavem.git@0.1.1 \
+    && pip install TA-Lib pandas tradingtime git+git://github.com/lamter/slavem.git@0.2.0 \
     && remove -rf ~/.cache/pip/* \
     && conda clean -ay \
     && echo "安装结束"
