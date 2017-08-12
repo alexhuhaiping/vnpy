@@ -295,7 +295,7 @@ class DrEngine(object):
         #     self.insertData(TICK_DB_NAME, activeSymbol, drTick)
 
         # 发出日志
-        # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
+         # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
         #                                                  time=drTick.time,
         #                                                  last=drTick.lastPrice,
         #                                                  bid=drTick.bidPrice1,
@@ -363,6 +363,10 @@ class DrEngine(object):
                 self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME_BAK, datas)
 
             time.sleep(5)
+            # slavem 的心跳
+            self.mainEngine.slavemReport.heartBeat()
+
+        self.mainEngine.slavemReport.endHeartBeat()
 
     # ----------------------------------------------------------------------
     def start(self):

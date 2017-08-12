@@ -31,7 +31,7 @@ RUN    echo "开始配置系vnpy环境" \
     && apt-get clean \
     && apt-get update \
     && echo "从 apt 获取软件" \
-    && apt-get install -y bzip2 wget \
+    && apt-get install -y bzip2 wget git \
     && echo "安装编译环境" \
     && apt-get install -y build-essential libboost-all-dev python-dev cmake \
     && apt-get clean \
@@ -63,7 +63,8 @@ RUN    echo "开始配置系vnpy环境" \
     && echo "[global]" >> ~/.pip/pip.conf \
     && echo "index-url = https://pypi.douban.com/simple" >> ~/.pip/pip.conf \
     && echo "使用 pip 安装 python 库" \
-    && pip install TA-Lib pandas tradingtime \
+    && pip install TA-Lib pandas tradingtime git+git://github.com/lamter/slavem.git@0.1.1 \
+    && remove -rf ~/.cache/pip/*
     && conda clean -ay \
     && echo "安装结束"
 
