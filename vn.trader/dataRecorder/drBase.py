@@ -97,6 +97,9 @@ class DrBarData(object):
         bar.datetime = self.dt2DTM(drTick.datetime)
         assert isinstance(bar.datetime, datetime.datetime)
 
+        if tt.get_trading_status(self.symbol, bar.datetime) != tt.continuous_auction:
+            bar.vtSymbol = None
+
         bar.date = bar.datetime.strftime('%Y%m%d')
         bar.time = bar.datetime.strftime('%H:%M:%S')
         bar.openInterest = drTick.openInterest
@@ -123,7 +126,7 @@ class DrBarData(object):
         bar.close = drTick.lastPrice
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
-        if not bar.vtSymbol and bar.volume != drTick.volume:
+        if bar.vtSymbol is None and bar.volume != drTick.volume:
             # if __debug__:
             #     print(u'{} bar 更新，要保存'.format(self.symbol))
             bar.vtSymbol = drTick.vtSymbol
