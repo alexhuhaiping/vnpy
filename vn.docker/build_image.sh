@@ -6,4 +6,6 @@
 
 # 在本地构建镜像时，在 Dockerfile 取消注释，使用阿里云的 apt 源
 # 制作镜像, 如有问题, 添加 --no-cache 参数以不使用缓存
-docker build --force-rm --no-cache -t vnpy .
+docker build --force-rm --no-cache -t vnpy:origin .
+# 删除虚悬镜像
+docker rmi $(docker images -q -f dangling=true)
