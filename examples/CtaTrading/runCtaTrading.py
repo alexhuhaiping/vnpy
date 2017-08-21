@@ -51,7 +51,10 @@ def runChildProcess():
     ee.register(EVENT_LOG, processLogEvent)
     ee.register(EVENT_CTA_LOG, processCtaLogEvent)
     printLog(u'注册日志事件监听')
-    
+
+    # 接口连接后自动执行数据库连接的任务
+    me.dbConnect()
+
     me.connect('CTP')
     printLog(u'连接CTP接口')
     
