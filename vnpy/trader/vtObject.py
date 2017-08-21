@@ -99,7 +99,17 @@ class VtBarData(VtBaseData):
         
         self.volume = EMPTY_INT             # 成交量
         self.openInterest = EMPTY_INT       # 持仓量    
-    
+
+    def load(self, dic):
+        """
+
+        :param dic:
+        :return:
+        """
+        for k, v in dic.items():
+            setattr(self, k, v)
+        self.vtSymbol = self.symbol
+
 
 ########################################################################
 class VtTradeData(VtBaseData):

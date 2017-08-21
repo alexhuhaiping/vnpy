@@ -23,6 +23,7 @@ import os
 import traceback
 from collections import OrderedDict
 from datetime import datetime, timedelta
+import arrow
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -51,11 +52,11 @@ class CtaEngine(object):
         
         # 当前日期
         self.today = todayDate()
-        
+
         # 保存策略实例的字典
         # key为策略名称，value为策略实例，注意策略名称不允许重复
         self.strategyDict = {}
-        
+
         # 保存vtSymbol和策略实例映射的字典（用于推送tick数据）
         # 由于可能多个strategy交易同一个vtSymbol，因此key为vtSymbol
         # value为包含所有相关strategy对象的list
@@ -344,14 +345,17 @@ class CtaEngine(object):
     def loadBar(self, dbName, collectionName, days):
         """从数据库中读取Bar数据，startDate是datetime对象"""
         startDate = self.today - timedelta(days)
-        
-        d = {'datetime':{'$gte':startDate}}
-        barData = self.mainEngine.dbQuery(dbName, collectionName, d, 'datetime')
-        
+
+        d = {'tradingDay':{'$gte':startDate}, 'symbol': collectionName}
+        # barData = self.mainEngine.dbQuery(dbName, collectionName, d, 'datetime')
+
+        curosr = self.mainEngine.ctpCollection.find(d, {'_id': 0})
+
         l = []
-        for d in barData:
+        for d in curosr:
             bar = VtBarData()
-            bar.__dict__ = d
+            # bar.__dict__ = d
+            bar.load(d)
             l.append(bar)
         return l
     

@@ -22,12 +22,15 @@ STOPORDER_TRIGGERED = u'已触发'
 STOPORDERPREFIX = 'CtaStopOrder.'
 
 # 数据库名称
-SETTING_DB_NAME = 'VnTrader_Setting_Db'
-POSITION_DB_NAME = 'VnTrader_Position_Db'
+# SETTING_DB_NAME = 'VnTrader_Setting_Db'
+SETTING_DB_NAME = 'cta'
+# POSITION_DB_NAME = 'VnTrader_Position_Db'
+POSITION_DB_NAME = 'cta'
 
 TICK_DB_NAME = 'VnTrader_Tick_Db'
 DAILY_DB_NAME = 'VnTrader_Daily_Db'
-MINUTE_DB_NAME = 'VnTrader_1Min_Db'
+# MINUTE_DB_NAME = 'VnTrader_1Min_Db'
+MINUTE_DB_NAME = 'ctp'
 
 # 引擎类型，用于区分当前策略的运行环境
 ENGINETYPE_BACKTESTING = 'backtesting'  # 回测
