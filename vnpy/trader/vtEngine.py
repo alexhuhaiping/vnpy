@@ -14,6 +14,7 @@ from vnpy.trader.vtEvent import *
 from vnpy.trader.vtGateway import *
 from vnpy.trader.language import text
 from vnpy.trader.vtFunction import getTempPath
+from vnpy.trader.app.ctaStrategy.uiCtaWidget import CtaEngineManager
 
 
 ########################################################################
@@ -80,7 +81,8 @@ class MainEngine(object):
         d = {
             'appName': appModule.appName,
             'appDisplayName': appModule.appDisplayName,
-            'appWidget': appModule.appWidget,
+            # 'appWidget': appModule.appWidget,
+            'appWidget': CtaEngineManager,
             'appIco': appModule.appIco
         }
         self.appDetailList.append(d)
@@ -185,7 +187,10 @@ class MainEngine(object):
             try:
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'], connectTimeoutMS=500)
-                
+
+                ctpdb = self.dbClient['ctp']
+                ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
+
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
 

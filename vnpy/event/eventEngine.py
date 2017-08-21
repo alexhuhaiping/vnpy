@@ -6,8 +6,13 @@ from threading import Thread
 from time import sleep
 from collections import defaultdict
 
-# 第三方模块
-from qtpy.QtCore import QTimer
+import traceback
+try:
+    # 第三方模块
+    from qtpy.QtCore import QTimer
+except:
+    print(u'没有 QTimer 模块')
+
 
 # 自己开发的模块
 from eventType import *

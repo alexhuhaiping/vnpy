@@ -53,4 +53,9 @@ vn.trader/build/*
 vn.trader/dist/*
 *.bak
 
+# project
 vn.trader/
+tmp/
+temp/
+vnpy/api/ctp/
+*-info/
