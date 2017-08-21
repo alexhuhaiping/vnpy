@@ -21,7 +21,7 @@ from vnpy.trader.app.ctaStrategy.uiCtaWidget import CtaEngineManager
 class MainEngine(object):
     """主引擎"""
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def __init__(self, eventEngine):
         """Constructor"""
         # 记录今日日期
@@ -35,10 +35,10 @@ class MainEngine(object):
         self.dataEngine = DataEngine(self.eventEngine)
 
         # MongoDB数据库相关
-        self.dbClient = None    # MongoDB客户端对象
+        self.dbClient = None  # MongoDB客户端对象
 
-        self.ctpDB = None # 历史行情数据库
-        self.ctaDB = None # cta 策略相关的数据
+        self.ctpCollection = None  # 历史行情数据库
+        self.ctaDB = None  # cta 策略相关的数据
 
         # 接口实例
         self.gatewayDict = OrderedDict()
@@ -51,7 +51,7 @@ class MainEngine(object):
         # 风控引擎实例（特殊独立对象）
         self.rmEngine = None
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def addGateway(self, gatewayModule):
         """添加底层接口"""
         gatewayName = gatewayModule.gatewayName
@@ -72,7 +72,7 @@ class MainEngine(object):
         }
         self.gatewayDetailList.append(d)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def addApp(self, appModule):
         """添加上层应用"""
         appName = appModule.appName
@@ -90,7 +90,7 @@ class MainEngine(object):
         }
         self.appDetailList.append(d)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getGateway(self, gatewayName):
         """获取接口"""
         if gatewayName in self.gatewayDict:
@@ -99,7 +99,7 @@ class MainEngine(object):
             self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
             return None
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def connect(self, gatewayName):
         """连接特定名称的接口"""
         gateway = self.getGateway(gatewayName)
@@ -107,7 +107,7 @@ class MainEngine(object):
         if gateway:
             gateway.connect()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def subscribe(self, subscribeReq, gatewayName):
         """订阅特定接口的行情"""
         gateway = self.getGateway(gatewayName)
@@ -115,7 +115,7 @@ class MainEngine(object):
         if gateway:
             gateway.subscribe(subscribeReq)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def sendOrder(self, orderReq, gatewayName):
         """对特定接口发单"""
         # 如果创建了风控引擎，且风控检查失败则不发单
@@ -129,7 +129,7 @@ class MainEngine(object):
         else:
             return ''
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def cancelOrder(self, cancelOrderReq, gatewayName):
         """对特定接口撤单"""
         gateway = self.getGateway(gatewayName)
@@ -137,7 +137,7 @@ class MainEngine(object):
         if gateway:
             gateway.cancelOrder(cancelOrderReq)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def qryAccount(self, gatewayName):
         """查询特定接口的账户"""
         gateway = self.getGateway(gatewayName)
@@ -145,7 +145,7 @@ class MainEngine(object):
         if gateway:
             gateway.qryAccount()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def qryPosition(self, gatewayName):
         """查询特定接口的持仓"""
         gateway = self.getGateway(gatewayName)
@@ -153,7 +153,7 @@ class MainEngine(object):
         if gateway:
             gateway.qryPosition()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def exit(self):
         """退出程序前调用，保证正常退出"""
         # 安全关闭所有接口
@@ -170,7 +170,7 @@ class MainEngine(object):
         # 保存数据引擎里的合约数据到硬盘
         self.dataEngine.saveContracts()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def writeLog(self, content):
         """快速发出日志事件"""
         log = VtLogData()
@@ -179,18 +179,19 @@ class MainEngine(object):
         event.dict_['data'] = log
         self.eventEngine.put(event)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def dbConnect(self):
         """连接MongoDB数据库"""
         if not self.dbClient:
             # 读取MongoDB的设置
             try:
                 # 设置MongoDB操作的超时时间为0.5秒
-                self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'], connectTimeoutMS=500)
+                self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
+                                            connectTimeoutMS=500)
 
                 ctpdb = self.dbClient['ctp']
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-                self.ctpDB = ctpdb
+                self.ctpCollection = ctpdb['bar_1min']
 
                 ctadb = self.dbClient['cta']
                 ctadb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
@@ -208,9 +209,7 @@ class MainEngine(object):
             except ConnectionFailure:
                 self.writeLog(text.DATABASE_CONNECTING_FAILED)
 
-
-
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def dbInsert(self, dbName, collectionName, d):
         """向MongoDB中插入数据，d是具体数据"""
         if self.dbClient:
@@ -220,7 +219,7 @@ class MainEngine(object):
         else:
             self.writeLog(text.DATA_INSERT_FAILED)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def dbQuery(self, dbName, collectionName, d, sortKey='', sortDirection=ASCENDING):
         """从MongoDB中读取数据，d是查询要求，返回的是数据库查询的指针"""
         if self.dbClient:
@@ -228,7 +227,7 @@ class MainEngine(object):
             collection = db[collectionName]
 
             if sortKey:
-                cursor = collection.find(d).sort(sortKey, sortDirection)    # 对查询出来的数据进行排序
+                cursor = collection.find(d).sort(sortKey, sortDirection)  # 对查询出来的数据进行排序
             else:
                 cursor = collection.find(d)
 
@@ -240,7 +239,7 @@ class MainEngine(object):
             self.writeLog(text.DATA_QUERY_FAILED)
             return []
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def dbUpdate(self, dbName, collectionName, d, flt, upsert=False):
         """向MongoDB中更新数据，d是具体数据，flt是过滤条件，upsert代表若无是否要插入"""
         if self.dbClient:
@@ -250,7 +249,7 @@ class MainEngine(object):
         else:
             self.writeLog(text.DATA_UPDATE_FAILED)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def dbLogging(self, event):
         """向MongoDB中插入日志"""
         log = event.dict_['data']
@@ -262,32 +261,32 @@ class MainEngine(object):
         # TODO 不保存数据到数据库
         # self.dbInsert(LOG_DB_NAME, self.todayDate, d)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getContract(self, vtSymbol):
         """查询合约"""
         return self.dataEngine.getContract(vtSymbol)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllContracts(self):
         """查询所有合约（返回列表）"""
         return self.dataEngine.getAllContracts()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getOrder(self, vtOrderID):
         """查询委托"""
         return self.dataEngine.getOrder(vtOrderID)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllWorkingOrders(self):
         """查询所有的活跃的委托（返回列表）"""
         return self.dataEngine.getAllWorkingOrders()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllGatewayDetails(self):
         """查询引擎中所有底层接口的信息"""
         return self.gatewayDetailList
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllAppDetails(self):
         """查询引擎中所有上层应用的信息"""
         return self.appDetailList
@@ -299,7 +298,7 @@ class DataEngine(object):
     contractFileName = 'ContractData.vt'
     contractFilePath = getTempPath(contractFileName)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def __init__(self, eventEngine):
         """Constructor"""
         self.eventEngine = eventEngine
@@ -319,14 +318,14 @@ class DataEngine(object):
         # 注册事件监听
         self.registerEvent()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def updateContract(self, event):
         """更新合约数据"""
         contract = event.dict_['data']
         self.contractDict[contract.vtSymbol] = contract
-        self.contractDict[contract.symbol] = contract       # 使用常规代码（不包括交易所）可能导致重复
+        self.contractDict[contract.symbol] = contract  # 使用常规代码（不包括交易所）可能导致重复
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getContract(self, vtSymbol):
         """查询合约对象"""
         try:
@@ -334,19 +333,19 @@ class DataEngine(object):
         except KeyError:
             return None
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllContracts(self):
         """查询所有合约对象（返回列表）"""
         return self.contractDict.values()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def saveContracts(self):
         """保存所有合约对象到硬盘"""
         f = shelve.open(self.contractFilePath)
         f['data'] = self.contractDict
         f.close()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def loadContracts(self):
         """从硬盘读取合约对象"""
         f = shelve.open(self.contractFilePath)
@@ -356,7 +355,7 @@ class DataEngine(object):
                 self.contractDict[key] = value
         f.close()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def updateOrder(self, event):
         """更新委托数据"""
         order = event.dict_['data']
@@ -370,7 +369,7 @@ class DataEngine(object):
         else:
             self.workingOrderDict[order.vtOrderID] = order
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getOrder(self, vtOrderID):
         """查询委托"""
         try:
@@ -378,16 +377,13 @@ class DataEngine(object):
         except KeyError:
             return None
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def getAllWorkingOrders(self):
         """查询所有活动委托（返回列表）"""
         return self.workingOrderDict.values()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
         self.eventEngine.register(EVENT_CONTRACT, self.updateContract)
         self.eventEngine.register(EVENT_ORDER, self.updateOrder)
-
-
-
