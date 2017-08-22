@@ -11,7 +11,7 @@ import numpy as np
 
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING, EMPTY_FLOAT
-from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate, StopOrderTargetPosTemplate
+from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate
 
 
 class MAStrategy(TargetPosTemplate):
@@ -53,8 +53,6 @@ class MAStrategy(TargetPosTemplate):
         super(MAStrategy, self).__init__(ctaEngine, setting)
 
         self.closeList = []
-        self.hands = 4
-
 
     def onInit(self):
         initData = self.loadBar(self.initDays)

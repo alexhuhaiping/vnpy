@@ -186,11 +186,11 @@ class MainEngine(object):
                 self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
 
-                ctpdb = self.dbClient['ctp']
+                ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
                 self.ctpCollection = ctpdb['bar_1min']
 
-                ctadb = self.dbClient['cta']
+                ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
                 ctadb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
                 self.ctaDB = ctadb
 

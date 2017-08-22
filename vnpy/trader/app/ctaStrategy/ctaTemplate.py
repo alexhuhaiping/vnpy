@@ -7,6 +7,7 @@
 from vnpy.trader.vtConstant import *
 
 from vnpy.trader.app.ctaStrategy.ctaBase import *
+from vnpy.trader.vtObject import VtBarData
 
 
 ########################################################################
@@ -176,7 +177,34 @@ class CtaTemplate(object):
     def getEngineType(self):
         """查询当前运行的环境"""
         return self.ctaEngine.engineType
-    
+
+    def newBar(self, tick):
+        bar = VtBarData()
+        bar.vtSymbol = tick.vtSymbol
+        bar.symbol = tick.symbol
+        bar.exchange = tick.exchange
+
+        bar.open = tick.lastPrice
+        bar.high = tick.lastPrice
+        bar.low = tick.lastPrice
+        bar.close = tick.lastPrice
+
+        bar.date = tick.date
+        bar.time = tick.time
+        bar.datetime = tick.datetime  # K线的时间设为第一个Tick的时间
+
+        # 实盘中用不到的数据可以选择不算，从而加快速度
+        bar.volume = tick.volume
+        bar.openInterest = tick.openInterest
+        return bar
+
+    def refreshBar(self, tick):
+        bar = self.bar  # 写法同样为了加快速度
+
+        bar.high = max(bar.high, tick.lastPrice)
+        bar.low = min(bar.low, tick.lastPrice)
+        bar.close = tick.lastPrice
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate):
@@ -276,10 +304,13 @@ class TargetPosTemplate(CtaTemplate):
         
         # 回测模式下，采用合并平仓和反向开仓委托的方式
         if self.getEngineType() == ENGINETYPE_BACKTESTING:
+            print(131313)
             if posChange > 0:
                 vtOrderID = self.buy(longPrice, abs(posChange))
+                print(141414)
             else:
                 vtOrderID = self.short(shortPrice, abs(posChange))
+                print(15151)
             self.orderList.append(vtOrderID)
         
         # 实盘模式下，首先确保之前的委托都已经结束（全成、撤销）
@@ -302,4 +333,33 @@ class TargetPosTemplate(CtaTemplate):
                 else:
                     vtOrderID = self.short(shortPrice, abs(posChange))
             self.orderList.append(vtOrderID)
-    
+
+
+
+class StopOrderTargetPosTemplate(TargetPosTemplate):
+    """
+    进一步封装，可以使用停止单
+    """
+    def __init__(self, ctaEngine, setting):
+        """Constructor"""
+        super(TargetPosTemplate, self).__init__(ctaEngine, setting)
+
+
+    def onTick(self, tick):
+        """收到行情推送"""
+        self.lastTick = tick
+
+        # TODO 检查停止单
+
+        # 实盘模式下，启动交易后，需要根据tick的实时推送执行自动开平仓操作
+        if self.trading:
+            self.trade()
+
+
+
+class StopOrder(object):
+    """
+    用于  StopOrderTargetPosTemplate 的订单实例
+    """
+    def __init__(self):
+        pass

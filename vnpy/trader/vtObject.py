@@ -106,9 +106,17 @@ class VtBarData(VtBaseData):
         :param dic:
         :return:
         """
+        self.rawData = dic
         for k, v in dic.items():
             setattr(self, k, v)
         self.vtSymbol = self.symbol
+
+    def dump(self):
+        """
+
+        :return:
+        """
+        return self.rawData
 
 
 ########################################################################
