@@ -1,6 +1,5 @@
 # encoding: UTF-8
 
-import os
 import shelve
 from collections import OrderedDict
 from datetime import datetime
@@ -8,13 +7,11 @@ from datetime import datetime
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure
 
-from vnpy.event import Event
-from vnpy.trader.vtGlobal import globalSetting
-from vnpy.trader.vtEvent import *
-from vnpy.trader.vtGateway import *
+from vnpy.trader.app.ctaStrategy.uiCtaWidget import CtaEngineManager
 from vnpy.trader.language import text
 from vnpy.trader.vtFunction import getTempPath
-from vnpy.trader.app.ctaStrategy.uiCtaWidget import CtaEngineManager
+from vnpy.trader.vtGateway import *
+from vnpy.trader.vtGlobal import globalSetting
 
 
 ########################################################################

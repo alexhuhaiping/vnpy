@@ -9,6 +9,7 @@ from vnpy.trader.vtEvent import EVENT_LOG
 from vnpy.trader.vtEngine import MainEngine
 from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
+from vnpy.trader.app import webUI
 from vnpy.trader.app.ctaStrategy.ctaBase import EVENT_CTA_LOG
 
 #----------------------------------------------------------------------
@@ -42,12 +43,15 @@ def runChildProcess():
     
     ee = EventEngine2()
     printLog(u'事件引擎创建成功')
-    
+
+
     me = MainEngine(ee)
+    me.addApp(webUI) # 网页UI
+    printLog(u'启动网页UI')
     me.addGateway(ctpGateway)
     me.addApp(ctaStrategy)
     printLog(u'主引擎创建成功')
-    
+
     ee.register(EVENT_LOG, processLogEvent)
     ee.register(EVENT_CTA_LOG, processCtaLogEvent)
     printLog(u'注册日志事件监听')
