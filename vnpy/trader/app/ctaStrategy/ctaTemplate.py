@@ -115,7 +115,7 @@ class CtaTemplate(object):
     def cover(self, price, volume, stop=False):
         """买平"""
         return self.sendOrder(CTAORDER_COVER, price, volume, stop)
-        
+
     #----------------------------------------------------------------------
     def sendOrder(self, orderType, price, volume, stop=False):
         """发送委托"""
@@ -124,7 +124,7 @@ class CtaTemplate(object):
             if stop:
                 vtOrderID = self.ctaEngine.sendStopOrder(self.vtSymbol, orderType, price, volume, self)
             else:
-                vtOrderID = self.ctaEngine.sendOrder(self.vtSymbol, orderType, price, volume, self) 
+                vtOrderID = self.ctaEngine.sendOrder(self.vtSymbol, orderType, price, volume, self)
             return vtOrderID
         else:
             # 交易停止时发单返回空字符串
@@ -281,12 +281,11 @@ class TargetPosTemplate(CtaTemplate):
         for vtOrderID in self.orderList:
             self.cancelOrder(vtOrderID)
         self.orderList = []
-        
+
         # 如果目标仓位和实际仓位一致，则不进行任何操作
         posChange = self.targetPos - self.pos
         if not posChange:
             return
-        
         # 确定委托基准价格，有tick数据时优先使用，否则使用bar
         longPrice = 0
         shortPrice = 0
@@ -304,13 +303,10 @@ class TargetPosTemplate(CtaTemplate):
         
         # 回测模式下，采用合并平仓和反向开仓委托的方式
         if self.getEngineType() == ENGINETYPE_BACKTESTING:
-            print(131313)
             if posChange > 0:
                 vtOrderID = self.buy(longPrice, abs(posChange))
-                print(141414)
             else:
                 vtOrderID = self.short(shortPrice, abs(posChange))
-                print(15151)
             self.orderList.append(vtOrderID)
         
         # 实盘模式下，首先确保之前的委托都已经结束（全成、撤销）

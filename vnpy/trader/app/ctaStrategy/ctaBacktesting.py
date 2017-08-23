@@ -227,7 +227,7 @@ class BacktestingEngine(object):
             self.initData.append(data)
 
         self.initData.sort(key=lambda data: data.datetime)
-
+        self.output(u'预加载数据量 {}'.format(len(self.initData)))
         # 载入回测数据
         if not self.dataEndDate:
             flt = {'tradingDay': {'$gte': self.strategyStartDate}, 'symbol': self.symbol}  # 数据过滤条件
@@ -238,7 +238,8 @@ class BacktestingEngine(object):
 
         self.dbCursor = collection.find(flt)
 
-        self.output(u'载入完成，数据量：%s' % (initCursor.count() + self.dbCursor.count()))
+        count = self.dbCursor.count()
+        self.output(u'载入完成，数据量：%s' % (count))
 
         self.datas = []
         for d in self.dbCursor:
@@ -268,7 +269,6 @@ class BacktestingEngine(object):
         self.strategy.inited = True
         self.strategy.onInit()
         self.output(u'策略初始化完成')
-
         self.strategy.trading = True
         self.strategy.onStart()
         self.output(u'策略启动完成')
@@ -280,6 +280,7 @@ class BacktestingEngine(object):
             func(data)
 
         self.output(u'数据回放结束')
+        self.strategy.trading = False
 
     # ----------------------------------------------------------------------
     def newBar(self, bar):

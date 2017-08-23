@@ -18,7 +18,7 @@ class MAStrategy(TargetPosTemplate):
     """
 
     """
-    className = 'EmaDemoStrategy'
+    className = 'MAStrategy'
     author = u'lamter'
 
     # 策略参数
