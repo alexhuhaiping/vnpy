@@ -59,3 +59,7 @@ tmp/
 temp/
 vnpy/api/ctp/
 *-info/
+CTA_setting.json
+CTP_connect.json
+VT_setting.json
+*.ipynb
