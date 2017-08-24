@@ -6,6 +6,7 @@
 '''
 from __future__ import division
 
+from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from itertools import product
@@ -74,9 +75,11 @@ class BacktestingEngine(object):
 
         self.dbClient = None  # 数据库客户端
         self.dbCursor = None  # 数据库指针
-        self.datas = []
+        self._datas = []  # 1min bar 的原始数据
+        self.datas = []  # 聚合后，用于回测的数据
 
-        self.initData = []  # 初始化用的数据
+        self._initData = []  # 初始化用的数据, 最早的1min bar
+        self.initData = []  # 聚合后的数据，真正用于跑回测的数据
         self.dbName = ''  # 回测数据库名
         self.symbol = ''  # 回测集合名
 
@@ -103,9 +106,11 @@ class BacktestingEngine(object):
 
         ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
         ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-        self.ctpCollection = ctpdb['bar_1min']
+        self.ctpCollection = ctpdb['bar_1min'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
-        self.loadHised = False # 是否已经加载过了历史数据
+        self.loadHised = False  # 是否已经加载过了历史数据
+        self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
 
         # 日线回测结果计算用
         self.dailyResultDict = OrderedDict()
@@ -129,6 +134,86 @@ class BacktestingEngine(object):
         print str(datetime.now()) + "\t" + content
 
         # ------------------------------------------------
+
+    def resample(self):
+        """
+        聚合数据
+        :return:
+        """
+
+        self.initData = self._resample(self.barPeriod, self._initData)
+        self.datas = self._resample(self.barPeriod, self._datas)
+
+    @classmethod
+    def _resample(cls, barPeriod, datas):
+        """
+
+        :param datas:
+        :return:
+        """
+        # 日线级别的聚合，使用 tradingDay 作为索引
+        if barPeriod == '1T':
+            # 不需要聚合
+            return datas
+
+        # 使用 pandas 来聚合
+        df = pd.DataFrame([d.dump() for d in datas])
+
+        if barPeriod.endswith('D'):
+            # 日线的聚合，使用 tradingDay 作为索引进行
+            rdf = df.set_index('tradingDay')
+            rdf = cls._resampleSeries(rdf, barPeriod)
+            rdf = rdf.dropna(inplace=False)
+
+            # 添加 tradingDay
+            # rdf.tradingDay = rdf.index
+
+            rdf.index.name = 'datetime'
+            rdf = rdf.reset_index(drop=False, inplace=False)
+        else:
+            # 日线以下的级别，使用 datetime 来聚合
+            rdf = df.set_index('datetime')
+            rdf = cls._resampleSeries(rdf, barPeriod)
+            rdf = rdf.dropna(inplace=False)
+
+            # 添加 tradingDay
+            # td = df.tradingDay.resample(barPeriod, closed='right', label='right').last().dropna()
+            # rdf.tradingDay = td.apply(lambda td: td.tz_localize('UTC').tz_convert('Asia/Shanghai'))
+
+            rdf = rdf.reset_index(drop=False, inplace=False)
+
+        # 补充 date 字段和 time 字段
+        rdf['date'] = rdf.datetime.apply(lambda dt: dt.strftime('%Y%m%d'))
+        rdf['time'] = rdf.datetime.apply(lambda dt: dt.strftime('%H:%M:%S'))
+
+        # 重新生成 bar
+        datas = []
+        for d in rdf.to_dict('records'):
+            data = VtBarData()
+            data.load(d)
+            datas.append(data)
+        return datas
+
+    @classmethod
+    def _resampleSeries(cls, rdf, barPeriod):
+
+        o = rdf.open.resample(barPeriod, closed='right', label='right').first()
+        h = rdf.high.resample(barPeriod, closed='right', label='right').max()
+        l = rdf.low.resample(barPeriod, closed='right', label='right').min()
+        c = rdf.close.resample(barPeriod, closed='right', label='right').last()
+        v = rdf.volume.resample(barPeriod, closed='right', label='right').sum()
+        oi = rdf.openInterest.resample(barPeriod, closed='right', label='right').last()
+
+        return pd.DataFrame(
+            {
+                'open': o,
+                'high': h,
+                'low': l,
+                'close': c,
+                'volume': v,
+                'openInterest': oi,
+            },
+        )
 
     # 参数设置相关
     # ------------------------------------------------
@@ -192,6 +277,17 @@ class BacktestingEngine(object):
         """设置价格最小变动"""
         self.priceTick = priceTick
 
+    def setBarPeriod(self, barPeriod):
+        """
+
+        :return:
+        """
+        periodTypes = ['T', 'H', 'D']
+        if barPeriod[-1] not in periodTypes:
+            raise ValueError(u'周期应该为 {} , 如 15T 是15分钟K线这种格式'.format(str(periodTypes)))
+
+        self.barPeriod = barPeriod
+
     # ------------------------------------------------
     # 数据回放相关
     # ------------------------------------------------
@@ -217,17 +313,18 @@ class BacktestingEngine(object):
                               '$lt': self.strategyStartDate},
                'symbol': self.symbol}
 
-        initCursor = collection.find(flt)
+        initCursor = collection.find(flt, {'_id': 0})
+        initCount = initCursor.count()
 
         # 将数据从查询指针中读取出，并生成列表
-        self.initData = []  # 清空initData列表
+        self._initData = []  # 清空initData列表
         for d in initCursor:
             data = dataClass()
             data.load(d)
-            self.initData.append(data)
+            self._initData.append(data)
 
-        self.initData.sort(key=lambda data: data.datetime)
-        self.output(u'预加载数据量 {}'.format(len(self.initData)))
+        self._initData.sort(key=lambda data: data.datetime)
+        self.output(u'预加载数据量 {}'.format(initCount))
         # 载入回测数据
         if not self.dataEndDate:
             flt = {'tradingDay': {'$gte': self.strategyStartDate}, 'symbol': self.symbol}  # 数据过滤条件
@@ -236,18 +333,20 @@ class BacktestingEngine(object):
                                   '$lte': self.dataEndDate},
                    'symbol': self.symbol}
 
-        self.dbCursor = collection.find(flt)
+        self.dbCursor = collection.find(flt, {'_id': 0})
 
-        count = self.dbCursor.count()
-        self.output(u'载入完成，数据量：%s' % (count))
+        # count = self.dbCursor.count()
 
-        self.datas = []
+        _datas = []
         for d in self.dbCursor:
             data = dataClass()
             data.load(d)
-            self.datas.append(data)
+            _datas.append(data)
+
         # 根据日期排序
-        self.datas.sort(key=lambda data: data.datetime)
+        _datas.sort(key=lambda data: data.datetime)
+        self._datas = _datas
+        self.output(u'载入完成，数据量：%s' % (len(_datas)))
 
     # ----------------------------------------------------------------------
     def runBacktesting(self):
@@ -255,6 +354,9 @@ class BacktestingEngine(object):
         # 载入历史数据
         if not self.loadHised:
             self.loadHistoryData()
+
+        # 聚合数据
+        self.resample()
 
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:

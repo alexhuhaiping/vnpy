@@ -103,6 +103,8 @@ class MAStrategy(TargetPosTemplate):
             # 数据不全，暂时不下单
             return
 
+        if not self.trading:
+            return
 
         # 调仓
         if self.bar.close > self.ma:
@@ -113,6 +115,10 @@ class MAStrategy(TargetPosTemplate):
             self.setTargetPos(-self.hands)
         else:
             pass
+
+        if self.targetPos != self.pos:
+            self.writeCtaLog(u'close {} ma {} tarPos {} pos {}'.format(self.bar.close, self.ma, self.targetPos, self.pos))
+
 
     def onTrade(self, trade):
         pass
