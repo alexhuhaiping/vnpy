@@ -45,7 +45,7 @@ class MAStrategy(TargetPosTemplate):
     varList = ['inited',
                'trading',
                'pos',
-               'ma'
+               'ma',
                ]
 
     def __init__(self, ctaEngine, setting):
@@ -85,7 +85,7 @@ class MAStrategy(TargetPosTemplate):
             self.barMinute = tickMinute  # 更新当前的分钟
 
         else:  # 否则继续累加新的K线
-            self.refreshBar(tick)
+            self.refreshBar(self.bar, tick)
 
         super(MAStrategy, self).onTick(tick)
 

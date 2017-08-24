@@ -63,3 +63,5 @@ CTA_setting.json
 CTP_connect.json
 VT_setting.json
 *.ipynb
+vtserver_test.sh
+test.py

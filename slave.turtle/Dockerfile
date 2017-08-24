@@ -6,3 +6,5 @@ RUN cd /srv/vnpy \
     && pip install . \
     && pip install --upgrade \
     && echo "更新镜像结束"
+
+WORKDIR /srv/vnpy/slave.turtle

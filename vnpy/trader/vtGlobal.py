@@ -20,4 +20,4 @@ try:
     globalSetting = json.load(f)
 except:
     traceback.print_exc()
-    
+

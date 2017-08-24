@@ -53,10 +53,16 @@ def showCtaStrategy():
     strategyDetails = []
     html = ''
     for ctaName, ctaStrategy in ctaApp.strategyDict.items():
-        html += pd.DataFrame([ctaStrategy.__dict__]).to_html()
+        html += ctaName
+        html += '</br>'
+        html += ctaStrategy.className
+        html += '</br>'
+        html += pd.DataFrame([ctaStrategy.paramList2Html()], index=['param']).to_html()
+        html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
+        html += '</br>'
+        html += '</br>'
     return html
-    # df = pd.DataFrame(strategyDetails )
-    # return df.to_html()
+
 
 
 

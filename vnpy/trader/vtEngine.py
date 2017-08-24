@@ -191,7 +191,7 @@ class MainEngine(object):
                 self.ctpCollection = ctpdb['bar_1min']
 
                 ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
-                ctadb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
+                ctadb.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])
                 self.ctaDB = ctadb
 
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
