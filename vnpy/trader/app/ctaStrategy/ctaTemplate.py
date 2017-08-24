@@ -4,6 +4,8 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
+import logging
+
 from vnpy.trader.vtConstant import *
 
 from vnpy.trader.app.ctaStrategy.ctaBase import *
@@ -48,7 +50,7 @@ class CtaTemplate(object):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         self.ctaEngine = ctaEngine
-
+        self.log = logging.getLogger('cta')
         # 设置策略的参数
         if setting:
             d = self.__dict__

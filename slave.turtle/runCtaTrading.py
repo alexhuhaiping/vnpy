@@ -38,43 +38,40 @@ from vnpy.trader.app.ctaStrategy.ctaBase import EVENT_CTA_LOG
 #----------------------------------------------------------------------
 def runChildProcess():
     """子进程运行函数"""
-    print '-'*20
-    printLog(u'启动CTA策略运行子进程')
-    
-    ee = EventEngine2()
-    printLog(u'事件引擎创建成功')
 
+    ee = EventEngine2()
+    ee.log.info(u'事件引擎创建成功')
 
     me = MainEngine(ee)
     me.addApp(webUI) # 网页UI
-    printLog(u'启动网页UI')
+    me.log.info(u'启动网页UI')
     me.addGateway(ctpGateway)
     me.addApp(ctaStrategy)
-    printLog(u'主引擎创建成功')
+    me.log.info(u'主引擎创建成功')
 
-    ee.register(EVENT_LOG, processLogEvent)
-    ee.register(EVENT_CTA_LOG, processCtaLogEvent)
-    printLog(u'注册日志事件监听')
+    # ee.register(EVENT_LOG, processLogEvent)
+    # ee.register(EVENT_CTA_LOG, processCtaLogEvent)
+    ee.log.info(u'注册日志事件监听')
 
     # 接口连接后自动执行数据库连接的任务
     me.dbConnect()
 
     me.connect('CTP')
-    printLog(u'连接CTP接口')
+    me.log.info(u'连接CTP接口')
     
     sleep(5)    # 等待CTP接口初始化
     
     cta = me.appDict[ctaStrategy.appName]
     
     cta.loadSetting()
-    printLog(u'CTA策略载入成功')
-    
+    cta.log.info(u'CTA策略载入成功')
+
     cta.initAll()
-    printLog(u'CTA策略初始化成功')
-    
+    cta.log.info(u'CTA策略初始化成功')
+
     cta.startAll()
-    printLog(u'CTA策略启动成功')
-    
+    cta.log.info(u'CTA策略启动成功')
+
     while True:
         sleep(1)
 
