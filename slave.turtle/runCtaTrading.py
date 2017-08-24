@@ -12,28 +12,28 @@ from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI
 from vnpy.trader.app.ctaStrategy.ctaBase import EVENT_CTA_LOG
 
-#----------------------------------------------------------------------
-def printLog(content):
-    """输出日志"""
-    t = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print '%s\t%s' %(t, content)
+# #----------------------------------------------------------------------
+# def printLog(content):
+#     """输出日志"""
+#     t = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#     print '%s\t%s' %(t, content)
+#
+# #----------------------------------------------------------------------
+# def processLogEvent(event):
+#     """处理日志事件"""
+#     log = event.dict_['data']
+#     if log.gatewayName:
+#         content = '%s:%s' %(log.gatewayName, log.logContent)
+#     else:
+#         content = '%s:%s' %('MainEngine', log.logContent)
+#     printLog(content)
     
 #----------------------------------------------------------------------
-def processLogEvent(event):
-    """处理日志事件"""
-    log = event.dict_['data']
-    if log.gatewayName:
-        content = '%s:%s' %(log.gatewayName, log.logContent)
-    else:
-        content = '%s:%s' %('MainEngine', log.logContent)
-    printLog(content)
-    
-#----------------------------------------------------------------------
-def processCtaLogEvent(event):
-    """处理CTA模块日志事件"""
-    log = event.dict_['data']
-    content = '%s:%s' %('CTA Engine', log.logContent)
-    printLog(content)
+# def processCtaLogEvent(event):
+#     """处理CTA模块日志事件"""
+#     log = event.dict_['data']
+#     content = '%s:%s' %('CTA Engine', log.logContent)
+#     printLog(content)
     
 #----------------------------------------------------------------------
 def runChildProcess():
