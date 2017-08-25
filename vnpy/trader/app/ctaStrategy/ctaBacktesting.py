@@ -45,7 +45,9 @@ class BacktestingEngine(object):
     TICK_MODE = 'tick'
     BAR_MODE = 'bar'
 
-    #----------------------------------------------------------------------
+    LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
+
+    # ----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
         # 本地停止单
@@ -72,17 +74,20 @@ class BacktestingEngine(object):
         
         self.dbClient = None        # 数据库客户端
         self.dbCursor = None        # 数据库指针
-        
-        self.initData = []          # 初始化用的数据
         self.dbName = ''            # 回测数据库名
         self.symbol = ''            # 回测集合名
-        
         self.dataStartDate = None       # 回测数据开始日期，datetime对象
         self.dataEndDate = None         # 回测数据结束日期，datetime对象
         self.strategyStartDate = None   # 策略启动日期（即前面的数据用于初始化），datetime对象
         
         self.limitOrderCount = 0                    # 限价单编号
         self.limitOrderDict = OrderedDict()         # 限价单字典
+        self._datas = []  # 1min bar 的原始数据
+        self.datas = []  # 聚合后，用于回测的数据
+
+        self._initData = []  # 初始化用的数据, 最早的1min bar
+        self.initData = []  # 聚合后的数据，真正用于跑回测的数据
+
         self.workingLimitOrderDict = OrderedDict()  # 活动限价单字典，用于进行撮合用
         
         self.tradeCount = 0             # 成交编号
@@ -95,6 +100,18 @@ class BacktestingEngine(object):
         self.bar = None
         self.dt = None      # 最新的时间
         
+
+        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
+                                            connectTimeoutMS=500)
+
+        ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
+        ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
+        self.ctpCollection = ctpdb['bar_1min'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+
+        self.loadHised = False  # 是否已经加载过了历史数据
+        self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
+
         # 日线回测结果计算用
         self.dailyResultDict = OrderedDict()
     
@@ -117,6 +134,87 @@ class BacktestingEngine(object):
         print str(datetime.now()) + "\t" + content     
     
     #------------------------------------------------
+
+    def resample(self):
+        """
+        聚合数据
+        :return:
+        """
+
+        self.initData = self._resample(self.barPeriod, self._initData)
+        self.datas = self._resample(self.barPeriod, self._datas)
+
+    @classmethod
+    def _resample(cls, barPeriod, datas):
+        """
+
+        :param datas:
+        :return:
+        """
+        # 日线级别的聚合，使用 tradingDay 作为索引
+        if barPeriod == '1T':
+            # 不需要聚合
+            return datas
+
+        # 使用 pandas 来聚合
+        df = pd.DataFrame([d.dump() for d in datas])
+
+        if barPeriod.endswith('D'):
+            # 日线的聚合，使用 tradingDay 作为索引进行
+            rdf = df.set_index('tradingDay')
+            rdf = cls._resampleSeries(rdf, barPeriod)
+            rdf = rdf.dropna(inplace=False)
+
+            # 添加 tradingDay
+            # rdf.tradingDay = rdf.index
+
+            rdf.index.name = 'datetime'
+            rdf = rdf.reset_index(drop=False, inplace=False)
+        else:
+            # 日线以下的级别，使用 datetime 来聚合
+            rdf = df.set_index('datetime')
+            rdf = cls._resampleSeries(rdf, barPeriod)
+            rdf = rdf.dropna(inplace=False)
+
+            # 添加 tradingDay
+            # td = df.tradingDay.resample(barPeriod, closed='right', label='right').last().dropna()
+            # rdf.tradingDay = td.apply(lambda td: td.tz_localize('UTC').tz_convert('Asia/Shanghai'))
+
+            rdf = rdf.reset_index(drop=False, inplace=False)
+
+        # 补充 date 字段和 time 字段
+        rdf['date'] = rdf.datetime.apply(lambda dt: dt.strftime('%Y%m%d'))
+        rdf['time'] = rdf.datetime.apply(lambda dt: dt.strftime('%H:%M:%S'))
+
+        # 重新生成 bar
+        datas = []
+        for d in rdf.to_dict('records'):
+            data = VtBarData()
+            data.load(d)
+            datas.append(data)
+        return datas
+
+    @classmethod
+    def _resampleSeries(cls, rdf, barPeriod):
+
+        o = rdf.open.resample(barPeriod, closed='right', label='right').first()
+        h = rdf.high.resample(barPeriod, closed='right', label='right').max()
+        l = rdf.low.resample(barPeriod, closed='right', label='right').min()
+        c = rdf.close.resample(barPeriod, closed='right', label='right').last()
+        v = rdf.volume.resample(barPeriod, closed='right', label='right').sum()
+        oi = rdf.openInterest.resample(barPeriod, closed='right', label='right').last()
+
+        return pd.DataFrame(
+            {
+                'open': o,
+                'high': h,
+                'low': l,
+                'close': c,
+                'volume': v,
+                'openInterest': oi,
+            },
+        )
+
     # 参数设置相关
     #------------------------------------------------
     
@@ -125,9 +223,9 @@ class BacktestingEngine(object):
         """设置回测的启动日期"""
         self.startDate = startDate
         self.initDays = initDays
-        
-        self.dataStartDate = datetime.strptime(startDate, '%Y%m%d')
-        
+
+        self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
+
         initTimeDelta = timedelta(initDays)
         self.strategyStartDate = self.dataStartDate + initTimeDelta
         
@@ -137,11 +235,8 @@ class BacktestingEngine(object):
         self.endDate = endDate
         
         if endDate:
-            self.dataEndDate = datetime.strptime(endDate, '%Y%m%d')
-            
-            # 若不修改时间则会导致不包含dataEndDate当天数据
-            self.dataEndDate = self.dataEndDate.replace(hour=23, minute=59)    
-        
+            self.dataEndDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(endDate, '%Y%m%d'))
+
     #----------------------------------------------------------------------
     def setBacktestingMode(self, mode):
         """设置回测模式"""
@@ -179,14 +274,27 @@ class BacktestingEngine(object):
         self.priceTick = priceTick
     
     #------------------------------------------------
+
+    def setBarPeriod(self, barPeriod):
+        """
+
+        :return:
+        """
+        periodTypes = ['T', 'H', 'D']
+        if barPeriod[-1] not in periodTypes:
+            raise ValueError(u'周期应该为 {} , 如 15T 是15分钟K线这种格式'.format(str(periodTypes)))
+
+        self.barPeriod = barPeriod
+
+    # ------------------------------------------------
     # 数据回放相关
     #------------------------------------------------    
     
     #----------------------------------------------------------------------
     def loadHistoryData(self):
         """载入历史数据"""
-        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'])
-        collection = self.dbClient[self.dbName][self.symbol]          
+        self.loadHised = True
+        collection = self.ctpCollection
 
         self.output(u'开始载入数据')
       
@@ -268,14 +376,14 @@ class BacktestingEngine(object):
         
         self.output(u'开始回放数据')
 
-        for d in self.dbCursor:
-            data = dataClass()
-            data.__dict__ = d
-            func(data)     
-            
+        # for d in self.dbCursor:
+        for data in self.datas:
+            func(data)
+
         self.output(u'数据回放结束')
-        
-    #----------------------------------------------------------------------
+        self.strategy.trading = False
+
+    # ----------------------------------------------------------------------
     def newBar(self, bar):
         """新的K线"""
         self.bar = bar
