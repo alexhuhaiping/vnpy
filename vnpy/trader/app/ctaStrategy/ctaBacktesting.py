@@ -6,11 +6,13 @@
 '''
 from __future__ import division
 
+from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from itertools import product
 import multiprocessing
 import copy
+import pytz
 
 import pymongo
 import pandas as pd
@@ -197,33 +199,55 @@ class BacktestingEngine(object):
             func = self.newTick
 
         # 载入初始化需要用的数据
-        flt = {'datetime':{'$gte':self.dataStartDate,
-                           '$lt':self.strategyStartDate}}        
-        initCursor = collection.find(flt).sort('datetime')
-        
+        flt = {'tradingDay': {'$gte': self.dataStartDate,
+                              '$lt': self.strategyStartDate},
+               'symbol': self.symbol}
+
+        initCursor = collection.find(flt, {'_id': 0})
+        initCount = initCursor.count()
+
         # 将数据从查询指针中读取出，并生成列表
-        self.initData = []              # 清空initData列表
+        self._initData = []  # 清空initData列表
         for d in initCursor:
             data = dataClass()
-            data.__dict__ = d
-            self.initData.append(data)      
-        
+            data.load(d)
+            self._initData.append(data)
+
+        self._initData.sort(key=lambda data: data.datetime)
+        self.output(u'预加载数据量 {}'.format(initCount))
         # 载入回测数据
         if not self.dataEndDate:
-            flt = {'datetime':{'$gte':self.strategyStartDate}}   # 数据过滤条件
+            flt = {'tradingDay': {'$gte': self.strategyStartDate}, 'symbol': self.symbol}  # 数据过滤条件
         else:
-            flt = {'datetime':{'$gte':self.strategyStartDate,
-                               '$lte':self.dataEndDate}}  
-        self.dbCursor = collection.find(flt).sort('datetime')
-        
-        self.output(u'载入完成，数据量：%s' %(initCursor.count() + self.dbCursor.count()))
-        
-    #----------------------------------------------------------------------
+            flt = {'tradingDay': {'$gte': self.strategyStartDate,
+                                  '$lte': self.dataEndDate},
+                   'symbol': self.symbol}
+
+        self.dbCursor = collection.find(flt, {'_id': 0})
+
+        # count = self.dbCursor.count()
+
+        _datas = []
+        for d in self.dbCursor:
+            data = dataClass()
+            data.load(d)
+            _datas.append(data)
+
+        # 根据日期排序
+        _datas.sort(key=lambda data: data.datetime)
+        self._datas = _datas
+        self.output(u'载入完成，数据量：%s' % (len(_datas)))
+
+    # ----------------------------------------------------------------------
     def runBacktesting(self):
         """运行回测"""
         # 载入历史数据
-        self.loadHistoryData()
-        
+        if not self.loadHised:
+            self.loadHistoryData()
+
+        # 聚合数据
+        self.resample()
+
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
             dataClass = VtBarData
