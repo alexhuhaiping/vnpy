@@ -8,11 +8,11 @@ from datetime import time
 
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
-from vnpy.trader.app.ctaStrategy.ctaTemplate import StopOrderTargetPosTemplate
+from vnpy.trader.app.ctaStrategy.svnCtaTemplate import TargetPosTemplate
 
 
 ########################################################################
-class DonchianChannelStrategy(StopOrderTargetPosTemplate):
+class DonchianChannelStrategy(TargetPosTemplate):
     """唐奇安通道交易策略"""
     className = 'DonchianChannelStrategy'
     author = u'lamter'

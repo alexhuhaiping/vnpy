@@ -18,6 +18,10 @@ from vnpy.trader.vtObject import VtBarData
 class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
+    def __init__(self, ctaEngine, setting):
+        super(CtaTemplate, self).__init__(ctaEngine, setting)
+        self.log = logging.getLogger('ctabacktesting')
+
     def newBar(self, tick):
         bar = VtBarData()
         bar.vtSymbol = tick.vtSymbol
@@ -55,5 +59,6 @@ class CtaTemplate(vtCtaTemplate):
 
 
 ########################################################################
-class TargetPosTemplate(vtTargetPosTemplate):
+class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     pass
+

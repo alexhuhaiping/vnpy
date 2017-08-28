@@ -6,6 +6,7 @@
 '''
 from __future__ import division
 
+import logging
 from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
@@ -16,7 +17,6 @@ import pandas as pd
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
-
 
 ########################################################################
 class BacktestingEngine(VTBacktestingEngine):
@@ -36,7 +36,8 @@ class BacktestingEngine(VTBacktestingEngine):
     def __init__(self):
         """Constructor"""
         # 本地停止单
-        super(VTBacktestingEngine, self).__init__()
+        self.log = logging.getLogger('ctabacktesting')
+        super(BacktestingEngine, self).__init__()
 
         self._datas = []  # 1min bar 的原始数据
         self.datas = []  # 聚合后，用于回测的数据
@@ -172,7 +173,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
 
-        initTimeDelta = timedelta(initDays)
+        # initTimeDelta = timedelta(initDays)
         # 要获取 initDays 个交易日的数据
         sql = {
             'symbol': self.symbol,
@@ -183,8 +184,13 @@ class BacktestingEngine(VTBacktestingEngine):
         cursor = self.ctpCol1dayBar.find(sql, {'_id': 0})
         # 顺序排列
         cursor.sort('tradingDay')
+
         cursor.skip(initDays)
-        self.strategyStartDate = cursor.next()['tradingDay']
+        dayBar = cursor.next()
+
+        self.strategyStartDate = dayBar['tradingDay']
+
+        self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
     def setEndDate(self, endDate=''):
         """设置回测的结束日期"""
@@ -231,6 +237,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         initCursor = collection.find(flt, {'_id': 0})
         initCount = initCursor.count()
+        self.output(u'预加载数据量 {}'.format(initCount))
 
         # 将数据从查询指针中读取出，并生成列表
         self._initData = []  # 清空initData列表
@@ -240,7 +247,7 @@ class BacktestingEngine(VTBacktestingEngine):
             self._initData.append(data)
 
         self._initData.sort(key=lambda data: data.datetime)
-        self.output(u'预加载数据量 {}'.format(initCount))
+
         # 载入回测数据
         if not self.dataEndDate:
             flt = {'tradingDay': {'$gte': self.strategyStartDate}, 'symbol': self.symbol}  # 数据过滤条件
