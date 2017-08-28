@@ -8,31 +8,14 @@ from __future__ import division
 
 from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
-from collections import OrderedDict
-from itertools import product
-import multiprocessing
-import copy
 import pytz
 
 import pymongo
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-# 如果安装了seaborn则设置为白色风格
-try:
-    import seaborn as sns
-    sns.set_style('whitegrid')
-except ImportError:
-    pass
 
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData
-from vnpy.trader.vtConstant import *
-from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
-
-from .ctaBase import *
 
 
 ########################################################################
