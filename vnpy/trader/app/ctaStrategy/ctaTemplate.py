@@ -4,12 +4,9 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
-import logging
-
 from vnpy.trader.vtConstant import *
 
 from vnpy.trader.app.ctaStrategy.ctaBase import *
-from vnpy.trader.vtObject import VtBarData
 
 
 ########################################################################
@@ -50,7 +47,7 @@ class CtaTemplate(object):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         self.ctaEngine = ctaEngine
-        self.log = logging.getLogger('cta')
+
         # 设置策略的参数
         if setting:
             d = self.__dict__
@@ -183,59 +180,24 @@ class CtaTemplate(object):
         """查询当前运行的环境"""
         return self.ctaEngine.engineType
 
-    def newBar(self, tick):
-        bar = VtBarData()
-        bar.vtSymbol = tick.vtSymbol
-        bar.symbol = tick.symbol
-        bar.exchange = tick.exchange
-
-        bar.open = tick.lastPrice
-        bar.high = tick.lastPrice
-        bar.low = tick.lastPrice
-        bar.close = tick.lastPrice
-
-        bar.date = tick.date
-        bar.time = tick.time
-        bar.datetime = tick.datetime  # K线的时间设为第一个Tick的时间
-
-        # 实盘中用不到的数据可以选择不算，从而加快速度
-        bar.volume = tick.volume
-        bar.openInterest = tick.openInterest
-        return bar
-
-    def refreshBar(self, bar, tick):
-        bar.high = max(bar.high, tick.lastPrice)
-        bar.low = min(bar.low, tick.lastPrice)
-        bar.close = tick.lastPrice
-
-    def paramList2Html(self):
-        return {
-            k: getattr(self, k) for k in self.paramList
-            }
-
-    def varList2Html(self):
-        return {
-            k: getattr(self, k) for k in self.varList
-            }
-
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate):
     """
     允许直接通过修改目标持仓来实现交易的策略模板
-    
+
     开发策略时，无需再调用buy/sell/cover/short这些具体的委托指令，
     只需在策略逻辑运行完成后调用setTargetPos设置目标持仓，底层算法
-    会自动完成相关交易，适合不擅长管理交易挂撤单细节的用户。    
-    
+    会自动完成相关交易，适合不擅长管理交易挂撤单细节的用户。
+
     使用该模板开发策略时，请在以下回调方法中先调用母类的方法：
     onTick
     onBar
     onOrder
-    
+
     假设策略名为TestStrategy，请在onTick回调中加上：
     super(TestStrategy, self).onTick(tick)
-    
+
     其他方法类同。
     """
 
@@ -299,6 +261,7 @@ class TargetPosTemplate(CtaTemplate):
         posChange = self.targetPos - self.pos
         if not posChange:
             return
+
         # 确定委托基准价格，有tick数据时优先使用，否则使用bar
         longPrice = 0
         shortPrice = 0
@@ -342,32 +305,3 @@ class TargetPosTemplate(CtaTemplate):
                 else:
                     vtOrderID = self.short(shortPrice, abs(posChange))
             self.orderList.append(vtOrderID)
-
-
-class StopOrderTargetPosTemplate(TargetPosTemplate):
-    """
-    进一步封装，可以使用停止单
-    """
-
-    def __init__(self, ctaEngine, setting):
-        """Constructor"""
-        super(TargetPosTemplate, self).__init__(ctaEngine, setting)
-
-    def onTick(self, tick):
-        """收到行情推送"""
-        self.lastTick = tick
-
-        # TODO 检查停止单
-
-        # 实盘模式下，启动交易后，需要根据tick的实时推送执行自动开平仓操作
-        if self.trading:
-            self.trade()
-
-
-class StopOrder(object):
-    """
-    用于  StopOrderTargetPosTemplate 的订单实例
-    """
-
-    def __init__(self):
-        pass
