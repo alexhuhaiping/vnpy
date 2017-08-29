@@ -8,7 +8,7 @@ from datetime import time
 
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
-from vnpy.trader.app.ctaStrategy.svnCtaTemplate import TargetPosTemplate
+from vnpy.trader.app.ctaStrategy.svtCtaTemplate import TargetPosTemplate
 
 
 ########################################################################
