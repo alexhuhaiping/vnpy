@@ -1,5 +1,8 @@
 # encoding: UTF-8
 
+from bson.codec_options import CodecOptions
+import pytz
+
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure
 
@@ -13,10 +16,13 @@ from vnpy.trader.vtEngine import MainEngine as VtMaingEngine
 class MainEngine(VtMaingEngine):
     """主引擎"""
 
+    LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
+
     # ----------------------------------------------------------------------
     def __init__(self, eventEngine):
         super(MainEngine, self).__init__(eventEngine)
-        self.ctpCollection = None  # 历史行情数据库
+        self.ctpCol1minBar = None  # 历史行情数据库
+        self.ctpCol1dayBar = None
         self.ctaDB = None  # cta 策略相关的数据
 
     # ----------------------------------------------------------------------
@@ -31,7 +37,12 @@ class MainEngine(VtMaingEngine):
 
                 ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-                self.ctpCollection = ctpdb['bar_1min']
+                # 1min bar
+                self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
+                    codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+                # 日线 bar
+                self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
+                    codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
                 ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
                 ctadb.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])

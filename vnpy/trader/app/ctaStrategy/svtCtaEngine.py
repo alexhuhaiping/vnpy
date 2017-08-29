@@ -18,13 +18,10 @@
 
 from __future__ import division
 
-import logging
-import json
-import os
 import traceback
-from collections import OrderedDict
-from datetime import datetime, timedelta
 import arrow
+import datetime
+from itertools import chain
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -43,13 +40,18 @@ class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
 
     @property
-    def
+    def ctpCol1minBar(self):
+        return self.mainEngine.ctpCol1minBar
 
-    def loadBar(self, dbName, collectionName, barNum, barPeriod=1):
+    @property
+    def ctpCol1dayBar(self):
+        return self.mainEngine.ctpCol1dayBar
+
+    def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """
         从数据库中读取历史行情
-        :param dbName:
-        :param collectionName:
+        :param symbol:
+        :param collectionName:  bar_1min  OR bar_1day
         :param barNum: 要加载的 bar 的数量
         :param barPeriod:
         :return:
@@ -57,16 +59,42 @@ class CtaEngine(VtCtaEngine):
         # 总的需要载入的 bar 数量
         barAmount = barNum * barPeriod
 
-        endDate = self.today
+        loadDate = self.today
+        loadBarNum = 0
+        noDataDays = 0
 
-        d = {'datetime': {'$lte': endDate}}
+        documents = []  # [ [day31bar1, day31bar2, ...], ... , [day9bar1, day1bar2, ]]
+        while noDataDays > 30:
+            # 连续一个月没有该合约数据，则退出
+            d = {
+                'symbol': symbol,
+                'tradingDay': loadDate
+            }
+            # 获取一天的 1min bar
+            cursor = self.mainEngine.ctpCol1minBar.find(d, {'_id': 0})
+            count = cursor.count()
+            if count != 0:
+                # 有数据，加载数据
+                noDataDays += 1
+                documents.append([i for i in cursor])
+                loadBarNum += cursor.count()
+                if loadBarNum > barAmount:
+                    # 数量够了， 跳出循环
+                    break
+            else:
+                # 没有任何数据
+                noDataDays = 0
+            # 往前追溯
+            loadDate -= datetime.timedelta(days=1)
 
-        self.mainEngine
-        # barData = self.mainEngine.dbQuery(dbName, collectionName, d, 'datetime')
+        # 翻转逆序
+        documents.reverse()
+        documents = list(chain(documents))  # 衔接成一个 list
 
+        # 加载指定数量barAmount的 bar
         l = []
-        for d in barData:
+        for d in documents[-barAmount:]:
             bar = VtBarData()
-            bar.__dict__ = d
+            bar.load(d)
             l.append(bar)
         return l
