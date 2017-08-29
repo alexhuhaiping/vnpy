@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+import os
 import shelve
 from collections import OrderedDict
 from datetime import datetime
@@ -9,16 +10,18 @@ import logging
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure
 
-from vnpy.trader.app.ctaStrategy.uiCtaWidget import CtaEngineManager
-from vnpy.trader.language import text
-from vnpy.trader.vtGateway import *
+from vnpy.event import Event
 from vnpy.trader.vtGlobal import globalSetting
+from vnpy.trader.vtEvent import *
+from vnpy.trader.vtGateway import *
+from vnpy.trader.language import text
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 
 # 读取日志配置文件
 loggingConFile = 'logging.conf'
 loggingConFile = getJsonPath(loggingConFile, __file__)
 logging.config.fileConfig(loggingConFile)
+
 
 ########################################################################
 class MainEngine(object):
@@ -41,9 +44,6 @@ class MainEngine(object):
 
         # MongoDB数据库相关
         self.dbClient = None  # MongoDB客户端对象
-
-        self.ctpCollection = None  # 历史行情数据库
-        self.ctaDB = None  # cta 策略相关的数据
 
         # 接口实例
         self.gatewayDict = OrderedDict()
@@ -89,8 +89,7 @@ class MainEngine(object):
         d = {
             'appName': appModule.appName,
             'appDisplayName': appModule.appDisplayName,
-            # 'appWidget': appModule.appWidget,
-            'appWidget': CtaEngineManager,
+            'appWidget': appModule.appWidget,
             'appIco': appModule.appIco
         }
         self.appDetailList.append(d)
@@ -112,7 +111,11 @@ class MainEngine(object):
         if gateway:
             gateway.connect()
 
-    # ----------------------------------------------------------------------
+            # 接口连接后自动执行数据库连接的任务
+            self.dbConnect()
+
+            # ----------------------------------------------------------------------
+
     def subscribe(self, subscribeReq, gatewayName):
         """订阅特定接口的行情"""
         gateway = self.getGateway(gatewayName)
@@ -142,7 +145,8 @@ class MainEngine(object):
         if gateway:
             gateway.cancelOrder(cancelOrderReq)
 
-    # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
+
     def qryAccount(self, gatewayName):
         """查询特定接口的账户"""
         gateway = self.getGateway(gatewayName)
@@ -150,7 +154,8 @@ class MainEngine(object):
         if gateway:
             gateway.qryAccount()
 
-    # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
+
     def qryPosition(self, gatewayName):
         """查询特定接口的持仓"""
         gateway = self.getGateway(gatewayName)
@@ -184,7 +189,8 @@ class MainEngine(object):
         event.dict_['data'] = log
         self.eventEngine.put(event)
 
-    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+
     def dbConnect(self):
         """连接MongoDB数据库"""
         if not self.dbClient:
@@ -193,14 +199,6 @@ class MainEngine(object):
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
-
-                ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
-                ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-                self.ctpCollection = ctpdb['bar_1min']
-
-                ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
-                ctadb.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])
-                self.ctaDB = ctadb
 
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
@@ -254,7 +252,8 @@ class MainEngine(object):
         else:
             self.writeLog(text.DATA_UPDATE_FAILED)
 
-    # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
+
     def dbLogging(self, event):
         """向MongoDB中插入日志"""
         log = event.dict_['data']
@@ -263,8 +262,7 @@ class MainEngine(object):
             'time': log.logTime,
             'gateway': log.gatewayName
         }
-        # TODO 不保存数据到数据库
-        # self.dbInsert(LOG_DB_NAME, self.todayDate, d)
+        self.dbInsert(LOG_DB_NAME, self.todayDate, d)
 
     # ----------------------------------------------------------------------
     def getContract(self, vtSymbol):
@@ -370,7 +368,7 @@ class DataEngine(object):
         if order.status in [STATUS_ALLTRADED, STATUS_REJECTED, STATUS_CANCELLED]:
             if order.vtOrderID in self.workingOrderDict:
                 del self.workingOrderDict[order.vtOrderID]
-        # 否则则更新字典中的数据        
+        # 否则则更新字典中的数据
         else:
             self.workingOrderDict[order.vtOrderID] = order
 
@@ -392,3 +390,6 @@ class DataEngine(object):
         """注册事件监听"""
         self.eventEngine.register(EVENT_CONTRACT, self.updateContract)
         self.eventEngine.register(EVENT_ORDER, self.updateOrder)
+
+
+
