@@ -32,13 +32,14 @@ from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
 from vnpy.trader.vtFunction import todayDate, getJsonPath
+from vnpy.trader.app.ctaStrategy.ctaEngine import  CtaEngine as VtCtaEngine
 
 from .ctaBase import *
 from .strategy import STRATEGY_CLASS
 
 
 ########################################################################
-class CtaEngine(object):
+class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
     settingFileName = 'CTA_setting.json'
     settingfilePath = getJsonPath(settingFileName, __file__)
