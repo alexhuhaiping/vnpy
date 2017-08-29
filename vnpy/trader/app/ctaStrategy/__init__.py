@@ -6,5 +6,5 @@ from ctaEngine import CtaEngine
 appName = 'CtaStrategy'
 appDisplayName = u'CTA策略'
 appEngine = CtaEngine
-# appWidget = CtaEngineManager
+appWidget = None # CtaEngineManager
 appIco = 'cta.ico'

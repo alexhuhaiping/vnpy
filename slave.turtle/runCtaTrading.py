@@ -6,7 +6,7 @@ from datetime import datetime, time
 
 from vnpy.event import EventEngine2
 from vnpy.trader.vtEvent import EVENT_LOG
-from vnpy.trader.vtEngine import MainEngine
+from vnpy.trader.svtEngine import MainEngine
 from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI
@@ -53,7 +53,7 @@ def runChildProcess():
     # ee.register(EVENT_CTA_LOG, processCtaLogEvent)
     ee.log.info(u'注册日志事件监听')
 
-    # 接口连接后自动执行数据库连接的任务
+    # 在连接到接口前，执行连接到数据库
     me.dbConnect()
 
     me.connect('CTP')
