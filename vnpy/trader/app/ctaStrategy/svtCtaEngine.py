@@ -77,8 +77,14 @@ class CtaEngine(VtCtaEngine):
             'bar_1day': self.ctpCol1dayBar,
         }.get(collectionName)
 
-        # 总的需要载入的 bar 数量
-        barAmount = barNum * barPeriod
+        # 假设周期 barPeriod=7, barNum=10
+        cursor = self.ctpCol1minBar.find({'symbol': symbol}).hint('symbol')
+        amount = cursor.count()
+        # 先取余数
+        rest = amount % barPeriod
+
+        # 总的需要载入的 bar 数量，保证数量的同时，每根bar的周期不会乱掉
+        barAmount = barNum * barPeriod + rest
 
         loadDate = self.today
         loadBarNum = 0
@@ -121,6 +127,7 @@ class CtaEngine(VtCtaEngine):
             bar = VtBarData()
             bar.load(d)
             l.append(bar)
+
         return l
 
     def callStrategyFunc(self, strategy, func, params=None):

@@ -7,6 +7,7 @@
 from datetime import time
 import traceback
 from collections import OrderedDict
+import copy
 
 import talib
 import numpy as np
@@ -84,6 +85,8 @@ class DonchianChannelStrategy(TargetPosTemplate):
     def onInit(self):
         initData = self.loadBar(self.maxBarNum)
         self.log.info(u'即将加载 {} 个 bar'.format(len(initData)))
+        initData.sort(key=lambda bar: bar.datetime)
+
         for bar in initData:
             self.onBar(bar)
 
@@ -109,22 +112,26 @@ class DonchianChannelStrategy(TargetPosTemplate):
         tickMinute = tick.datetime.minute
 
         if tickMinute != self.barMinute:
-            if self.bar:
-                self.onBar(self.bar)
+            if self.bar1min:
+                self.onBar(self.bar1min)
 
-            bar = self.newBar(tick)
-
-            self.bar = bar  # 这种写法为了减少一层访问，加快速度
+            self.bar1min = self.newBar(tick)
             self.barMinute = tickMinute  # 更新当前的分钟
 
         else:  # 否则继续累加新的K线
-            self.refreshBar(self.bar, tick)
+            self.refreshBarByTick(self.bar1min, tick)
 
         super(DonchianChannelStrategy, self).onTick(tick)
 
-    def onBar(self, bar):
-        super(DonchianChannelStrategy, self).onBar(bar)
-        self.bar = bar
+    def onBar(self, bar1min):
+        super(DonchianChannelStrategy, self).onBar(bar1min)
+
+        #############
+        bar = self.bar
+
+        if not self.isNewBar():
+            # 没有凑满新的 bar
+            return
 
         # 保存极值队列
         self.barList.append(bar)
@@ -144,7 +151,6 @@ class DonchianChannelStrategy(TargetPosTemplate):
             return
 
         self.logVarList()
-
 
         # TODO 撤单
         # TODO 下单
@@ -171,20 +177,24 @@ class DonchianChannelStrategy(TargetPosTemplate):
         self.highOut2 = lows[-1]
 
         # 低点入场
-        lows = talib.MAX(np.array(self.lowList), self.in1)
+        lows = talib.MIN(np.array(self.lowList), self.in1)
         self.lowIn1 = lows[-1]
-        lows = talib.MAX(np.array(self.lowList), self.in2)
+        lows = talib.MIN(np.array(self.lowList), self.in2)
         self.lowIn2 = lows[-1]
 
         # 低点离场
-        highs = talib.MIN(np.array(self.highList), self.out1)
+        highs = talib.MAX(np.array(self.highList), self.out1)
         self.lowOut1 = highs[-1]
-        highs = talib.MIN(np.array(self.highList), self.out2)
+        highs = talib.MAX(np.array(self.highList), self.out2)
         self.lowOut2 = highs[-1]
+
+        if __debug__:
+            print(self.bar.datetime)
+            self.logVarList()
 
     def logVarList(self):
         if self.isBackTesting():
-             # 回测中，不输出这个日志
+            # 回测中，不输出这个日志
             return
         dic = OrderedDict()
 
@@ -202,7 +212,14 @@ class DonchianChannelStrategy(TargetPosTemplate):
                           'highOut2',
                           'lowIn2',
                           'lowOut2', ]:
-                    dic[k] = int(dic[k])
+                    try:
+                        dic[k] = int(dic[k])
+                    except ValueError as e:
+                        if e.message == 'cannot convert float NaN to integer':
+                            pass
+                        else:
+                            raise
+
             except TypeError as e:
                 if e.message == "int() argument must be a string or a number, not 'NoneType'":
                     pass

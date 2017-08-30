@@ -5,6 +5,7 @@
 '''
 
 import logging
+import copy
 
 from vnpy.trader.vtConstant import *
 
@@ -35,6 +36,9 @@ class CtaTemplate(vtCtaTemplate):
 
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
+        self.bar1min = None  # 1min bar
+        self.bar = None  # 根据 barPeriod 聚合的 bar
+        self.barCount = 0
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -56,10 +60,15 @@ class CtaTemplate(vtCtaTemplate):
         bar.openInterest = tick.openInterest
         return bar
 
-    def refreshBar(self, bar, tick):
+    def refreshBarByTick(self, bar, tick):
         bar.high = max(bar.high, tick.lastPrice)
         bar.low = min(bar.low, tick.lastPrice)
         bar.close = tick.lastPrice
+
+    def refreshBarByBar(self, bar, bar1min):
+        bar.high = max(bar.high, bar1min.high)
+        bar.low = min(bar.low, bar1min.low)
+        bar.close = bar1min.close
 
     def paramList2Html(self):
         return {
@@ -90,10 +99,8 @@ class CtaTemplate(vtCtaTemplate):
         isinstance(contract, VtContractData)
         return contract
 
-
     def isBackTesting(self):
         return self.getEngineType() == ENGINETYPE_BACKTESTING
-
 
     @property
     def priceTick(self):
@@ -107,6 +114,26 @@ class CtaTemplate(vtCtaTemplate):
 
         return self._priceTick
 
+    def onBar(self, bar1min):
+        if self.bar is None:
+            # 还没有任何数据
+            self.bar = copy.copy(bar1min)
+        elif self.isNewBar():
+            # bar1min 已经凑齐了一个完整的 bar
+            bar = self.bar
+            self.bar = copy.copy(bar1min)
+        else:
+            # 还没凑齐一个完整的 bar
+            self.refreshBarByBar(self.bar, bar1min)
+
+        self.barCount += 1
+
+    def isNewBar(self):
+        return self.barCount % self.barPeriod == 0
+
+
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
-    pass
+    def onBar(self, bar1min):
+        vtTargetPosTemplate.onBar(self, bar1min)
+        CtaTemplate.onBar(self, bar1min)
