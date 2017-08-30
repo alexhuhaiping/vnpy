@@ -8,17 +8,15 @@ import pandas as pd
 app = Flask(__name__)
 
 if __debug__:
-    try:
-        from vnpy.trader.vtEngine import MainEngine
-
-        assert isinstance(app.mainEngine, MainEngine)
-    except AssertionError:
-        pass
+    from vnpy.trader.svtEngine import MainEngine
 
 class WebEngine(object):
     def __init__(self, mainEngine, eventEngine):
         self.app = app
         self.app.mainEngine = mainEngine
+
+        assert isinstance(app.mainEngine, MainEngine)
+
         self.mainEngine = mainEngine
         self.eventEngine = eventEngine
 
@@ -30,8 +28,8 @@ class WebEngine(object):
 
     def _run(self):
         debug = False
-        if __debug__:
-            debug = True
+        # if __debug__:
+        #     debug = True
         app.run(debug=debug, host='0.0.0.0', port=8080)
 
 

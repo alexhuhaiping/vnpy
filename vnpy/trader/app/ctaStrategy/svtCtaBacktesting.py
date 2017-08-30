@@ -308,3 +308,6 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'数据回放结束')
         self.strategy.trading = False
 
+    def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
+        """直接返回初始化数据列表中的Bar"""
+        return self.initData

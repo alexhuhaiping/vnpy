@@ -13,14 +13,28 @@ from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
 from vnpy.trader.vtObject import VtBarData
 
+if __debug__:
+    from vnpy.trader.svtEngine import MainEngine
+    from vnpy.trader.vtObject import VtContractData
+
 
 ########################################################################
 class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
+    barPeriod = 1  # n 分钟的K线
+
+    paramList = vtCtaTemplate.paramList[:]
+    paramList.extend([
+        'barPeriod'
+    ])
+
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger('ctabacktesting')
+
+        self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
+        self._priceTick = None
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -57,8 +71,42 @@ class CtaTemplate(vtCtaTemplate):
             k: getattr(self, k) for k in self.varList
             }
 
+    def loadBar(self, barNum):
+        """读取bar数据"""
+        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barPeriod)
+
+    @property
+    def mainEngine(self):
+        assert isinstance(self.ctaEngine.mainEngine, MainEngine)
+        return self.ctaEngine.mainEngine
+
+    @property
+    def contract(self):
+        """
+        合约
+        :return:
+        """
+        contract = self.mainEngine.getContract(self.vtSymbol)
+        isinstance(contract, VtContractData)
+        return contract
+
+
+    def isBackTesting(self):
+        return self.getEngineType() == ENGINETYPE_BACKTESTING
+
+
+    @property
+    def priceTick(self):
+        if self._priceTick is None:
+            if self.isBackTesting():
+                # 回测中
+                self._priceTick = self.ctaEngine.priceTick
+            else:
+                # 实盘
+                self._priceTick = self.contract.priceTick
+
+        return self._priceTick
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     pass
-

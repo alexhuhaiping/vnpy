@@ -25,6 +25,7 @@ class MainEngine(VtMaingEngine):
         self.ctpCol1dayBar = None
         self.ctaDB = None  # cta 策略相关的数据
 
+
     # ----------------------------------------------------------------------
     def dbConnect(self):
         """连接MongoDB数据库"""
@@ -37,12 +38,7 @@ class MainEngine(VtMaingEngine):
 
                 ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-                # 1min bar
-                self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
-                    codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
-                # 日线 bar
-                self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
-                    codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+                self.ctpdb = ctpdb
 
                 ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
                 ctadb.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])

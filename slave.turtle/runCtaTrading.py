@@ -43,24 +43,25 @@ def runChildProcess():
     ee.log.info(u'事件引擎创建成功')
 
     me = MainEngine(ee)
-    me.addApp(webUI) # 网页UI
-    me.log.info(u'启动网页UI')
-    me.addGateway(ctpGateway)
-    me.addApp(ctaStrategy)
     me.log.info(u'主引擎创建成功')
+
+    # 执行连接到数据库
+    # 大部分的功能依赖于 db 接口
+    me.dbConnect()
+
+    me.addGateway(ctpGateway)
+    me.log.info(u'启动网页UI')
+    me.addApp(ctaStrategy)
+    me.addApp(webUI) # 网页UI
 
     # ee.register(EVENT_LOG, processLogEvent)
     # ee.register(EVENT_CTA_LOG, processCtaLogEvent)
-    ee.log.info(u'注册日志事件监听')
-
-    # 在连接到接口前，执行连接到数据库
-    me.dbConnect()
-
+    # ee.log.info(u'注册日志事件监听')
     me.connect('CTP')
     me.log.info(u'连接CTP接口')
-    
+
     sleep(5)    # 等待CTP接口初始化
-    
+
     cta = me.appDict[ctaStrategy.appName]
     
     cta.loadSetting()

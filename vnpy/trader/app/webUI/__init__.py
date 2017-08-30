@@ -6,5 +6,5 @@ from webEngine import WebEngine
 appName = 'webUI'
 appDisplayName = u'web界面'
 appEngine = WebEngine
-# appWidget = CtaEngineManager
+appWidget = None
 appIco = 'webui.ico'

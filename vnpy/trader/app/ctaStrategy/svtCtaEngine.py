@@ -22,6 +22,7 @@ import traceback
 import arrow
 import datetime
 from itertools import chain
+from bson.codec_options import CodecOptions
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -40,12 +41,27 @@ class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
 
     @property
-    def ctpCol1minBar(self):
-        return self.mainEngine.ctpCol1minBar
+    def LOCAL_TIMEZONE(self):
+        return self.mainEngine.LOCAL_TIMEZONE
 
-    @property
-    def ctpCol1dayBar(self):
-        return self.mainEngine.ctpCol1dayBar
+    def __init__(self, mainEngine, eventEngine):
+        super(CtaEngine, self).__init__(mainEngine, eventEngine)
+
+        # 历史行情的 collection
+        self.mainEngine.dbConnect()
+
+        # 1min bar
+        self.ctpCol1minBar = self.mainEngine.ctpdb['bar_1min'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        # 日线 bar
+        self.ctpCol1dayBar = self.mainEngine.ctpdb['bar_1day'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        if __debug__:
+            import pymongo.collection
+            assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
+            assert isinstance(self.ctpCol1minBar, pymongo.collection.Collection)
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """
@@ -56,6 +72,11 @@ class CtaEngine(VtCtaEngine):
         :param barPeriod:
         :return:
         """
+        collection = {
+            'bar_1min': self.ctpCol1minBar,
+            'bar_1day': self.ctpCol1dayBar,
+        }.get(collectionName)
+
         # 总的需要载入的 bar 数量
         barAmount = barNum * barPeriod
 
@@ -64,19 +85,22 @@ class CtaEngine(VtCtaEngine):
         noDataDays = 0
 
         documents = []  # [ [day31bar1, day31bar2, ...], ... , [day9bar1, day1bar2, ]]
-        while noDataDays > 30:
+        while noDataDays <= 30:
             # 连续一个月没有该合约数据，则退出
-            d = {
+            sql = {
                 'symbol': symbol,
                 'tradingDay': loadDate
             }
             # 获取一天的 1min bar
-            cursor = self.mainEngine.ctpCol1minBar.find(d, {'_id': 0})
+            cursor = collection.find(sql, {'_id': 0})
             count = cursor.count()
+
             if count != 0:
                 # 有数据，加载数据
                 noDataDays += 1
-                documents.append([i for i in cursor])
+                doc = [i for i in cursor]
+                doc.sort(key=lambda bar: bar['datetime'])
+                documents.append(doc)
                 loadBarNum += cursor.count()
                 if loadBarNum > barAmount:
                     # 数量够了， 跳出循环
@@ -89,7 +113,7 @@ class CtaEngine(VtCtaEngine):
 
         # 翻转逆序
         documents.reverse()
-        documents = list(chain(documents))  # 衔接成一个 list
+        documents = list(chain(*documents))  # 衔接成一个 list
 
         # 加载指定数量barAmount的 bar
         l = []
@@ -98,3 +122,20 @@ class CtaEngine(VtCtaEngine):
             bar.load(d)
             l.append(bar)
         return l
+
+    def callStrategyFunc(self, strategy, func, params=None):
+        """调用策略的函数，若触发异常则捕捉"""
+        try:
+            if params:
+                func(params)
+            else:
+                func()
+        except Exception:
+            # 停止策略，修改状态为未初始化
+            strategy.trading = False
+            strategy.inited = False
+
+            # 发出日志
+            content = '\n'.join([u'策略%s触发异常已停止' % strategy.name,
+                                 traceback.format_exc()])
+            self.log.error(content)
