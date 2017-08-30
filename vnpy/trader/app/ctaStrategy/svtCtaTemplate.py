@@ -6,6 +6,7 @@
 
 import logging
 import copy
+from collections import OrderedDict
 
 from vnpy.trader.vtConstant import *
 
@@ -32,7 +33,8 @@ class CtaTemplate(vtCtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
-        self.log = logging.getLogger('ctabacktesting')
+        loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
+        self.log = logging.getLogger(loggerName)
 
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
@@ -71,14 +73,14 @@ class CtaTemplate(vtCtaTemplate):
         bar.close = bar1min.close
 
     def paramList2Html(self):
-        return {
-            k: getattr(self, k) for k in self.paramList
-            }
+        return OrderedDict(
+            (k, getattr(self, k)) for k in self.paramList
+        )
 
     def varList2Html(self):
-        return {
-            k: getattr(self, k) for k in self.varList
-            }
+        return OrderedDict(
+            (k, getattr(self, k)) for k in self.varList
+        )
 
     def loadBar(self, barNum):
         """读取bar数据"""
@@ -95,9 +97,13 @@ class CtaTemplate(vtCtaTemplate):
         合约
         :return:
         """
-        contract = self.mainEngine.getContract(self.vtSymbol)
-        isinstance(contract, VtContractData)
-        return contract
+        if self.isBackTesting():
+            return '111'
+        else:
+
+            contract = self.mainEngine.getContract(self.vtSymbol)
+            isinstance(contract, VtContractData)
+            return contract
 
     def isBackTesting(self):
         return self.getEngineType() == ENGINETYPE_BACKTESTING
@@ -115,6 +121,9 @@ class CtaTemplate(vtCtaTemplate):
         return self._priceTick
 
     def onBar(self, bar1min):
+        if self.isBackTesting():
+            self.bar1min = bar1min
+
         if self.bar is None:
             # 还没有任何数据
             self.bar = copy.copy(bar1min)
@@ -130,6 +139,9 @@ class CtaTemplate(vtCtaTemplate):
 
     def isNewBar(self):
         return self.barCount % self.barPeriod == 0
+
+    def stop(self):
+        self.ctaEngine.stopStrategy(self)
 
 
 ########################################################################
