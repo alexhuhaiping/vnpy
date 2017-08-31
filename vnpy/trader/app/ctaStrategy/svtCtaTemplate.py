@@ -34,13 +34,26 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
-        self.log = logging.getLogger(loggerName)
+        # 定制 logger.name
+        self.log = logging.getLogger(self.vtSymbol)
+        self.log.parent = logging.getLogger(loggerName)
+        self.log.propagate = 1
+
+        # 复制成和原来的 Logger 配置一样
 
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self.bar1min = None  # 1min bar
         self.bar = None  # 根据 barPeriod 聚合的 bar
         self.barCount = 0
+
+    def onTrade(self, trade):
+        """
+        :param trade: VtTradeData
+        :return:
+        """
+        raise NotImplementedError
+
 
     def newBar(self, tick):
         bar = VtBarData()

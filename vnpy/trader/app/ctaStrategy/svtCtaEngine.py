@@ -141,8 +141,9 @@ class CtaEngine(VtCtaEngine):
             # 停止策略，修改状态为未初始化
             strategy.trading = False
             strategy.inited = False
-
+            traceback.print_exc()
             # 发出日志
-            content = '\n'.join([u'策略%s触发异常已停止' % strategy.name,
-                                 traceback.format_exc()])
+            preMsg = u'策略{}触发异常已停止'.format(strategy.name)
+            errMsg = traceback.format_exc()
+            content = u'{}\n{}'.format(preMsg, errMsg.decode('utf-8'))
             self.log.error(content)

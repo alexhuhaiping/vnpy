@@ -83,7 +83,7 @@ from vnpy.trader.vtConstant import EMPTY_UNICODE, EMPTY_STRING, EMPTY_FLOAT, EMP
 
 
 ########################################################################
-class StopOrder(object):
+class VtStopOrder(object):
     """本地停止单"""
 
     #----------------------------------------------------------------------
@@ -95,7 +95,15 @@ class StopOrder(object):
         self.offset = EMPTY_UNICODE
         self.price = EMPTY_FLOAT
         self.volume = EMPTY_INT
-        
+
         self.strategy = None             # 下停止单的策略对象
         self.stopOrderID = EMPTY_STRING  # 停止单的本地编号 
         self.status = EMPTY_STRING       # 停止单状态
+
+
+class StopOrder(VtStopOrder):
+    def __str__(self):
+        s = u'< StopOrder '
+        s += u'stopOrderID:{} '.format(self.stopOrderID)
+        s += u'status:{} '.format(self.status)
+        return s + u'>'
