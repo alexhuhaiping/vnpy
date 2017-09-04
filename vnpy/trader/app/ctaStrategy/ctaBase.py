@@ -102,6 +102,11 @@ class VtStopOrder(object):
 
 
 class StopOrder(VtStopOrder):
+    def __init__(self):
+        super(StopOrder, self).__init__()
+        self.unit = None
+        self.trades = set()
+
     def __str__(self):
         s = u'< StopOrder '
         s += u'stopOrderID:{} '.format(self.stopOrderID)
