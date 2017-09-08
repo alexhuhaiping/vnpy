@@ -48,7 +48,7 @@ def showCtaStrategy():
     if __debug__:
         from vnpy.trader.app.ctaStrategy import CtaEngine
         assert isinstance(ctaApp, CtaEngine)
-    strategyDetails = []
+
     html = ''
     for ctaName, ctaStrategy in ctaApp.strategyDict.items():
         html += ctaName

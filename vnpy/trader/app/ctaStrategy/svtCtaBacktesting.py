@@ -6,7 +6,9 @@
 '''
 from __future__ import division
 
+import time
 import logging
+import logging.config
 from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
@@ -14,9 +16,19 @@ import pytz
 import pymongo
 import pandas as pd
 
+from vnpy.trader.vtConstant import *
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
+from vnpy.trader.vtFunction import getTempPath, getJsonPath
+from vnpy.trader.vtGateway import VtOrderData, VtTradeData
+from .ctaBase import *
+
+# 读取日志配置文件
+loggingConFile = 'logging.conf'
+loggingConFile = getJsonPath(loggingConFile, __file__)
+logging.config.fileConfig(loggingConFile)
+
 
 ########################################################################
 class BacktestingEngine(VTBacktestingEngine):
@@ -62,6 +74,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
 
+        logging.Formatter.converter = self.barTimestamp
     #------------------------------------------------
     # 通用功能
     #------------------------------------------------
@@ -78,7 +91,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #----------------------------------------------------------------------
     def output(self, content):
         """输出内容"""
-        print str(datetime.now()) + "\t" + content
+        self.log.warning(content)
 
     #------------------------------------------------
 
@@ -220,7 +233,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.loadHised = True
         collection = self.ctpCol1minBar
 
-        self.output(u'开始载入数据')
+        self.log.info(u'开始载入数据')
 
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
@@ -237,7 +250,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         initCursor = collection.find(flt, {'_id': 0})
         initCount = initCursor.count()
-        self.output(u'预加载数据量 {}'.format(initCount))
+        self.log.info(u'预加载数据量 {}'.format(initCount))
 
         # 将数据从查询指针中读取出，并生成列表
         self._initData = []  # 清空initData列表
@@ -269,7 +282,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 根据日期排序
         _datas.sort(key=lambda data: data.datetime)
         self._datas = _datas
-        self.output(u'载入完成，数据量：%s' % (len(_datas)))
+        self.log.info(u'载入完成，数据量：%s' % (len(_datas)))
 
     # ----------------------------------------------------------------------
     def runBacktesting(self):
@@ -289,25 +302,111 @@ class BacktestingEngine(VTBacktestingEngine):
             dataClass = VtTickData
             func = self.newTick
 
-        self.output(u'开始回测')
+        self.log.info(u'开始回测')
 
         self.strategy.inited = True
         self.strategy.onInit()
-        self.output(u'策略初始化完成')
+        self.log.info(u'策略初始化完成')
 
         self.strategy.trading = True
         self.strategy.onStart()
-        self.output(u'策略启动完成')
+        self.log.info(u'策略启动完成')
 
-        self.output(u'开始回放数据')
+        self.log.info(u'开始回放数据')
 
         # for d in self.dbCursor:
         for data in self.datas:
-            func(data)
+            try:
+                func(data)
+            except:
+                self.log.error(u'异常 bar: {}'.format(data.datetime))
+                raise
 
-        self.output(u'数据回放结束')
+        self.log.info(u'数据回放结束')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """直接返回初始化数据列表中的Bar"""
         return self.initData
+
+    def barTimestamp(self, *args, **kwargs):
+        if self.dt:
+            return self.dt.timetuple()
+        else:
+            return time.localtime(time.time())
+
+    # ----------------------------------------------------------------------
+    def crossStopOrder(self):
+        """基于最新数据撮合停止单"""
+        # 先确定会撮合成交的价格，这里和限价单规则相反
+        if self.mode == self.BAR_MODE:
+            buyCrossPrice = self.bar.high  # 若买入方向停止单价格低于该价格，则会成交
+            sellCrossPrice = self.bar.low  # 若卖出方向限价单价格高于该价格，则会成交
+            bestCrossPrice = self.bar.open  # 最优成交价，买入停止单不能低于，卖出停止单不能高于
+        else:
+            buyCrossPrice = self.tick.lastPrice
+            sellCrossPrice = self.tick.lastPrice
+            bestCrossPrice = self.tick.lastPrice
+
+        # 遍历停止单字典中的所有停止单
+        for stopOrderID, so in self.workingStopOrderDict.items():
+            # 判断是否会成交
+            buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
+            sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
+
+            # 如果发生了成交
+            if buyCross or sellCross:
+                # 更新停止单状态，并从字典中删除该停止单
+                so.status = STOPORDER_TRIGGERED
+                if stopOrderID in self.workingStopOrderDict:
+                    del self.workingStopOrderDict[stopOrderID]
+
+                    # 推送成交数据
+                self.tradeCount += 1  # 成交编号自增1
+                tradeID = str(self.tradeCount)
+                trade = VtTradeData()
+                trade.vtSymbol = so.vtSymbol
+                trade.tradeID = tradeID
+                trade.vtTradeID = tradeID
+
+                if buyCross:
+                    self.strategy.pos += so.volume
+                    trade.price = max(bestCrossPrice, so.price)
+                else:
+                    self.strategy.pos -= so.volume
+                    trade.price = min(bestCrossPrice, so.price)
+
+                self.limitOrderCount += 1
+                orderID = str(self.limitOrderCount)
+                trade.orderID = orderID
+                trade.vtOrderID = orderID
+                trade.direction = so.direction
+                trade.offset = so.offset
+                trade.volume = so.volume
+                trade.tradeTime = self.dt.strftime('%H:%M:%S')
+                trade.dt = self.dt
+
+                self.tradeDict[tradeID] = trade
+
+                # 推送委托数据
+                order = VtOrderData()
+                order.vtSymbol = so.vtSymbol
+                order.symbol = so.vtSymbol
+                order.orderID = orderID
+                order.vtOrderID = orderID
+                order.direction = so.direction
+                order.offset = so.offset
+                order.price = so.price
+                order.totalVolume = so.volume
+                order.tradedVolume = so.volume
+                order.status = STATUS_ALLTRADED
+                order.orderTime = trade.tradeTime
+
+                self.limitOrderDict[orderID] = order
+
+                so.vtOrderID = orderID
+
+                # 按照顺序推送数据
+                self.strategy.onStopOrder(so)
+                self.strategy.onOrder(order)
+                self.strategy.onTrade(trade)

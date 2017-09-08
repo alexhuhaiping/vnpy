@@ -24,6 +24,7 @@ import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
 
+from pymongo import IndexModel, ASCENDING, DESCENDING
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
@@ -51,11 +52,18 @@ class CtaEngine(VtCtaEngine):
         self.mainEngine.dbConnect()
 
         # 1min bar
-        self.ctpCol1minBar = self.mainEngine.ctpdb['bar_1min'].with_options(
+        self.ctpCol1minBar = self.mainEngine.ctpdb[MINUTE_COL_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
         # 日线 bar
-        self.ctpCol1dayBar = self.mainEngine.ctpdb['bar_1day'].with_options(
+        self.ctpCol1dayBar = self.mainEngine.ctpdb[DAY_COL_NAME].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        # 尝试创建 ctaCollection
+        self.createCtaCollection()
+
+        # cta 策略存库
+        self.ctaCol = self.mainEngine.strategyDB[CTA_COL_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
         if __debug__:
@@ -147,3 +155,62 @@ class CtaEngine(VtCtaEngine):
             errMsg = traceback.format_exc()
             content = u'{}\n{}'.format(preMsg, errMsg.decode('utf-8'))
             self.log.error(content)
+
+    def processStopOrder(self, tick):
+        """收到行情后处理本地停止单（检查是否要立即发出）"""
+        vtSymbol = tick.vtSymbol
+
+        # 首先检查是否有策略交易该合约
+        if vtSymbol in self.tickStrategyDict:
+            # 遍历等待中的停止单，检查是否会被触发
+            for so in self.workingStopOrderDict.values():
+                if so.vtSymbol == vtSymbol:
+                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
+                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+
+                    if longTriggered or shortTriggered:
+                        # 买入和卖出分别以涨停跌停价发单（模拟市价单）
+                        if so.direction == DIRECTION_LONG:
+                            price = tick.upperLimit
+                        else:
+                            price = tick.lowerLimit
+
+                        so.status = STOPORDER_TRIGGERED
+                        vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                        so.vtOrderID = vtOrderID
+                        del self.workingStopOrderDict[so.stopOrderID]
+                        so.strategy.onStopOrder(so)
+
+    def saveCtaDB(self, document):
+        """
+        将 cta 策略的数据保存到数据库
+        :return:
+        """
+
+        self.ctaCol.insert_one(document)
+
+    def createCtaCollection(self):
+        """
+
+        :return:
+        """
+        db = self.mainEngine.strategyDB
+
+        if __debug__:
+            import pymongo.database
+            assert isinstance(db, pymongo.database.Database)
+
+        colNames = db.collection_names()
+        if CTA_COL_NAME not in colNames:
+            # 还没创建 cta collection
+            ctaCol = db.create_collection(CTA_COL_NAME)
+        else:
+            ctaCol = db[CTA_COL_NAME]
+
+        # 尝试创建创建索引
+        indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
+        indexClass = IndexModel([('class', ASCENDING)], name='class', background=True)
+        indexDatetime = IndexModel([('datetime', DESCENDING)], name='datetime', background=True)
+
+        indexes = [indexSymbol, indexClass, indexDatetime]
+        self.mainEngine.createCollectionIndex(ctaCol, indexes)

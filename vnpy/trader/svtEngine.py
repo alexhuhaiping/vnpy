@@ -4,7 +4,7 @@ from bson.codec_options import CodecOptions
 import pytz
 
 from pymongo import MongoClient, ASCENDING
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, OperationFailure
 
 from vnpy.trader.language import text
 from vnpy.trader.vtGateway import *
@@ -21,10 +21,8 @@ class MainEngine(VtMaingEngine):
     # ----------------------------------------------------------------------
     def __init__(self, eventEngine):
         super(MainEngine, self).__init__(eventEngine)
-        self.ctpCol1minBar = None  # 历史行情数据库
-        self.ctpCol1dayBar = None
-        self.ctaDB = None  # cta 策略相关的数据
-
+        self.ctpdb = None  # ctp 历史行情数据库
+        self.strategyDB = None  # cta 策略相关的数据
 
     # ----------------------------------------------------------------------
     def dbConnect(self):
@@ -40,9 +38,9 @@ class MainEngine(VtMaingEngine):
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
                 self.ctpdb = ctpdb
 
-                ctadb = self.dbClient[globalSetting['mongoCtaDbn']]
-                ctadb.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])
-                self.ctaDB = ctadb
+                strategyDB = self.dbClient[globalSetting['mongoCtaDbn']]
+                strategyDB.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])
+                self.strategyDB = strategyDB
 
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
@@ -68,3 +66,24 @@ class MainEngine(VtMaingEngine):
         # }
         # TODO 不保存数据到数据库
         # self.dbInsert(LOG_DB_NAME, self.todayDate, d)
+
+    @staticmethod
+    def createCollectionIndex(col, indexes):
+        """
+        初始化分钟线的 collection
+        :return:
+        """
+
+        # 检查索引
+        try:
+            indexInformation = col.index_information()
+            for indexModel in indexes:
+                if indexModel.document['name'] not in indexInformation:
+                    col.create_indexes(
+                        [
+                            indexModel,
+                        ],
+                    )
+        except OperationFailure:
+            # 有索引
+            col.create_indexes(indexes)

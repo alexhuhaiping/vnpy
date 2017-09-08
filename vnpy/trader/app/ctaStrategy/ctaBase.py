@@ -58,7 +58,8 @@ STOPORDERPREFIX = 'CtaStopOrder.'
 SETTING_DB_NAME = 'cta'
 # POSITION_DB_NAME = 'VnTrader_Position_Db'
 POSITION_DB_NAME = 'cta'
-CTA_DB_NAME = 'cta'
+CTA_DB_NAME = 'strategy'
+CTA_COL_NAME = 'cta'
 
 TICK_DB_NAME = 'VnTrader_Tick_Db'
 DAILY_DB_NAME = 'VnTrader_Daily_Db'
@@ -75,7 +76,6 @@ ENGINETYPE_TRADING = 'trading'          # 实盘
 # CTA模块事件
 EVENT_CTA_LOG = 'eCtaLog'               # CTA相关的日志事件
 EVENT_CTA_STRATEGY = 'eCtaStrategy.'    # CTA策略状态变化事件
-
 
 
 # CTA引擎中涉及的数据类定义
@@ -105,10 +105,13 @@ class StopOrder(VtStopOrder):
     def __init__(self):
         super(StopOrder, self).__init__()
         self.unit = None
-        self.trades = set()
+        self.vtOrderID = None # 触发后，触发后对应的停止单
 
     def __str__(self):
         s = u'< StopOrder '
-        s += u'stopOrderID:{} '.format(self.stopOrderID)
-        s += u'status:{} '.format(self.status)
+        s += u'{} '.format(self.stopOrderID)
+        s += u'{} '.format(self.offset)
+        s += u'{} '.format(self.direction)
+        s += u'{} @ {} '.format(self.volume, self.price)
+        s += u'{} '.format(self.status)
         return s + u'>'

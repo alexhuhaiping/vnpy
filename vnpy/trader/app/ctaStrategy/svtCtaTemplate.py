@@ -7,9 +7,11 @@
 import logging
 import copy
 from collections import OrderedDict
+import pymongo
+
+import arrow
 
 from vnpy.trader.vtConstant import *
-
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
@@ -34,10 +36,20 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
+        logger = logging.getLogger(loggerName)
+
         # 定制 logger.name
         self.log = logging.getLogger(self.vtSymbol)
-        self.log.parent = logging.getLogger(loggerName)
-        self.log.propagate = 1
+        # self.log.parent = logger
+        self.log.propagate = 0
+
+        for f in logger.filters:
+            self.log.addFilter(f)
+        for h in logger.handlers:
+            self.log.addHandler(h)
+
+        if self.isBackTesting():
+            self.log.setLevel(logger.level)
 
         # 复制成和原来的 Logger 配置一样
 
@@ -45,7 +57,11 @@ class CtaTemplate(vtCtaTemplate):
         self._priceTick = None
         self.bar1min = None  # 1min bar
         self.bar = None  # 根据 barPeriod 聚合的 bar
-        self.barCount = 0
+        self.bar1minCount = 0
+
+    @property
+    def calssName(self):
+        return self.__class__.__name__
 
     def onTrade(self, trade):
         """
@@ -53,7 +69,6 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         raise NotImplementedError
-
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -142,20 +157,83 @@ class CtaTemplate(vtCtaTemplate):
             self.bar = copy.copy(bar1min)
         elif self.isNewBar():
             # bar1min 已经凑齐了一个完整的 bar
-            bar = self.bar
             self.bar = copy.copy(bar1min)
         else:
             # 还没凑齐一个完整的 bar
             self.refreshBarByBar(self.bar, bar1min)
 
-        self.barCount += 1
+        self.bar1minCount += 1
 
     def isNewBar(self):
-        return self.barCount % self.barPeriod == 0
+        return self.bar1minCount % self.barPeriod == 0
 
     def stop(self):
         self.ctaEngine.stopStrategy(self)
 
+    def toSave(self):
+        """
+        要存库的数据
+        :return: {}
+        """
+        # 必要的三个字段
+        dic = {
+            'symbol': self.vtSymbol,
+            'datetime': arrow.now().datetime,
+            'class': self.className,
+        }
+        return dic
+
+    def saveDB(self):
+        """
+        将策略的数据保存到 mongodb 数据库
+        :return:
+        """
+        # 暂时不使用存库功能
+        return
+        if self.isBackTesting():
+            # 回测中，不存库
+            return
+
+        # 保存
+        self.ctaEngine.saveCtaDB(self.toSave())
+
+    def fromDB(self):
+        """
+
+        :return:
+        """
+        filter = {
+            'symbol': self.vtSymbol,
+            'class': self.className,
+        }
+        # 对 datetime 倒叙，获取第一条
+        return self.ctaEngine.ctaCol.find_one(filter, sort=[('datetime', pymongo.DESCENDING)])
+
+    def onOrder(self, order):
+        """
+        order.direction
+            # 方向常量
+            DIRECTION_NONE = u'无方向'
+            DIRECTION_LONG = u'多'
+            DIRECTION_SHORT = u'空'
+            DIRECTION_UNKNOWN = u'未知'
+            DIRECTION_NET = u'净'
+            DIRECTION_SELL = u'卖出'              # IB接口
+            DIRECTION_COVEREDSHORT = u'备兑空'    # 证券期权
+
+        order.offset
+            # 开平常量
+            OFFSET_NONE = u'无开平'
+            OFFSET_OPEN = u'开仓'
+            OFFSET_CLOSE = u'平仓'
+            OFFSET_CLOSETODAY = u'平今'
+            OFFSET_CLOSEYESTERDAY = u'平昨'
+            OFFSET_UNKNOWN = u'未知'
+        :param order:
+        :return:
+        """
+
+        raise NotImplementedError
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
