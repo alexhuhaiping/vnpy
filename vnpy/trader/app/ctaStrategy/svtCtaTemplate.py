@@ -118,7 +118,7 @@ class CtaTemplate(vtCtaTemplate):
         return OrderedDict(items)
 
     def loadBar(self, barNum):
-        """读取bar数据"""
+        """加载用于初始化策略的数据"""
         return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barPeriod)
 
     @property

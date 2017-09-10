@@ -13,6 +13,7 @@ from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
 
+import arrow
 import pymongo
 import pandas as pd
 
@@ -51,11 +52,12 @@ class BacktestingEngine(VTBacktestingEngine):
         self.log = logging.getLogger('ctabacktesting')
         super(BacktestingEngine, self).__init__()
 
-        self._datas = []  # 1min bar 的原始数据
-        self.datas = []  # 聚合后，用于回测的数据
-
-        self._initData = []  # 初始化用的数据, 最早的1min bar
-        self.initData = []  # 聚合后的数据，真正用于跑回测的数据
+        # self._datas = []  # 1min bar 的原始数据
+        # self.datas = []  # 聚合后，用于回测的数据
+        #
+        # self._initData = []  # 初始化用的数据, 最早的1min bar
+        # self.initData = []  # 聚合后的数据，真正用于跑回测的数据
+        self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
@@ -75,17 +77,18 @@ class BacktestingEngine(VTBacktestingEngine):
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
 
         logging.Formatter.converter = self.barTimestamp
-    #------------------------------------------------
-    # 通用功能
-    #------------------------------------------------
 
-    #----------------------------------------------------------------------
+    # ------------------------------------------------
+    # 通用功能
+    # ------------------------------------------------
+
+    # ----------------------------------------------------------------------
     def roundToPriceTick(self, price):
         """取整价格到合约最小价格变动"""
         if not self.priceTick:
             return price
 
-        newPrice = round(price/self.priceTick, 0) * self.priceTick
+        newPrice = round(price / self.priceTick, 0) * self.priceTick
         return newPrice
 
     # #----------------------------------------------------------------------
@@ -93,16 +96,18 @@ class BacktestingEngine(VTBacktestingEngine):
     #     """输出内容"""
     #     self.log.warning(content)
 
-    #------------------------------------------------
+    # ------------------------------------------------
 
-    def resample(self):
-        """
-        聚合数据
-        :return:
-        """
 
-        self.initData = self._resample(self.barPeriod, self._initData)
-        self.datas = self._resample(self.barPeriod, self._datas)
+
+    # def resample(self):
+    #     """
+    #     聚合数据
+    #     :return:
+    #     """
+    #
+    #     self.initData = self._resample(self.barPeriod, self._initData)
+    #     self.datas = self._resample(self.barPeriod, self._datas)
 
     @classmethod
     def _resample(cls, barPeriod, datas):
@@ -176,41 +181,79 @@ class BacktestingEngine(VTBacktestingEngine):
         )
 
     # 参数设置相关
-    #------------------------------------------------
+    # ------------------------------------------------
 
-    #----------------------------------------------------------------------
-    def setStartDate(self, startDate='20100416', initDays=10):
-        """设置回测的启动日期"""
-        self.startDate = startDate
-        self.initDays = initDays
+    # ----------------------------------------------------------------------
+    # def setStartDate(self, startDate='20100416', initDays=10):
+    #     """设置回测的启动日期"""
+    #     self.startDate = startDate
+    #     self.initDays = initDays
+    #
+    #     self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
+    #
+    #     # initTimeDelta = timedelta(initDays)
+    #     # 要获取 initDays 个交易日的数据
+    #     sql = {
+    #         'symbol': self.symbol,
+    #         'tradingDay': {
+    #             '$gte': self.dataStartDate,
+    #         }
+    #     }
+    #     cursor = self.ctpCol1dayBar.find(sql, {'_id': 0})
+    #     # 顺序排列
+    #     cursor.sort('tradingDay')
+    #
+    #     cursor.skip(initDays)
+    #     dayBar = cursor.next()
+    #
+    #     self.strategyStartDate = dayBar['tradingDay']
+    #
+    #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
-        self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
+    def setStartDate(self, startDate=None, initDays=None):
+        """
+        设置回测的启动日期
+        :param startDate: 策略的启动日期
+        :param initDays: 该参数作废
+        :return:
+        """
+        if isinstance(startDate, datetime):
+            self.startDate = startDate
+        elif isinstance(startDate, str) or isinstance(startDate, unicode):
+            self.startDate = arrow.get(startDate).datetime
+        else:
+            err = u'未知的回测起始日期 {}'.format(str(startDate))
+            self.log.critical(err)
+            raise ValueError(err)
 
-        # initTimeDelta = timedelta(initDays)
-        # 要获取 initDays 个交易日的数据
-        sql = {
-            'symbol': self.symbol,
-            'tradingDay': {
-                '$gte': self.dataStartDate,
-            }
-        }
-        cursor = self.ctpCol1dayBar.find(sql, {'_id': 0})
-        # 顺序排列
-        cursor.sort('tradingDay')
+        if self.startDate.strftime('%H:%M:%S.%f') != '00:00:00.000000':
+            msg = u'startdate 必须为一个零点的日期'
+            self.log.critical(msg)
+            raise ValueError(msg)
 
-        cursor.skip(initDays)
-        dayBar = cursor.next()
+        self.dataStartDate = self.strategyStartDate = self.startDate
 
-        self.strategyStartDate = dayBar['tradingDay']
-
-        self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
+        # self.startDate
+        # self.strategyStartDate
+        # self.dataStartDate
 
     def setEndDate(self, endDate=''):
         """设置回测的结束日期"""
         self.endDate = endDate
 
-        if endDate:
-            self.dataEndDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(endDate, '%Y%m%d'))
+        if isinstance(endDate, datetime):
+            self.endDate = endDate
+        elif isinstance(endDate, str) or isinstance(endDate, unicode):
+            self.endDate = arrow.get(endDate).datetime
+        else:
+            err = u'未知的回测结束日期 {}'.format(str(endDate))
+            self.log.critical(err)
+            raise ValueError(err)
+
+        if self.endDate.strftime('%H:%M:%S.%f') != '00:00:00.000000':
+            msg = u'endDate 必须为一个零点的日期'
+            self.log.critical(msg)
+            raise ValueError(msg)
 
     def setBarPeriod(self, barPeriod):
         """
@@ -225,9 +268,9 @@ class BacktestingEngine(VTBacktestingEngine):
 
     # ------------------------------------------------
     # 数据回放相关
-    #------------------------------------------------
+    # ------------------------------------------------
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def loadHistoryData(self):
         """载入历史数据"""
         self.loadHised = True
@@ -238,51 +281,27 @@ class BacktestingEngine(VTBacktestingEngine):
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
             dataClass = VtBarData
-            func = self.newBar
         else:
             dataClass = VtTickData
-            func = self.newTick
 
         # 载入初始化需要用的数据
-        flt = {'tradingDay': {'$gte': self.dataStartDate,
-                              '$lt': self.strategyStartDate},
-               'symbol': self.symbol}
+        flt = {'symbol': self.symbol}
 
         initCursor = collection.find(flt, {'_id': 0})
         initCount = initCursor.count()
-        self.log.info(u'预加载数据量 {}'.format(initCount))
+        self.log.info(u'预计加载数据 {}'.format(initCount))
 
         # 将数据从查询指针中读取出，并生成列表
-        self._initData = []  # 清空initData列表
+        self.datas = []  # 清空initData列表
         for d in initCursor:
             data = dataClass()
             data.load(d)
-            self._initData.append(data)
+            self.datas.append(data)
 
-        self._initData.sort(key=lambda data: data.datetime)
+        # 对 datetime 排序
+        self.datas.sort(key=lambda d: d.datetime)
 
-        # 载入回测数据
-        if not self.dataEndDate:
-            flt = {'tradingDay': {'$gte': self.strategyStartDate}, 'symbol': self.symbol}  # 数据过滤条件
-        else:
-            flt = {'tradingDay': {'$gte': self.strategyStartDate,
-                                  '$lte': self.dataEndDate},
-                   'symbol': self.symbol}
-
-        self.dbCursor = collection.find(flt, {'_id': 0})
-
-        # count = self.dbCursor.count()
-
-        _datas = []
-        for d in self.dbCursor:
-            data = dataClass()
-            data.load(d)
-            _datas.append(data)
-
-        # 根据日期排序
-        _datas.sort(key=lambda data: data.datetime)
-        self._datas = _datas
-        self.log.info(u'载入完成，数据量：%s' % (len(_datas)))
+        self.log.info(u'载入完成')
 
     # ----------------------------------------------------------------------
     def runBacktesting(self):
@@ -292,7 +311,7 @@ class BacktestingEngine(VTBacktestingEngine):
             self.loadHistoryData()
 
         # 聚合数据
-        self.resample()
+        # self.resample()
 
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
@@ -314,20 +333,42 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.log.info(u'开始回放数据')
 
-        # for d in self.dbCursor:
         for data in self.datas:
-            try:
-                func(data)
-            except:
-                self.log.error(u'异常 bar: {}'.format(data.datetime))
-                raise
+            td = data.tradingDay
+            if self.strategyStartDate <= td:
+                try:
+                    func(data)
+                except:
+                    self.log.error(u'异常 bar: {}'.format(data.datetime))
+                    raise
+            if self.endDate < td:
+                # 要回测的时间段结束
+                break
 
         self.log.info(u'数据回放结束')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """直接返回初始化数据列表中的Bar"""
-        return self.initData
+        initDatas = []
+        needBarNum = barPeriod * barNum
+
+        # 从策略起始日之前开始加载数据
+        for b in self.datas:
+            if b.tradingDay < self.strategyStartDate:
+                initDatas.append(b)
+            else:
+                # 加载完成
+                break
+        # 只返回指定数量的 bar
+        initDataNum = len(initDatas)
+        if initDataNum < needBarNum:
+            self.log.warning(u'预加载的 bar 数量 {} != barAmount:{}'.format(initDataNum, needBarNum))
+            return initDatas
+
+        # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
+        barAmount = initDataNum % barPeriod + needBarNum
+        return initDatas[-barAmount:]
 
     def barTimestamp(self, *args, **kwargs):
         if self.dt:
@@ -412,7 +453,6 @@ class BacktestingEngine(VTBacktestingEngine):
                 self.strategy.onStopOrder(so)
                 self.strategy.onOrder(order)
                 self.strategy.onTrade(trade)
-
 
     def getAllStopOrdersSorted(self):
         """

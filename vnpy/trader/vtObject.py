@@ -96,7 +96,8 @@ class VtBarData(VtBaseData):
         self.date = EMPTY_STRING            # bar开始的时间，日期
         self.time = EMPTY_STRING            # 时间
         self.datetime = None                # python的datetime时间对象
-        
+        self.tradingDay = None              # python的datetime时间对象
+
         self.volume = EMPTY_INT             # 成交量
         self.openInterest = EMPTY_INT       # 持仓量    
 
