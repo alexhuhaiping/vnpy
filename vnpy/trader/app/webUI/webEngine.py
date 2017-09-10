@@ -55,8 +55,15 @@ def showCtaStrategy():
         html += '</br>'
         html += ctaStrategy.className
         html += '</br>'
-        html += pd.DataFrame([ctaStrategy.paramList2Html()], index=['param']).to_html()
-        html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
+        for index, data in ctaStrategy.toHtml().items():
+            if isinstance(data, dict):
+                html += pd.DataFrame([data], index=[index]).to_html()
+            else:
+                html += data
+
+            html += '</br>'
+            # html += pd.DataFrame([ctaStrategy.paramList2Html()], index=['param']).to_html()
+            # html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
         html += '</br>'
         html += '</br>'
     return html

@@ -88,10 +88,10 @@ class BacktestingEngine(VTBacktestingEngine):
         newPrice = round(price/self.priceTick, 0) * self.priceTick
         return newPrice
 
-    #----------------------------------------------------------------------
-    def output(self, content):
-        """输出内容"""
-        self.log.warning(content)
+    # #----------------------------------------------------------------------
+    # def output(self, content):
+    #     """输出内容"""
+    #     self.log.warning(content)
 
     #------------------------------------------------
 
@@ -349,7 +349,9 @@ class BacktestingEngine(VTBacktestingEngine):
             bestCrossPrice = self.tick.lastPrice
 
         # 遍历停止单字典中的所有停止单
-        for stopOrderID, so in self.workingStopOrderDict.items():
+        # for stopOrderID, so in self.workingStopOrderDict.items():
+        for so in self.getAllStopOrdersSorted():
+            stopOrderID = so.stopOrderID
             # 判断是否会成交
             buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
             sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
@@ -410,3 +412,30 @@ class BacktestingEngine(VTBacktestingEngine):
                 self.strategy.onStopOrder(so)
                 self.strategy.onOrder(order)
                 self.strategy.onTrade(trade)
+
+
+    def getAllStopOrdersSorted(self):
+        """
+        对全部停止单排序后
+        :return:
+        """
+        longStopOrders = []
+        shortStopOrders = []
+        stopOrders = []
+        for so in self.workingStopOrderDict.values():
+            if so.direction == DIRECTION_LONG:
+                longStopOrders.append(so)
+            elif so.direction == DIRECTION_SHORT:
+                shortStopOrders.append(so)
+            else:
+                stopOrders.append(so)
+                self.log.error(u'未知的停止单方向 {}'.format(so.direction))
+
+        # 根据触发价排序，优先触发更优的
+        longStopOrders.sort(key=lambda so: so.price)
+        shortStopOrders.sort(key=lambda so: so.price)
+        shortStopOrders.reverse()
+
+        stopOrders.extend(longStopOrders)
+        stopOrders.extend(shortStopOrders)
+        return stopOrders

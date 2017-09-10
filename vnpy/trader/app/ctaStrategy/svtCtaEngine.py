@@ -163,23 +163,51 @@ class CtaEngine(VtCtaEngine):
         # 首先检查是否有策略交易该合约
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
-            for so in self.workingStopOrderDict.values():
-                if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
-                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+            # for so in self.workingStopOrderDict.values():
+            #     if so.vtSymbol == vtSymbol:
+            for so in self.getAllStopOrdersSorted(vtSymbol):
+                longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
+                shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
 
-                    if longTriggered or shortTriggered:
-                        # 买入和卖出分别以涨停跌停价发单（模拟市价单）
-                        if so.direction == DIRECTION_LONG:
-                            price = tick.upperLimit
-                        else:
-                            price = tick.lowerLimit
+                if longTriggered or shortTriggered:
+                    # 买入和卖出分别以涨停跌停价发单（模拟市价单）
+                    if so.direction == DIRECTION_LONG:
+                        price = tick.upperLimit
+                    else:
+                        price = tick.lowerLimit
 
-                        so.status = STOPORDER_TRIGGERED
-                        vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
-                        so.vtOrderID = vtOrderID
-                        del self.workingStopOrderDict[so.stopOrderID]
-                        so.strategy.onStopOrder(so)
+                    so.status = STOPORDER_TRIGGERED
+                    vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                    so.vtOrderID = vtOrderID
+                    del self.workingStopOrderDict[so.stopOrderID]
+                    so.strategy.onStopOrder(so)
+
+    def getAllStopOrdersSorted(self, vtSymbol):
+        """
+        对全部停止单排序后
+        :return:
+        """
+        longStopOrders = []
+        shortStopOrders = []
+        stopOrders = []
+        for so in self.workingStopOrderDict.values():
+            if so.vtSymbol == vtSymbol:
+                if so.direction == DIRECTION_LONG:
+                    longStopOrders.append(so)
+                elif so.direction == DIRECTION_SHORT:
+                    shortStopOrders.append(so)
+                else:
+                    stopOrders.append(so)
+                    self.log.error(u'未知的停止单方向 {}'.format(so.direction))
+
+        # 根据触发价排序，优先触发更优的
+        longStopOrders.sort(key=lambda so: so.price)
+        shortStopOrders.sort(key=lambda so: so.price)
+        shortStopOrders.reverse()
+
+        stopOrders.extend(longStopOrders)
+        stopOrders.extend(shortStopOrders)
+        return stopOrders
 
     def saveCtaDB(self, document):
         """

@@ -110,6 +110,13 @@ class CtaTemplate(vtCtaTemplate):
             (k, getattr(self, k)) for k in self.varList
         )
 
+    def toHtml(self):
+        items = (
+            ('param', self.paramList2Html()),
+            ('var', self.varList2Html()),
+        )
+        return OrderedDict(items)
+
     def loadBar(self, barNum):
         """读取bar数据"""
         return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barPeriod)
