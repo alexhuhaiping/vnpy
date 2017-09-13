@@ -335,17 +335,18 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for data in self.datas:
             td = data.tradingDay
+
+            if self.endDate and self.endDate < td:
+                # 要回测的时间段结束
+                break
             if self.strategyStartDate <= td:
                 try:
                     func(data)
                 except:
                     self.log.error(u'异常 bar: {}'.format(data.datetime))
                     raise
-            if self.endDate < td:
-                # 要回测的时间段结束
-                break
 
-        self.log.info(u'数据回放结束')
+        self.log.info(u'数据回放结束 ')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
@@ -389,20 +390,30 @@ class BacktestingEngine(VTBacktestingEngine):
             sellCrossPrice = self.tick.lastPrice
             bestCrossPrice = self.tick.lastPrice
 
-        # 遍历停止单字典中的所有停止单
-        # for stopOrderID, so in self.workingStopOrderDict.items():
-        for so in self.getAllStopOrdersSorted():
+        def _crossStopOrder(so):
+            """
+
+            :param so:
+            :return: bool(是否成交)
+            """
             stopOrderID = so.stopOrderID
             # 判断是否会成交
             buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
             sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
 
             # 如果发生了成交
-            if buyCross or sellCross:
+            if not (buyCross or sellCross):
+                return False
+            else:
                 # 更新停止单状态，并从字典中删除该停止单
                 so.status = STOPORDER_TRIGGERED
                 if stopOrderID in self.workingStopOrderDict:
                     del self.workingStopOrderDict[stopOrderID]
+
+                self.strategy.onStopOrder(so)
+                if so.volume == 0:
+                    # 下单量为0的话，不做限价撮合
+                    return True
 
                     # 推送成交数据
                 self.tradeCount += 1  # 成交编号自增1
@@ -450,9 +461,30 @@ class BacktestingEngine(VTBacktestingEngine):
                 so.vtOrderID = orderID
 
                 # 按照顺序推送数据
-                self.strategy.onStopOrder(so)
                 self.strategy.onOrder(order)
                 self.strategy.onTrade(trade)
+                return True
+
+        # 遍历停止单字典中的所有停止单
+        # for stopOrderID, so in self.workingStopOrderDict.items():
+        stopOrders = self.getAllStopOrdersSorted()
+        count = 0
+        isCrossed = False
+        while count < 100:
+            count += 1
+            for so in stopOrders:
+                isCrossed = _crossStopOrder(so)
+                # if isCrossed:
+                #     # 出现成交，重新整理停止单队列
+                #     self.log.info(u'出现成交,重新生成停止单队列')
+                #     stopOrders = self.getAllStopOrdersSorted()
+                #     break
+            else:
+                # 一次成交都没有
+                break
+
+        if count >= 100:
+            self.log.warning(u'订单量过大 {}'.format(count))
 
     def getAllStopOrdersSorted(self):
         """
@@ -472,10 +504,17 @@ class BacktestingEngine(VTBacktestingEngine):
                 self.log.error(u'未知的停止单方向 {}'.format(so.direction))
 
         # 根据触发价排序，优先触发更优的
-        longStopOrders.sort(key=lambda so: so.price)
-        shortStopOrders.sort(key=lambda so: so.price)
+        longStopOrders.sort(key=lambda so: (so.price, so.priority))
+        shortStopOrders.sort(key=lambda so: (so.price, -so.priority))
         shortStopOrders.reverse()
 
-        stopOrders.extend(longStopOrders)
-        stopOrders.extend(shortStopOrders)
+        if self.bar.open >= self.bar.close:
+            # 阴线，先撮合多单
+            stopOrders.extend(longStopOrders)
+            stopOrders.extend(shortStopOrders)
+        else:
+            # 反之亦然
+            stopOrders.extend(shortStopOrders)
+            stopOrders.extend(longStopOrders)
+
         return stopOrders

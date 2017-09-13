@@ -153,6 +153,7 @@ class CtaTemplate(vtCtaTemplate):
                 # 实盘
                 self._priceTick = self.contract.priceTick
 
+        assert isinstance(self._priceTick, float) or isinstance(self._priceTick, int)
         return self._priceTick
 
     def onBar(self, bar1min):
@@ -241,6 +242,15 @@ class CtaTemplate(vtCtaTemplate):
         """
 
         raise NotImplementedError
+
+    def roundToPriceTick(self, price):
+        """取整价格到合约最小价格变动"""
+        if not self.priceTick:
+            return price
+
+        newPrice = round(price / self.priceTick, 0) * self.priceTick
+        return newPrice
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

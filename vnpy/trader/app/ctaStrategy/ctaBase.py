@@ -106,12 +106,16 @@ class StopOrder(VtStopOrder):
         super(StopOrder, self).__init__()
         self.unit = None
         self.vtOrderID = None # 触发后，触发后对应的停止单
+        self.unit = None # 绑定的对应的 unit
+        self.priority = 0 # 同样价格时，成交的优先级。值越小越优先触发
 
     def __str__(self):
         s = u'< StopOrder '
         s += u'{} '.format(self.stopOrderID)
+        s += u'({}) '.format(self.priority)
         s += u'{} '.format(self.offset)
         s += u'{} '.format(self.direction)
         s += u'{} @ {} '.format(self.volume, self.price)
         s += u'{} '.format(self.status)
-        return s + u'>'
+        s += u'>'
+        return s

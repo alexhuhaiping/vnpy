@@ -177,8 +177,10 @@ class CtaEngine(VtCtaEngine):
                         price = tick.lowerLimit
 
                     so.status = STOPORDER_TRIGGERED
-                    vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
-                    so.vtOrderID = vtOrderID
+                    if so.volume > 0:
+                        # 成交量 >0 时才是正式下单，否则只是触发价格事件
+                        vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                        so.vtOrderID = vtOrderID
                     del self.workingStopOrderDict[so.stopOrderID]
                     so.strategy.onStopOrder(so)
 
