@@ -62,7 +62,27 @@ class Unit(object):
         self.atrStopPrice = None  # atr 止损价格
         self.isFirst = False
         self.isLast = False
-        self.vtTrades = set()
+        self.dealVtTradIDs = set()
+        self.dealVtOrderIDs = set()
+
+    def logProfile(self):
+        """
+        计算盈利
+        :return:
+        """
+        # 每仓盈利
+        if self.direction == DIRECTION_LONG:
+            profile = self.closeTotalCost - self.openTotalCost
+        else:
+            profile = self.openTotalCost - self.closeTotalCost
+
+        # 每单位盈利
+        handPro = round(profile / self.maxPos, 3)
+
+        # 总盈利
+        profile *= self.strategy.size
+
+        self.log.info(u'盈利 {} 每单位 {}'.format(property, handPro))
 
     def setOpenCostPrice(self, costPrice):
         self.openCostPrice = costPrice
@@ -165,29 +185,53 @@ class Unit(object):
 
     def saveVtTrade(self, vtTrade):
         assert isinstance(vtTrade, VtTradeData)
-        self.vtTrades.add(vtTrade)
+        if not self.strategy.isBackTesting():
+            # 回测时不需要缓存 vtTrade
+            self.dealVtTradIDs.add(vtTrade.vtTradeID)
 
         # 设置仓位
-        self.pos += vtTrade.volume
         self.maxPos = max(self.pos, self.maxPos)
         try:
             # 计算成本
             if vtTrade.offset == OFFSET_OPEN:
                 # 开仓成本
+                self.pos += vtTrade.volume
                 self.openTotalCost += vtTrade.price * vtTrade.volume
                 # 单价成本
                 self.setOpenCostPrice(self.openTotalCost / self.pos)
             elif vtTrade.offset in OFFSET_CLOSE_LIST:
                 # 平仓成本
+                self.pos -= vtTrade.volume
                 self.closeTotalCost += vtTrade.price * vtTrade.volume
                 # 单价成本
-                self.setCloseCostPrice(self.closeTotalCost / self.pos)
+                self.setCloseCostPrice(self.closeTotalCost / (self.maxPos - self.pos))
             else:
                 err = u'未知的仓位方向 {}'.format(vtTrade.offset)
                 self.log.error(err)
                 raise ValueError(err)
         except ZeroDivisionError:
             self.log.error(u'{} 异常的成交数量 trade.volume:{}'.format(self, vtTrade.volume))
+
+    def waskDealVtTradeID(self, vtTradeID):
+        """
+
+        :param vtTradeID: vtTrade.vtTradeID
+        :return:
+        """
+        return vtTradeID in self.dealVtTradIDs
+
+    def saveVtOrder(self, vtOrder):
+        assert isinstance(vtOrder, VtOrderData)
+        if not self.strategy.isBackTesting():
+            self.dealVtOrderIDs.add(vtOrder.vtOrderID)
+
+    def waskDealVtOrderID(self, vtOrderID):
+        """
+
+        :param vtOrderID: vtOrder.vtOrderID
+        :return:
+        """
+        return vtOrderID in self.dealVtTradIDs
 
 
 ########################################################################
@@ -206,7 +250,6 @@ class DonchianChannelStrategy(CtaTemplate):
 
     # 策略变量
     bar = None  # K线对象
-    barMinute = EMPTY_STRING  # K线当前的分钟
     barList = []  # K线对象的列表
 
     atrPeriod = 14
@@ -233,7 +276,7 @@ class DonchianChannelStrategy(CtaTemplate):
 
     atr = None
 
-    hands = 0  # 每仓多少手
+    hands = 1  # 每仓多少手
 
     # 变量列表，保存了变量的名称
     varList = CtaTemplate.varList[:]
@@ -289,8 +332,8 @@ class DonchianChannelStrategy(CtaTemplate):
         self.shortUnitList[0].isFirst = True
         self.shortUnitList[-1].isLast = True
 
-        self.vtOrderID2Unit = {}
-        self.stopOrders = {}
+        self.vtOrderID2Unit = {}  # {vtOrderID: unit}
+        self.stopOrders = {}  # {stopOrderID: unit}
 
         self.isRefreshOpenPrice = False
 
@@ -457,12 +500,12 @@ class DonchianChannelStrategy(CtaTemplate):
         """
 
         vtOrder.status:
-            STATUS_NOTTRADED = u'pending'
-            STATUS_PARTTRADED = u'partial filled'
-            STATUS_ALLTRADED = u'filled'
-            STATUS_CANCELLED = u'cancelled'
-            STATUS_REJECTED = u'rejected'
-            STATUS_UNKNOWN = u'unknown'
+            STATUS_NOTTRADED = u'未成交'
+            STATUS_PARTTRADED = u'部分成交'
+            STATUS_ALLTRADED = u'全部成交'
+            STATUS_CANCELLED = u'已撤销'
+            STATUS_REJECTED = u'拒单'
+            STATUS_UNKNOWN = u'未知'
 
         :param vtOrder:
         :return:
@@ -477,14 +520,44 @@ class DonchianChannelStrategy(CtaTemplate):
         unit = self.getUnitByVtOrderID(vtOrderID)
 
         if unit is None:
-            self.log.warning(u'订单 {} 没有对应的 unit'.format(vtOrderID))
-
-        if unit.wasDealVtOrderID(vtOrderID):
-            self.log.waring(u'unit {} 已经处理过 '.format(unit))
+            # self.log.warning(u'订单 {} 没有对应的 unit'.format(vtOrderID))
             return
 
-        firstUnit = self.getFirstUnit()
-        lastUnit = self.getLastUnit()
+        assert isinstance(unit, Unit)
+
+        if unit.waskDealVtOrderID(vtOrderID):
+            self.log.waring(u'unit {} 已经处理完成'.format(unit))
+            return
+
+        # 根据订单状态进行处理
+        if order.status == STATUS_NOTTRADED:
+            # u'未成交'
+            pass
+
+        elif order.status == STATUS_PARTTRADED:
+            # u'部分成交'
+            pass
+
+        elif order.status == STATUS_ALLTRADED:
+            # u'全部成交'
+            #
+            unit.saveVtOrder(order)
+
+        elif order.status == STATUS_CANCELLED:
+            # u'已撤销'
+            unit.saveVtOrder(order)
+
+        elif order.status == STATUS_REJECTED:
+            # u'拒单'
+            unit.saveVtOrder(order)
+
+        elif order.status == STATUS_UNKNOWN:
+            # u'未知'
+            pass
+        else:
+            err = u'无法确定订单状态 {}'.format(order.status)
+            self.log.error(err)
+            raise ValueError(err)
 
         # 发出状态更新事件
         self.putEvent()
@@ -499,14 +572,57 @@ class DonchianChannelStrategy(CtaTemplate):
         unit = self.getUnitByVtOrderID(trade.vtOrderID)
 
         # 这个订单是否已经被处理过了
-        if unit.wasDealTrade(trade):
+        if unit.waskDealVtTradeID(trade.vtTradeID):
             self.log.warning(u'收到重复的 tradeID: {}'.format(trade.tradeID))
             return
 
-        self.log.info(u'{} 成交 vtOrderID:{} tradeID:{}'.format(trade.direction, trade.vtOrderID, trade.tradeID))
+        self.log.info(
+            u'{} 成交 vtOrderID:{} vtTradeID:{} price: {} volume: {}'.format(trade.direction, trade.vtTradeID, trade.tradeID,
+                                                                trade.price, trade.volume))
 
         # 保存已经处理过的 trade 对象
-        # unit.saveVtTrade(trade)
+        unit.saveVtTrade(trade)
+
+        # 平仓完成，重新下开仓单
+        if self.status == self.INDEX_STATUS_EMPTY and trade.offset in OFFSET_CLOSE_LIST:
+            for u in chain(self.longUnitList, self.shortUnitList):
+                if not u.empty:
+                    self.log.warning(u'平仓未完成 {}'.format(u))
+                    break
+            else:
+                self.log.info(u'首仓平仓完成')
+                # 计算盈利
+                self.log.info(u'计算盈利')
+
+                # 汇总
+                openTotalCost = 0  # 开仓总价
+                closeTotalCost = 0  # 平仓总价
+                pos = 0  # 仓位
+                for u in self.getUnitListByDirection(unit.direction):
+                    u.logProfile()
+                    openTotalCost += u.openTotalCost
+                    closeTotalCost += u.closeTotalCost
+                    pos += u.maxPos
+
+                if unit.direction == DIRECTION_LONG:
+                    profile = closeTotalCost - openTotalCost
+                else:
+                    profile = openTotalCost - closeTotalCost
+
+                # 每单位盈利
+                handPro = self.roundToPriceTick(profile / pos)
+
+                # 总盈利
+                profile *= self.size
+
+                self.log.info(u'汇总')
+                self.log.info(u'盈利 {} 每单位 {}'.format(profile, handPro))
+
+                self.log.info(u'重新下开仓单')
+                # 没有开仓，直接可以开始
+                self.resetAllUnit()
+                self.sendShortOpenStopOrder()
+                self.sendLongOpenStopOrder()
 
         # 发出状态更新事件
         self.putEvent()
@@ -566,7 +682,7 @@ class DonchianChannelStrategy(CtaTemplate):
 
         for k in self.indexList:
             price = getattr(self, k)
-            setattr(self, k , self.roundToPriceTick(price))
+            setattr(self, k, self.roundToPriceTick(price))
 
     def paramList2log(self):
         dic = OrderedDict()
@@ -684,7 +800,7 @@ class DonchianChannelStrategy(CtaTemplate):
                 assert isinstance(unit.openStopOrder, StopOrder)
                 if unit.openStopOrder.price != shortOpenPrice:
                     self.log.info(u'更新开仓单 {}'.format(unit))
-                    self.log.info(u'{} -> {}'.format( unit.openStopOrder.price, shortOpenPrice))
+                    self.log.info(u'{} -> {}'.format(unit.openStopOrder.price, shortOpenPrice))
                     unit.openStopOrder.price = shortOpenPrice
                     self.isRefreshOpenPrice = True
             else:
@@ -733,7 +849,9 @@ class DonchianChannelStrategy(CtaTemplate):
         :return:
         """
         isinstance(so, VtStopOrder)
+
         stopOrderID = so.stopOrderID
+
         self.log.info(u'停止单 {} '.format(so))
 
         if so.status == STOPORDER_WAITING:
@@ -744,47 +862,7 @@ class DonchianChannelStrategy(CtaTemplate):
             return
         elif so.status == STOPORDER_TRIGGERED:
             # u'已触发'
-            if so.unit is None:
-                msg = u'一个触发的stopOrder {} 没有绑定 unit'
-                self.log.error(msg)
-                raise ValueError(msg)
-
-            # 剔除该单号
-            self.removeStopOrder(stopOrderID)
-
-            # 更改状态
-            self.setStatusOnStopOrder(so)
-
-            # 设置 unit.atr
-            self.setUnitAtrOnStopOrder(so)
-
-            # 设置目标持仓
-            self.setUnitTargetPosOnStopOrder(so)
-
-            # 设置最初建仓成本价
-            self.setUnitCostPriceOnStopOrder(so)
-
-            # 同时撤掉反向的开仓单
-            self.cancelOnStopOrder(so)
-
-            # 下止损单
-            self.sendCloseStopOrderOnStopOrder(so)
-
-            # 平仓完毕，重新下开仓单
-            if so.stopOrderID == 'CtaStopOrder.3':
-                self.log.info(u'{}'.format(self.status))
-                self.log.info(u'{}'.format(so.unit.isFirst))
-                self.log.info(u'{}'.format(so.offset))
-
-            if self.status == self.INDEX_STATUS_EMPTY and so.unit.isFirst and so.offset in OFFSET_CLOSE_LIST:
-                self.log.info(u'首仓平仓完成,重新下开仓单')
-                self.sendOpenStopOrderOnStopOrder(so)
-
-            if so.volume != 0:
-                # 保存 vtOrderID
-                self.saveVtOrderID2Unit(so.vtOrderID, so.unit)
-                so.unit.vtOrderID = so.vtOrderID
-                self.log.info(u'{} vtOrderID {}'.format(so.unit, so.vtOrderID))
+            self.onStopOrderTriggered(so)
 
         elif so.status == STOPORDER_CANCELLED:
             # u'已撤销' 剔除该单号
@@ -856,20 +934,6 @@ class DonchianChannelStrategy(CtaTemplate):
 
         return orderDic
 
-    def logProfileOnOrder(self, unit, order, orderStatus):
-        # 该笔平仓单全部成交
-        if order.status == orderStatus:
-            # 汇报盈利
-            self.log.info(u'该仓位盈利 {}'.format(unit.openCost - unit.closeCost))
-
-            # 已经全部平仓
-            if self.pos == 0 and sum([unit.pos for unit in self.unitList]) == 0:
-                # 重置 unit
-                # 输出总盈利
-                self.log.info(u'多头结束')
-                profile = sum([unit.openCost - unit.closeCost for unit in self.unitList])
-                self.log.info(u'总盈利: {}'.format(profile))
-
     def resetAllUnit(self):
         """
         重置所有仓位的数据
@@ -877,6 +941,9 @@ class DonchianChannelStrategy(CtaTemplate):
         """
         self.log.info(u'重置所有unit')
         for u in chain(self.longUnitList, self.shortUnitList):
+            if u.openStopOrder:
+                # 撤掉所有开仓单
+                self.cancelOrder(u.openStopOrder.stopOrderID)
             u.resetUnit()
 
     def isOpenLong(self, vtObject):
@@ -902,34 +969,7 @@ class DonchianChannelStrategy(CtaTemplate):
         orderDic = super(DonchianChannelStrategy, self).toHtml()
         units = [u.toHtml() for u in chain(reversed(self.longUnitList), self.shortUnitList)]
         orderDic['unit'] = pd.DataFrame(units).to_html()
-
-        orderDic['bar{}Min'.format(self.barPeriod)] = self.barToHtml()
-        orderDic['bar1min'] = self.bar1minToHtml()
         return orderDic
-
-    def barToHtml(self):
-        if self.bar is None:
-            return u'bar 无数据'
-        itmes = (
-            ('datetime', self.bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
-            ('open', self.bar.open,),
-            ('high', self.bar.high),
-            ('low', self.bar.low),
-            ('close', self.bar.close),
-        )
-        return OrderedDict(itmes)
-
-    def bar1minToHtml(self):
-        if self.bar1min is None:
-            return u'bar1min 无数据'
-        itmes = (
-            ('datetime', self.bar1min.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
-            ('open', self.bar1min.open,),
-            ('high', self.bar1min.high),
-            ('low', self.bar1min.low),
-            ('close', self.bar1min.close),
-        )
-        return OrderedDict(itmes)
 
     def setStatusOnStopOrder(self, so):
         """
@@ -961,7 +1001,6 @@ class DonchianChannelStrategy(CtaTemplate):
             if self.status in (self.INDEX_STATUS_OPEN, self.INDEX_STATUS_FULL) and so.unit.isFirst:
                 # 建仓/满仓状态，首仓触发了，是完全平仓了
                 self.setStatus(self.INDEX_STATUS_EMPTY)
-
 
     def setUnitAtrOnStopOrder(self, so):
         if self.status == self.INDEX_STATUS_EMPTY:
@@ -1005,14 +1044,6 @@ class DonchianChannelStrategy(CtaTemplate):
         except KeyError:
             self.log.info(u'移除 stopOrder ID:{} 失败'.format(stopOrderID))
 
-    def getUnitByVtOrderID(self, vtOrderID):
-        """
-
-        :param vtOrderID:
-        :return:
-        """
-        return self.vtOrderID2Unit.get(vtOrderID)
-
     def cancelOnStopOrder(self, so):
         assert isinstance(so, StopOrder)
         if so.offset == OFFSET_OPEN and self.status != self.INDEX_STATUS_EMPTY:
@@ -1029,36 +1060,16 @@ class DonchianChannelStrategy(CtaTemplate):
     def sendOpenStopOrderOnStopOrder(self, so):
         assert isinstance(so, StopOrder)
 
-        def _sendBackTesting():
-            for u in chain(self.longUnitList, self.shortUnitList):
-                if not u.empty:
-                    err = u'未平仓完成 {}'.format(u)
-                    self.log.error(err)
-                    raise ValueError(err)
-            # 首仓完成平仓平仓了
-            self.resetAllUnit()
-            self.sendShortOpenStopOrder()
-            self.sendLongOpenStopOrder()
+        for u in chain(self.longUnitList, self.shortUnitList):
+            if not u.empty:
+                if __debug__:
+                    self.log.debug(u'平仓未完成')
+                return
 
-        def _send():
-            b = time.time()
-            for u in chain(self.longUnitList, self.shortUnitList):
-                while not u.empty:
-                    time.sleep(0.1)
-                    if time.time() - b > 5:
-                        err = u'平仓单耗时超过5s!'
-                        self.log.error(err)
-                        raise ValueError(err)
-            # 首仓完成平仓平仓了
-            self.resetAllUnit()
-            self.sendShortOpenStopOrder()
-            self.sendLongOpenStopOrder()
-
-        if self.isBackTesting():
-            _sendBackTesting()
-        else:
-            Thread(target=_send).start()
-
+        # 没有开仓，直接可以开始
+        self.resetAllUnit()
+        self.sendShortOpenStopOrder()
+        self.sendLongOpenStopOrder()
 
     def getUnitListByDirection(self, direction):
         return self.longUnitList if direction == DIRECTION_LONG else self.shortUnitList
@@ -1204,4 +1215,46 @@ class DonchianChannelStrategy(CtaTemplate):
             self.log.error(err)
             raise ValueError(err)
 
+    def saveVtOrderID2Unit(self, vtOrderID, unit):
+        self.vtOrderID2Unit[vtOrderID] = unit
 
+    def getUnitByVtOrderID(self, vtOrderID):
+        return self.vtOrderID2Unit.get(vtOrderID)
+
+    def onStopOrderTriggered(self, so):
+        if so.unit is None:
+            msg = u'一个触发的stopOrder {} 没有绑定 unit'
+            self.log.error(msg)
+            raise ValueError(msg)
+        stopOrderID = so.stopOrderID
+        # 剔除该单号
+        self.removeStopOrder(stopOrderID)
+
+        # 更改状态
+        self.setStatusOnStopOrder(so)
+
+        # 设置 unit.atr
+        self.setUnitAtrOnStopOrder(so)
+
+        # 设置目标持仓
+        self.setUnitTargetPosOnStopOrder(so)
+
+        # 设置最初建仓成本价
+        self.setUnitCostPriceOnStopOrder(so)
+
+        # 同时撤掉反向的开仓单
+        self.cancelOnStopOrder(so)
+
+        # 下止损单
+        self.sendCloseStopOrderOnStopOrder(so)
+
+        # 平仓完毕，重新下开仓单
+        if self.status == self.INDEX_STATUS_EMPTY and so.unit.isFirst and so.offset in OFFSET_CLOSE_LIST:
+            self.log.info(u'首仓平仓完成,重新下开仓单')
+            self.sendOpenStopOrderOnStopOrder(so)
+
+        if so.volume != 0:
+            # 保存 vtOrderID
+            self.saveVtOrderID2Unit(so.vtOrderID, so.unit)
+            so.unit.vtOrderID = so.vtOrderID
+            self.log.info(u'{} vtOrderID {}'.format(so.unit, so.vtOrderID))

@@ -8,6 +8,7 @@ import logging
 import copy
 from collections import OrderedDict
 import pymongo
+from itertools import chain
 
 import arrow
 
@@ -27,10 +28,12 @@ class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
     barPeriod = 1  # n 分钟的K线
+    barMinute = 1  # K线当前的分钟
 
     paramList = vtCtaTemplate.paramList[:]
     paramList.extend([
-        'barPeriod'
+        'barPeriod',
+        'barMinute',
     ])
 
     def __init__(self, ctaEngine, setting):
@@ -55,6 +58,7 @@ class CtaTemplate(vtCtaTemplate):
 
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
+        self._size = None # 每手的单位
         self.bar1min = None  # 1min bar
         self.bar = None  # 根据 barPeriod 聚合的 bar
         self.bar1minCount = 0
@@ -115,7 +119,10 @@ class CtaTemplate(vtCtaTemplate):
             ('param', self.paramList2Html()),
             ('var', self.varList2Html()),
         )
-        return OrderedDict(items)
+        orderDic = OrderedDict(items)
+        orderDic['bar{}Min'.format(self.barPeriod)] = self.barToHtml()
+        orderDic['bar1min'] = self.bar1minToHtml()
+        return orderDic
 
     def loadBar(self, barNum):
         """加载用于初始化策略的数据"""
@@ -155,6 +162,20 @@ class CtaTemplate(vtCtaTemplate):
 
         assert isinstance(self._priceTick, float) or isinstance(self._priceTick, int)
         return self._priceTick
+
+    @property
+    def size(self):
+        if self._size is None:
+            if self.isBackTesting():
+                # 回测中
+                self._size = self.ctaEngine.size
+            else:
+                # 实盘
+                self._size = self.contract.size
+
+        assert isinstance(self._size, float) or isinstance(self._size, int)
+        return self._size
+
 
     def onBar(self, bar1min):
         if self.isBackTesting():
@@ -250,6 +271,30 @@ class CtaTemplate(vtCtaTemplate):
 
         newPrice = round(price / self.priceTick, 0) * self.priceTick
         return newPrice
+
+    def barToHtml(self):
+        if self.bar is None:
+            return u'bar 无数据'
+        itmes = (
+            ('datetime', self.bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
+            ('open', self.bar.open,),
+            ('high', self.bar.high),
+            ('low', self.bar.low),
+            ('close', self.bar.close),
+        )
+        return OrderedDict(itmes)
+
+    def bar1minToHtml(self):
+        if self.bar1min is None:
+            return u'bar1min 无数据'
+        itmes = (
+            ('datetime', self.bar1min.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
+            ('open', self.bar1min.open,),
+            ('high', self.bar1min.high),
+            ('low', self.bar1min.low),
+            ('close', self.bar1min.close),
+        )
+        return OrderedDict(itmes)
 
 
 ########################################################################

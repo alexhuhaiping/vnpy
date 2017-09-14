@@ -410,12 +410,17 @@ class BacktestingEngine(VTBacktestingEngine):
                 if stopOrderID in self.workingStopOrderDict:
                     del self.workingStopOrderDict[stopOrderID]
 
-                self.strategy.onStopOrder(so)
                 if so.volume == 0:
                     # 下单量为0的话，不做限价撮合
+                    self.strategy.onStopOrder(so)
                     return True
+                else:
+                    # 要做撮合前，先将 vtOrderID 返回
+                    orderID = str(self.limitOrderCount)
+                    so.vtOrderID = orderID
+                    self.strategy.onStopOrder(so)
 
-                    # 推送成交数据
+                # 推送成交数据
                 self.tradeCount += 1  # 成交编号自增1
                 tradeID = str(self.tradeCount)
                 trade = VtTradeData()
@@ -431,7 +436,6 @@ class BacktestingEngine(VTBacktestingEngine):
                     trade.price = min(bestCrossPrice, so.price)
 
                 self.limitOrderCount += 1
-                orderID = str(self.limitOrderCount)
                 trade.orderID = orderID
                 trade.vtOrderID = orderID
                 trade.direction = so.direction
