@@ -58,10 +58,34 @@ class CtaTemplate(vtCtaTemplate):
 
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
-        self._size = None # 每手的单位
+        self._size = None  # 每手的单位
         self.bar1min = None  # 1min bar
         self.bar = None  # 根据 barPeriod 聚合的 bar
         self.bar1minCount = 0
+
+        if self.isBackTesting():
+            # 回测时的资金
+            self.balance = self.ctaEngine.capital
+        else:
+            # TODO 实盘中的资金
+            self.balance = 100000
+
+        self._pos = 0
+        self.posList = []
+        self._marginRate = None
+        self.marginList = []
+
+    @property
+    def pos(self):
+        return self._pos
+
+    @pos.setter
+    def pos(self, pos):
+        self._pos = pos
+        self.posList.append(pos)
+
+        margin = self._pos * self.size * self.bar1min.close * self.marginRate
+        self.marginList.append(abs(margin / self.balance))
 
     @property
     def calssName(self):
@@ -73,6 +97,29 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         raise NotImplementedError
+
+    def getCharge(self, offset, price):
+        # 手续费
+        if self.isBackTesting():
+            # 回测时使用的是比例手续费
+            return self.ctaEngine.rate * self.size * price
+        else:
+            # TODO 实盘手续费
+            return 0
+
+    def charge(self, offset, price, volume):
+        """
+        扣除手续费
+        :return:
+        """
+        charge = volume * self.getCharge(offset, price)
+        self.log.info(u'手续费 {}'.format(charge))
+        self.balance -= charge
+
+    def chargeSplipage(self, volume):
+        slippage = volume * self.size * self.ctaEngine.slippage
+        self.balance -= slippage
+        self.log.info(u'滑点 {}'.format(slippage))
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -164,6 +211,20 @@ class CtaTemplate(vtCtaTemplate):
         return self._priceTick
 
     @property
+    def marginRate(self):
+        if self._marginRate is None:
+            if self.isBackTesting():
+                # 回测中
+                self._marginRate = self.ctaEngine.marginRate
+            else:
+                # 实盘 默认设置为 10%
+                # self._marginRate = self.contract.marginRate
+                self._marginRate = 0.10
+
+        assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int)
+        return self._marginRate
+
+    @property
     def size(self):
         if self._size is None:
             if self.isBackTesting():
@@ -175,7 +236,6 @@ class CtaTemplate(vtCtaTemplate):
 
         assert isinstance(self._size, float) or isinstance(self._size, int)
         return self._size
-
 
     def onBar(self, bar1min):
         if self.isBackTesting():

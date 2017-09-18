@@ -1067,7 +1067,7 @@ class TradingResult(object):
 
 
 ########################################################################
-class DailyResult(object):
+class VTDailyResult(object):
     """每日交易的结果"""
 
     # ----------------------------------------------------------------------
@@ -1128,6 +1128,18 @@ class DailyResult(object):
         # 汇总
         self.totalPnl = self.tradingPnl + self.positionPnl
         self.netPnl = self.totalPnl - self.commission - self.slippage
+
+class DailyResult(VTDailyResult):
+    """每日交易的结果"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self, date, closePrice):
+        super(DailyResult, self).__init__(date, closePrice)
+        self.margin = 0  # 收盘时保证金
+
+    def calculatePnl(self, openPosition=0, size=1, rate=0, slippage=0, marginRate=1):
+        super(DailyResult, self).calculatePnl(openPosition, size, rate, slippage)
+        self.margin = abs(self.closePosition * size * self.closePrice * marginRate)
 
 
 ########################################################################
