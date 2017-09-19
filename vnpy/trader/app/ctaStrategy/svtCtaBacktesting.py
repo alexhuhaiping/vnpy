@@ -937,6 +937,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['capital'] = capital
         d['maxCapital'] = maxCapital
         d['drawdown'] = drawdown
+        d['maxDrawdownPer'] = abs(min(drawdownPerList))
         d['totalResult'] = totalResult
         d['totalTurnover'] = totalTurnover
         d['totalCommission'] = totalCommission

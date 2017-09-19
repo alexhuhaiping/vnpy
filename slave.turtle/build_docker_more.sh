@@ -1,6 +1,6 @@
 #/bin/bash
 
-docker rmi vnpy:latest
+docker rmi vnpy:cta
 docker build --force-rm -t vnpy:cta .
 
 # 删除虚悬镜像

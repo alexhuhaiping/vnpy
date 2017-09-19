@@ -258,10 +258,11 @@ class DonchianChannelStrategy(CtaTemplate):
     bar = None  # K线对象
     barList = []  # K线对象的列表
 
-    atrPeriod = 26
+    atrPeriod = 14
     unitsNum = 4  # 一共4仓
     risk = 0.02  # 账户风险投入
-    maxCD = 2  # 最大冷却次数
+    maxCD = 1  # 最大冷却次数
+    sys2Vaild = True # 是否启用系统2
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -270,6 +271,7 @@ class DonchianChannelStrategy(CtaTemplate):
         'unitsNum',
         'hands',
         'maxCD',
+        'sys2Vaild',
     ])
 
     # 入场价格
@@ -289,6 +291,7 @@ class DonchianChannelStrategy(CtaTemplate):
     balance = 0  # 策略的权益
 
     cd = 0  # 冷却中，不下单
+    sys2 = False
 
     # 变量列表，保存了变量的名称
     varList = CtaTemplate.varList[:]
@@ -296,6 +299,7 @@ class DonchianChannelStrategy(CtaTemplate):
         'status',
         'balance',
         'cd',
+        'sys2',
 
         'highIn1',
         'highOut1',
@@ -355,19 +359,19 @@ class DonchianChannelStrategy(CtaTemplate):
 
     @property
     def highIn(self):
-        return self.highIn1
+        return self.highIn2 if self.sys2 else self.highIn1
 
     @property
     def lowIn(self):
-        return self.lowIn1
+        return self.lowIn2 if self.sys2 else self.lowIn1
 
     @property
     def highOut(self):
-        return self.highOut1
+        return self.highOut2 if self.sys2 else self.highOut1
 
     @property
     def lowOut(self):
-        return self.lowOut1
+        return self.lowOut2 if self.sys2 else self.lowOut1
 
     def onInit(self):
         if self.unitsNum == 0:
@@ -828,29 +832,32 @@ class DonchianChannelStrategy(CtaTemplate):
     def sendLongOpenStopOrder(self):
         # 多头停止单
         atr = self.atr
-        longOpenPrice = self.highIn
+        openPrice = self.highIn
+
+        # 下开仓单
+        if self.sys2Vaild and openPrice == self.highIn2:
+            # 使用系统2，且有可能进入系统2
+            hands = self.hands
+        else:
+            hands = 0 if self.cd else self.hands
 
         for unit in self.longUnitList:
             if unit.status != unit.STATUS_EMPTY:
                 continue
-            # 下开仓单
-            hands = 0 if self.cd else self.hands
-            if self.cd:
-                self.log.info(u'冷却中,不下单 cd:{}'.format(self.cd))
             # 多仓
             # ========================
             if unit.openStopOrder:
                 assert isinstance(unit.openStopOrder, StopOrder)
                 # 已经下过开单了
-                if unit.openStopOrder.price != longOpenPrice:
+                if unit.openStopOrder.price != openPrice:
                     self.log.info(u'更新开仓单 {}'.format(unit))
-                    self.log.info(u'{} -> {}'.format(unit.openStopOrder.price, longOpenPrice))
-                    unit.openStopOrder.price = longOpenPrice
+                    self.log.info(u'{} -> {}'.format(unit.openStopOrder.price, openPrice))
+                    unit.openStopOrder.price = openPrice
                     self.isRefreshOpenPrice = True
             else:
                 # 还没开仓过
                 self.log.info(u'开仓下单')
-                stopOrderID = self.sendOrder(CTAORDER_BUY, longOpenPrice, hands, stop=True)
+                stopOrderID = self.sendOrder(CTAORDER_BUY, openPrice, hands, stop=True)
                 stopOrder = self.getStopOrderByStopID(stopOrderID)
                 stopOrder.unit = unit
                 stopOrder.priority = unit.number
@@ -861,34 +868,40 @@ class DonchianChannelStrategy(CtaTemplate):
             diff = self.unitPriceDiff(atr)
 
             # if __debug__:
-            #     self.log.debug(u'shortOpenPrice {}'.format(longOpenPrice))
+            #     self.log.debug(u'shortOpenPrice {}'.format(openPrice))
             #     self.log.debug(u'atr {}'.format(atr))
             #     self.log.debug(u'diff {}'.format(diff))
 
-            longOpenPrice += diff
-            longOpenPrice = self.roundToPriceTick(longOpenPrice)
+            openPrice += diff
+            openPrice = self.roundToPriceTick(openPrice)
 
     def sendShortOpenStopOrder(self):
         atr = self.atr
-        shortOpenPrice = self.lowIn
+        openPrice = self.lowIn
+
+        if self.sys2Vaild and openPrice == self.lowIn2:
+            # 使用系统2，且有可能进入系统2
+            hands = self.hands
+        else:
+            hands = 0 if self.cd else self.hands
+
+        # 下开仓单
         for unit in self.shortUnitList:
             if unit.status != unit.STATUS_EMPTY:
                 continue
-            hands = 0 if self.cd else self.hands
-            if self.cd:
-                self.log.info(u'冷却中,不下单 cd:{}'.format(self.cd))
+
             # 空仓
             # ===========================
             if unit.openStopOrder:
                 assert isinstance(unit.openStopOrder, StopOrder)
-                if unit.openStopOrder.price != shortOpenPrice:
+                if unit.openStopOrder.price != openPrice:
                     self.log.info(u'更新开仓单 {}'.format(unit))
-                    self.log.info(u'{} -> {}'.format(unit.openStopOrder.price, shortOpenPrice))
-                    unit.openStopOrder.price = shortOpenPrice
+                    self.log.info(u'{} -> {}'.format(unit.openStopOrder.price, openPrice))
+                    unit.openStopOrder.price = openPrice
                     self.isRefreshOpenPrice = True
             else:
                 self.log.info(u'开仓下单')
-                stopOrderID = self.sendOrder(CTAORDER_SHORT, shortOpenPrice, hands, stop=True)
+                stopOrderID = self.sendOrder(CTAORDER_SHORT, openPrice, hands, stop=True)
                 stopOrder = self.getStopOrderByStopID(stopOrderID)
                 stopOrder.unit = unit
                 stopOrder.priority = unit.number
@@ -898,11 +911,11 @@ class DonchianChannelStrategy(CtaTemplate):
             # 计算下一档价位
             diff = self.unitPriceDiff(atr)
             # if __debug__:
-            #     self.log.debug(u'shortOpenPrice {}'.format(shortOpenPrice))
+            #     self.log.debug(u'openPrice {}'.format(openPrice))
             #     self.log.debug(u'atr {}'.format(atr))
             #     self.log.debug(u'diff {}'.format(diff))
-            shortOpenPrice -= diff
-            shortOpenPrice = self.roundToPriceTick(shortOpenPrice)
+            openPrice -= diff
+            openPrice = self.roundToPriceTick(openPrice)
 
     def getStopOrderByStopID(self, stopOrderID):
         return self.stopOrders.get(stopOrderID)
@@ -965,8 +978,8 @@ class DonchianChannelStrategy(CtaTemplate):
         document.update({
             'pos': self.pos,
             'status': self.status,
-            'unitList': []
-
+            'unitList': [],
+            'sys2': True,
         })
 
         # self.status = self.STATUS_EMPTY
@@ -1069,6 +1082,9 @@ class DonchianChannelStrategy(CtaTemplate):
                     # 最后一仓，直接满仓
                     self.setStatus(self.INDEX_STATUS_FULL)
                 else:
+                    # 大小周期切换，要在更改状态前。尝试进入系统2
+                    self.switchSysOnStopOrder(so)
+
                     # 设为开仓
                     self.setStatus(self.INDEX_STATUS_OPEN)
             elif self.status == self.INDEX_STATUS_OPEN and so.unit.isLast:
@@ -1084,6 +1100,31 @@ class DonchianChannelStrategy(CtaTemplate):
             if self.status in (self.INDEX_STATUS_OPEN, self.INDEX_STATUS_FULL) and so.unit.isFirst:
                 # 建仓/满仓状态，首仓触发了，是完全平仓了
                 self.setStatus(self.INDEX_STATUS_EMPTY)
+                # 平仓，退出系统2
+                self.deactiveSys2()
+
+    def switchSysOnStopOrder(self, so):
+        """
+        大小周期切换
+        :param so:
+        :return:
+        """
+        assert isinstance(so, StopOrder)
+
+        if self.status == self.INDEX_STATUS_EMPTY and so.offset == OFFSET_OPEN and so.unit.isFirst:
+            # 还处于空仓中， 是开仓停止单, 是第一仓
+            if so.direction == DIRECTION_LONG:
+                # 开多仓时
+                sys2 = so.price == self.highIn1 == self.highIn2
+            else:
+                # 开空仓时
+                sys2 = so.price == self.lowIn1 == self.lowIn2
+
+            if sys2:
+                # 进入系统2
+                self.activeSys2()
+                # 重置CD为0
+                self.clearCD()
 
     def setUnitAtrOnStopOrder(self, so):
         if self.status == self.INDEX_STATUS_EMPTY:
@@ -1378,3 +1419,16 @@ class DonchianChannelStrategy(CtaTemplate):
             # self.log.info(u'{}'.format(unit))
             # self.log.info(u'{} {}'.format(unit.atrStopPrice, so.price))
             # self.log.info(u'CD {} -> {}'.format(preCd, self.cd))
+
+    def activeSys2(self):
+        if self.sys2Vaild:
+            self.log.info(u'进入系统2')
+            self.sys2 = True
+
+    def deactiveSys2(self):
+        if self.sys2Vaild and self.sys2:
+            self.log.info(u'退出系统2')
+        self.sys2 = False
+
+    def clearCD(self):
+        self.cd = 0
