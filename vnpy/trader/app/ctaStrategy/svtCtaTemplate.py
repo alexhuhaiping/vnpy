@@ -191,7 +191,7 @@ class CtaTemplate(vtCtaTemplate):
         else:
 
             contract = self.mainEngine.getContract(self.vtSymbol)
-            isinstance(contract, VtContractData)
+            assert isinstance(contract, VtContractData)
             return contract
 
     def isBackTesting(self):
