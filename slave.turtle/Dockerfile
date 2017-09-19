@@ -9,3 +9,4 @@ RUN cd /srv/vnpy \
     && echo "更新镜像结束"
 
 WORKDIR /srv/vnpy/slave.turtle
+CMD [ "./vtserver.sh" ]
