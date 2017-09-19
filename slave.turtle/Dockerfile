@@ -1,5 +1,7 @@
 FROM vnpy:origin
 
+COPY ./* /srv/vnpy/*
+
 RUN cd /srv/vnpy \
     && ls \
     && pip install -r requirements.txt \
