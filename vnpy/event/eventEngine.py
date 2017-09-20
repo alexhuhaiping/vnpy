@@ -12,7 +12,7 @@ try:
     # 第三方模块
     from qtpy.QtCore import QTimer
 except:
-    print(u'没有 QTimer 模块')
+    print(u'QTimer module not find')
 
 
 # 自己开发的模块

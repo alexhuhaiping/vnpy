@@ -68,3 +68,4 @@ vtserver_test.sh
 test.py
 logging.conf
 temp/
+slave.turtle/vtserverdocker.sh
