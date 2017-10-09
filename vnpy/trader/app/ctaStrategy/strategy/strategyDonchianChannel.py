@@ -1426,7 +1426,7 @@ class DonchianChannelStrategy(CtaTemplate):
             self.sys2 = True
 
     def deactiveSys2(self):
-        if self.sys2Vaild and self.sys2:
+        if self.sys2Vaild:
             self.log.info(u'退出系统2')
         self.sys2 = False
 
