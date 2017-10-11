@@ -87,3 +87,8 @@ class MainEngine(VtMaingEngine):
         except OperationFailure:
             # 有索引
             col.create_indexes(indexes)
+
+    def qryMarginRate(self, gatewayName, vtSymbol):
+        gateway = self.getGateway(gatewayName)
+        if gateway:
+            gateway.qryMarginRate(vtSymbol)

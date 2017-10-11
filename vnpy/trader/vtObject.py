@@ -281,6 +281,20 @@ class VtContractData(VtBaseData):
         self.optionType = EMPTY_UNICODE         # 期权类型
         self.expiryDate = EMPTY_STRING          # 到期日
 
+########################################################################
+class VtMarginRate(VtBaseData):
+    """保证金率类"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        super(VtMarginRate, self).__init__()
+
+        self.vtSymbol = EMPTY_STRING  # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
+        self.ShortMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
+        self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
+        self.rate = EMPTY_FLOAT
+
 
 ########################################################################
 class VtSubscribeReq(object):

@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from vnpy.trader.app.ctaStrategy.ctaBacktesting import OptimizationSetting
+from vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel import DonchianChannelStrategy
 # 优化配置
 setting = OptimizationSetting()                 # 新建一个优化任务设置对象
 setting.setOptimizeTarget('capital')            # 设置优化排序的目标是策略净盈利

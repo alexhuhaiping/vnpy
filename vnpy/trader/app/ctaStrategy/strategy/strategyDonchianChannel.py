@@ -262,7 +262,7 @@ class DonchianChannelStrategy(CtaTemplate):
     unitsNum = 4  # 一共4仓
     risk = 0.02  # 账户风险投入
     maxCD = 1  # 最大冷却次数
-    sys2Vaild = True # 是否启用系统2
+    sys2Vaild = True  # 是否启用系统2
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -389,7 +389,9 @@ class DonchianChannelStrategy(CtaTemplate):
         initData = self.loadBar(self.maxBarNum)
         self.log.info(u'即将加载 {} 个 bar'.format(len(initData)))
         initData.sort(key=lambda bar: bar.datetime)
-
+        if not initData:
+            self.log.warning(u'没有任何历史数据')
+            return
         self.log.info(u'initData {} to {}'.format(initData[0].datetime, initData[-1].datetime))
 
         if __debug__:
@@ -410,8 +412,9 @@ class DonchianChannelStrategy(CtaTemplate):
         else:
             self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
 
-        for bar in initData:
-            self.onBar(bar)
+        for bar1min in initData:
+            self.bar1min = bar1min
+            self.onBar(bar1min)
 
         # if __debug__:
         #     self.log.debug(u'强制入场')
@@ -1394,9 +1397,15 @@ class DonchianChannelStrategy(CtaTemplate):
         """
         minHands = max(0, int(self.balance * self.risk / (self.size * self.atr * self.stopAtr)))
         maxHands = max(0, int(self.balance * 0.98 / (self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
+
         # if minHands > maxHands:
         #     self.log.warning(u'过小')
+        #     self.log.warning(u'{} {}'.format(minHands, maxHands))
+        #     self.log.warning(u'{} {} {} {}'.format(self.size, self.unitsNum, self.bar1min.close, self.marginRate))
+
         self.hands = min(minHands, maxHands)
+
+        # self.log.warning(u'hands {}'.format(self.hands))
 
         # self.hands = 1
         # self.log.warning(u'b{} r{} a{} s{} h{}'.format(self.balance, self.risk, self.atr, self.size, self.hands))

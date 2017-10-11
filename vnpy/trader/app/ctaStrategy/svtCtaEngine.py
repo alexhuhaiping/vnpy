@@ -18,6 +18,7 @@
 
 from __future__ import division
 
+import time
 import traceback
 import arrow
 import datetime
@@ -111,7 +112,7 @@ class CtaEngine(VtCtaEngine):
 
             if count != 0:
                 # 有数据，加载数据
-                noDataDays += 1
+                noDataDays = 0
                 doc = [i for i in cursor]
                 doc.sort(key=lambda bar: bar['datetime'])
                 documents.append(doc)
@@ -121,7 +122,7 @@ class CtaEngine(VtCtaEngine):
                     break
             else:
                 # 没有任何数据
-                noDataDays = 0
+                noDataDays += 1
             # 往前追溯
             loadDate -= datetime.timedelta(days=1)
 
@@ -244,3 +245,23 @@ class CtaEngine(VtCtaEngine):
 
         indexes = [indexSymbol, indexClass, indexDatetime]
         self.mainEngine.createCollectionIndex(ctaCol, indexes)
+
+    def initAll(self):
+        super(CtaEngine, self).initAll()
+        # 加载品种保证金率
+
+        for s in self.strategyDict.values():
+            count = 0
+            while s.marginRate is None:
+                if count > 300:
+                    # 30秒超时
+                    raise ValueError(u'加载品种 {} 保证金率失败'.format(s.vtSymbol))
+
+                if count % 30 == 0:
+                    # 每3秒重新发送一次
+                    self.log.info(u'尝试加载 {} 保证金率'.format(s.vtSymbol))
+                    self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
+
+                # 每0.1秒检查一次返回结果
+                time.sleep(0.1)
+                count += 1

@@ -627,6 +627,8 @@ class BacktestingEngine(VTBacktestingEngine):
 
         if __debug__:
             self.df = df
+
+
         # 计算统计结果
         startDate = df.index[0]
         endDate = df.index[-1]
@@ -681,7 +683,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'总收益率：\t%s%%' % formatNumber(totalReturn))
         self.output(u'总盈亏：\t%s' % formatNumber(totalNetPnl))
         self.output(u'最大回撤: \t%s' % formatNumber(maxDrawdown))
-        self.output(u'最大回撤比例: \t%s%%' % formatNumber(maxDrawdownPer))
+        self.output(u'最大回撤比例: \t%s%%' % formatNumber(maxDrawdownPer*100))
 
         self.output(u'总手续费：\t%s' % formatNumber(totalCommission))
         self.output(u'总滑点：\t%s' % formatNumber(totalSlippage))
@@ -698,6 +700,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'收益标准差：\t%s%%' % formatNumber(returnStd))
         self.output(u'Sharpe Ratio：\t%s' % formatNumber(sharpeRatio))
 
+        # # TODO 测试代码，暂时不输出图片
+        # return
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 

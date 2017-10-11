@@ -13,6 +13,7 @@ from itertools import chain
 import arrow
 
 from vnpy.trader.vtConstant import *
+from vnpy.trader.vtEvent import EVENT_MARGIN_RATE
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
@@ -34,6 +35,7 @@ class CtaTemplate(vtCtaTemplate):
     paramList.extend([
         'barPeriod',
         'barMinute',
+        'marginRate',
     ])
 
     def __init__(self, ctaEngine, setting):
@@ -74,6 +76,8 @@ class CtaTemplate(vtCtaTemplate):
         self.posList = []
         self._marginRate = None
         self.marginList = []
+
+        self.registerEvent()
 
     @property
     def pos(self):
@@ -189,7 +193,6 @@ class CtaTemplate(vtCtaTemplate):
         if self.isBackTesting():
             return '111'
         else:
-
             contract = self.mainEngine.getContract(self.vtSymbol)
             assert isinstance(contract, VtContractData)
             return contract
@@ -216,12 +219,12 @@ class CtaTemplate(vtCtaTemplate):
             if self.isBackTesting():
                 # 回测中
                 self._marginRate = self.ctaEngine.marginRate
-            else:
-                # 实盘 默认设置为 10%
-                # self._marginRate = self.contract.marginRate
-                self._marginRate = 0.10
+            # else:
+            #     # 实盘 默认设置为 10%
+            #     # self._marginRate = self.contract.marginRate
+            #     self._marginRate = None
 
-        assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int)
+        # assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int)
         return self._marginRate
 
     @property
@@ -356,6 +359,17 @@ class CtaTemplate(vtCtaTemplate):
         )
         return OrderedDict(itmes)
 
+    def registerEvent(self):
+        """注册事件监听"""
+        en = self.ctaEngine.mainEngine.eventEngine
+        en.register(EVENT_MARGIN_RATE, self.updateMarginRate)
+
+    def updateMarginRate(self, event):
+        """更新合约数据"""
+        marginRate = event.dict_['data']
+        if marginRate.vtSymbol != self.vtSymbol:
+            return
+        self._marginRate = marginRate.rate
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
