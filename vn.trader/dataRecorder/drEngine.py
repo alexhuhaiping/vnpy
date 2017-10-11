@@ -66,6 +66,10 @@ class DrEngine(object):
         self._subcribeNum = 0
         self.startReport = False
 
+        # 待更新保证金队列
+        self.threadUpdateMariginRate = Thread(target=self.getMarginRate)
+        self.marginRateBySymbol = {}
+
         # 载入设置，订阅行情
         self.loadSetting()
 
@@ -101,6 +105,10 @@ class DrEngine(object):
         if not oldContract:
             # 尚未存在新合约,保存
             collection.insert_one(data)
+
+        if not oldContract or oldContract.get('marginRate') is None:
+            # 尚未更新保证金率
+            self.marginRateBySymbol[vtSymbol] = None
 
         self._subcribeNum += 1
         if not self.startReport and self._subcribeNum > 400:
@@ -221,7 +229,8 @@ class DrEngine(object):
         for key in d.keys():
             if key != 'datetime':
                 d[key] = tick.__getattribute__(key)
-        drTick.datetime = LOCAL_TZINFO.localize(datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f'))
+        drTick.datetime = LOCAL_TZINFO.localize(
+            datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f'))
 
         # 更新Tick数据 ====================
         # if vtSymbol in self.tickDict:
@@ -237,7 +246,7 @@ class DrEngine(object):
         #     self.insertData(TICK_DB_NAME, activeSymbol, drTick)
 
         # 发出日志
-         # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
+        # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
         #                                                  time=drTick.time,
         #                                                  last=drTick.lastPrice,
         #                                                  bid=drTick.bidPrice1,
@@ -280,6 +289,7 @@ class DrEngine(object):
         """注册事件监听"""
         self.eventEngine.register(EVENT_TICK, self.procecssTickEvent)
         self.eventEngine.register(EVENT_CONTRACT, self.subscribeDrContract)
+        self.eventEngine.register(EVENT_MARGIN_RATE, self.updateMariginRate)
 
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
@@ -315,6 +325,7 @@ class DrEngine(object):
         """启动"""
         self.active = True
         self.thread.start()
+        self.threadUpdateMariginRate.start()
 
     # ----------------------------------------------------------------------
     def stop(self):
@@ -382,3 +393,47 @@ class DrEngine(object):
                 indexTradingDay,
             ],
         )
+
+    def getMarginRate(self):
+        """
+        将保证金率更新到合约中
+        :return:
+        """
+        beginTime = datetime.datetime.now()
+        turn = 1
+        while self.active:
+            while not self.marginRateBySymbol:
+                time.sleep(1)
+                now = datetime.datetime.now()
+                if now - beginTime > datetime.timedelta(minutes=10):
+                    # 超过10分钟没有新增合约，退出
+                    return
+
+            print(u'更新保证金率第 {} 轮'.format(turn))
+            turn += 1
+            for symbol, marginRate in list(self.marginRateBySymbol.items()):
+                if marginRate is not None:
+                    # 已经获取到了保证金率
+                    self.marginRateBySymbol.pop(symbol)
+                    continue
+
+                count = 0
+                while self.marginRateBySymbol[symbol] is None:
+                    if count % 12 == 0:
+                        print(u'尝试获取 {} 的保证金率'.format(symbol))
+                        self.mainEngine.qryMarginRate('CTP', symbol)
+                    count += 1
+                    time.sleep(0.1)
+
+    def updateMariginRate(self, event):
+        """
+        更新保证金率
+        :param event:
+        :return:
+        """
+        marginRate = event.dict_['data']
+        self.marginRateBySymbol[marginRate.vtSymbol] = marginRate.rate
+
+        # 保存到数据库
+        collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol}, {'$set': {'marginRate': marginRate.rate}})

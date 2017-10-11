@@ -308,6 +308,12 @@ class MainEngine(object):
             ]
 
 
+    def qryMarginRate(self, gatewayName, vtSymbol):
+        gateway = self.gatewayDict.get(gatewayName)
+        if gateway:
+            gateway.qryMarginRate(vtSymbol)
+
+
 ########################################################################
 class DataEngine(object):
     """数据引擎"""
@@ -404,3 +410,4 @@ class DataEngine(object):
         """注册事件监听"""
         self.eventEngine.register(EVENT_CONTRACT, self.updateContract)
         self.eventEngine.register(EVENT_ORDER, self.updateOrder)
+

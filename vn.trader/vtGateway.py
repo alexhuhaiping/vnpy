@@ -142,6 +142,18 @@ class VtGateway(object):
         """关闭"""
         pass
 
+    def onMraginRate(self, marginRate):
+        """
+        保证金率推送
+        :param marginRate:
+        :return:
+        """
+        assert isinstance(marginRate, VtMarginRate)
+
+        event1 = Event(type_=EVENT_MARGIN_RATE)
+        event1.dict_['data'] = marginRate
+        self.eventEngine.put(event1)
+
 
 ########################################################################
 class VtBaseData(object):
@@ -152,7 +164,20 @@ class VtBaseData(object):
         """Constructor"""
         self.gatewayName = EMPTY_STRING         # Gateway名称        
         self.rawData = None                     # 原始数据
-        
+
+########################################################################
+class VtMarginRate(VtBaseData):
+    """保证金率类"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        super(VtMarginRate, self).__init__()
+
+        self.vtSymbol = EMPTY_STRING  # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
+        self.ShortMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
+        self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
+        self.rate = EMPTY_FLOAT
         
 ########################################################################
 class VtTickData(VtBaseData):

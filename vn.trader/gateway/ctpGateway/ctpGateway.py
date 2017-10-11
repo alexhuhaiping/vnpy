@@ -93,7 +93,10 @@ class CtpGateway(VtGateway):
         self.qryEnabled = False         # 是否要启动循环查询
 
         self.requireAuthentication = False
-        
+
+    def qryMarginRate(self, symbol):
+        self.tdApi.qryMarginRate(symbol)
+
     #----------------------------------------------------------------------
     def connect(self):
         """连接"""
@@ -480,7 +483,17 @@ class CtpTdApi(TdApi):
         self.symbolSizeDict = {}            # 保存合约代码和合约大小的印射关系
 
         self.requireAuthentication = False
-        
+
+    def qryMarginRate(self, symbol):
+        self.reqID += 1
+        req = {}
+        req['BrokerID'] = self.brokerID
+        req['InvestorID'] = self.userID
+        req['InstrumentID'] = str(symbol)
+        req['HedgeFlag'] = defineDict['THOST_FTDC_HF_Speculation']  # 投机单
+
+        self.reqQryInstrumentMarginRate(req, self.reqID)
+
     #----------------------------------------------------------------------
     def onFrontConnected(self):
         """服务器连接"""
@@ -776,8 +789,18 @@ class CtpTdApi(TdApi):
     #----------------------------------------------------------------------
     def onRspQryInstrumentMarginRate(self, data, error, n, last):
         """"""
-        pass
-        
+        """合约查询回报"""
+        mr = VtMarginRate()
+        mr.gatewayName = self.gatewayName
+        mr.rawData = data
+
+        mr.vtSymbol = data['InstrumentID']
+        mr.ShortMarginRatioByMoney = data['ShortMarginRatioByMoney']
+        mr.LongMarginRatioByMoney = data['LongMarginRatioByMoney']
+        mr.rate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)
+
+        self.gateway.onMraginRate(mr)
+
     #----------------------------------------------------------------------
     def onRspQryInstrumentCommissionRate(self, data, error, n, last):
         """"""
