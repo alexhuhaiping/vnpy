@@ -24,6 +24,7 @@ EVENT_ACCOUNT = 'eAccount.'             # 账户回报事件
 EVENT_CONTRACT = 'eContract.'           # 合约基础信息回报事件
 EVENT_ERROR = 'eError.'                 # 错误回报事件
 EVENT_MARGIN_RATE = 'eMariginRate.'     # 保证金率回报事件
+EVENT_COMMISSION_RATE = 'eCommissionRate.'# 查询手续费率回报
 
 # CTA模块相关
 EVENT_CTA_LOG = 'eCtaLog'               # CTA相关的日志事件

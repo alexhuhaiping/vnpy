@@ -154,6 +154,20 @@ class VtGateway(object):
         event1.dict_['data'] = marginRate
         self.eventEngine.put(event1)
 
+    def onCommissionRate(self, commisionRate):
+        """
+        手续费率推送
+        :param commisionRate:
+        :return:
+        """
+        assert isinstance(commisionRate, VtCommissionRate)
+        event1 = Event(type_=EVENT_COMMISSION_RATE)
+        event1.dict_['data'] = commisionRate
+
+        self.eventEngine.put(event1)
+
+
+
 
 ########################################################################
 class VtBaseData(object):
@@ -178,7 +192,28 @@ class VtMarginRate(VtBaseData):
         self.ShortMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
         self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
         self.rate = EMPTY_FLOAT
-        
+
+########################################################################
+class VtCommissionRate(VtBaseData):
+    """保证金率类"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        super(VtCommissionRate, self).__init__()
+
+        self.underlyingSymbol = EMPTY_STRING  # 品种名，或者合约名
+        self.investorRange = EMPTY_STRING
+
+        self.openRatioByMoney = EMPTY_FLOAT
+        self.closeRatioByMoney = EMPTY_FLOAT
+        self.closeTodayRatioByMoney = EMPTY_FLOAT
+
+        self.openRatioByVolume = EMPTY_FLOAT
+        self.closeRatioByVolume = EMPTY_FLOAT
+        self.closeTodayRatioByVolume = EMPTY_FLOAT
+
+
 ########################################################################
 class VtTickData(VtBaseData):
     """Tick行情数据类"""

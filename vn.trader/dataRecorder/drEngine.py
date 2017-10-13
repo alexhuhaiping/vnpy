@@ -6,27 +6,19 @@
 使用DR_setting.json来配置需要收集的合约，以及主力合约代码。
 '''
 
-import time
+import copy
 import json
 import os
-import copy
-from collections import OrderedDict
-from datetime import datetime, timedelta
-from Queue import Queue, Empty
-from threading import Thread
-from pymongo.errors import OperationFailure
+import time
+from datetime import datetime
+
 from pymongo import IndexModel, ASCENDING, DESCENDING
-import traceback
-
-import tradingtime
-import pymongo
-import vtGlobal
-
-from eventEngine import *
-from vtGateway import VtSubscribeReq, VtLogData
-from drBase import *
 from vtFunction import todayDate
+
+from drBase import *
+from eventEngine import *
 from language import text
+from vtGateway import VtSubscribeReq, VtLogData
 
 
 ########################################################################
@@ -66,9 +58,11 @@ class DrEngine(object):
         self._subcribeNum = 0
         self.startReport = False
 
+        self.threadUpdateContractDetail = Thread(target=self.updateContractDetail)
         # 待更新保证金队列
-        self.threadUpdateMariginRate = Thread(target=self.getMarginRate)
         self.marginRateBySymbol = {}
+        # 待更新的手续费率队列
+        self.vtCommissionRateBySymbol = {}
 
         # 载入设置，订阅行情
         self.loadSetting()
@@ -109,6 +103,9 @@ class DrEngine(object):
         if not oldContract or oldContract.get('marginRate') is None:
             # 尚未更新保证金率
             self.marginRateBySymbol[vtSymbol] = None
+        if not oldContract or oldContract.get('openRatioByMoney') is None:
+            # 尚未更新手续费
+            self.vtCommissionRateBySymbol[vtSymbol] = None
 
         self._subcribeNum += 1
         if not self.startReport and self._subcribeNum > 400:
@@ -290,6 +287,7 @@ class DrEngine(object):
         self.eventEngine.register(EVENT_TICK, self.procecssTickEvent)
         self.eventEngine.register(EVENT_CONTRACT, self.subscribeDrContract)
         self.eventEngine.register(EVENT_MARGIN_RATE, self.updateMariginRate)
+        self.eventEngine.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
 
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
@@ -325,7 +323,7 @@ class DrEngine(object):
         """启动"""
         self.active = True
         self.thread.start()
-        self.threadUpdateMariginRate.start()
+        self.threadUpdateContractDetail.start()
 
     # ----------------------------------------------------------------------
     def stop(self):
@@ -333,6 +331,7 @@ class DrEngine(object):
         if self.active:
             self.active = False
             self.thread.join()
+            self.threadUpdateContractDetail.join()
 
     # ----------------------------------------------------------------------
     def writeDrLog(self, content):
@@ -405,11 +404,11 @@ class DrEngine(object):
             while not self.marginRateBySymbol:
                 time.sleep(1)
                 now = datetime.datetime.now()
-                if now - beginTime > datetime.timedelta(minutes=10):
+                if now - beginTime > datetime.timedelta(minutes=1):
                     # 超过10分钟没有新增合约，退出
                     return
 
-            print(u'更新保证金率第 {} 轮'.format(turn))
+            print(u'更新保证金率第 {} 轮 {} 个合约'.format(turn, len(self.marginRateBySymbol)))
             turn += 1
             for symbol, marginRate in list(self.marginRateBySymbol.items()):
                 if marginRate is not None:
@@ -437,3 +436,80 @@ class DrEngine(object):
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
         collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol}, {'$set': {'marginRate': marginRate.rate}})
+
+    def updateCommissionRate(self, event):
+        """
+        更新保证金率
+        :param event:
+        :return:
+        """
+        vtCr = event.dict_['data']
+
+        for vtSymbol in list(self.vtCommissionRateBySymbol.keys()):
+            if vtCr.underlyingSymbol == vtSymbol:
+                # 返回 rb1801, 合约有变动，强制更新
+                self.vtCommissionRateBySymbol[vtSymbol] = vtCr
+                return
+            elif vtSymbol.startswith(vtCr.underlyingSymbol):
+                # 返回 rb ,合约没有变动
+                self.vtCommissionRateBySymbol[vtSymbol] = vtCr
+                return
+            else:
+                pass
+
+    def getCommissionRate(self):
+        """
+        将向后续费率更新到合约中
+        :return:
+        """
+        beginTime = datetime.datetime.now()
+        turn = 1
+
+        while self.active:
+            while not self.vtCommissionRateBySymbol:
+                time.sleep(1)
+                now = datetime.datetime.now()
+                if now - beginTime > datetime.timedelta(minutes=1):
+                    # 超过10分钟没有新增合约，退出
+                    return
+
+            print(u'更新手续费率第 {} 轮'.format(turn))
+            turn += 1
+            for symbol, marginRate in list(self.vtCommissionRateBySymbol.items()):
+                if marginRate is not None:
+                    # 已经获取到了保证金率
+                    self.vtCommissionRateBySymbol.pop(symbol)
+                    continue
+
+                count = 0
+                # 由于手续费率返回的值可能会更新到其他同品种合约，所以加载之前需要重置
+                self.vtCommissionRateBySymbol[symbol] = None
+
+                while self.vtCommissionRateBySymbol[symbol] is None:
+                    if count % 12 == 0:
+                        print(u'尝试获取 {} 的手续费率'.format(symbol))
+                        self.mainEngine.qryCommissionRate('CTP', symbol)
+                    count += 1
+                    time.sleep(0.1)
+
+                # 将手续费保存到合约中
+                vtCr = self.vtCommissionRateBySymbol.pop(symbol)
+                # 保存到数据库
+                collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+                setting = {
+                    'openRatioByMoney': vtCr.openRatioByMoney,
+                    'closeRatioByMoney': vtCr.closeRatioByMoney,
+                    'closeTodayRatioByMoney': vtCr.closeTodayRatioByMoney,
+
+                    'openRatioByVolume': vtCr.openRatioByVolume,
+                    'closeRatioByVolume': vtCr.closeRatioByVolume,
+                    'closeTodayRatioByVolume': vtCr.closeTodayRatioByVolume,
+
+                }
+
+                collection.find_one_and_update({'vtSymbol': symbol}, {'$set': setting})
+
+
+    def updateContractDetail(self):
+        self.getMarginRate()
+        self.getCommissionRate()

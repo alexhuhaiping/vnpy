@@ -313,6 +313,12 @@ class MainEngine(object):
         if gateway:
             gateway.qryMarginRate(vtSymbol)
 
+    def qryCommissionRate(self, gatewayName, vtSymbol):
+        gateway = self.gatewayDict.get(gatewayName)
+        if gateway:
+            gateway.qryCommissionRate(vtSymbol)
+
+
 
 ########################################################################
 class DataEngine(object):
