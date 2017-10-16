@@ -56,7 +56,7 @@ def runChildProcess():
         _active = False
         me.exit()
 
-    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
+    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM, signal.SIGKILL]:
         signal.signal(sig, shutdownFunction)
 
     # 执行连接到数据库
