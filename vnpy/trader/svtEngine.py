@@ -92,3 +92,8 @@ class MainEngine(VtMaingEngine):
         gateway = self.getGateway(gatewayName)
         if gateway:
             gateway.qryMarginRate(vtSymbol)
+
+    def qryCommissionRate(self, gatewayName, vtSymbol):
+        gateway = self.getGateway(gatewayName)
+        if gateway:
+            gateway.qryCommissionRate(vtSymbol)

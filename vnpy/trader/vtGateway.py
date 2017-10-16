@@ -151,8 +151,20 @@ class VtGateway(sVtGateway):
         :param marginRate:
         :return:
         """
-        assert isinstance(marginRate, VtMarginRate)
-
         event1 = Event(type_=EVENT_MARGIN_RATE)
         event1.dict_['data'] = marginRate
         self.eventEngine.put(event1)
+
+    def onCommissionRate(self, commisionRate):
+        """
+        手续费率推送
+        :param commisionRate:
+        :return:
+        """
+        assert isinstance(commisionRate, VtCommissionRate)
+        event1 = Event(type_=EVENT_COMMISSION_RATE)
+        event1.dict_['data'] = commisionRate
+
+        self.eventEngine.put(event1)
+
+

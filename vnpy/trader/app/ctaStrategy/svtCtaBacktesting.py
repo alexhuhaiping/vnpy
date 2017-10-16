@@ -56,11 +56,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.log = logging.getLogger('ctabacktesting')
         super(BacktestingEngine, self).__init__()
 
-        # self._datas = []  # 1min bar 的原始数据
-        # self.datas = []  # 聚合后，用于回测的数据
-        #
-        # self._initData = []  # 初始化用的数据, 最早的1min bar
-        # self.initData = []  # 聚合后的数据，真正用于跑回测的数据
+        self.vtSymbol = None  # 引擎使用的合约
+
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
         self.marginRate = 1  # 保证金比例 默认100%
@@ -77,6 +74,10 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 日线的 collection
         self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        # 合约详情 collection
+        self.ctpColContract = ctpdb['contract'].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
         self.loadHised = False  # 是否已经加载过了历史数据
@@ -279,6 +280,19 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         self.marginRate = marginRate
+
+    def setSymbol(self, vtSymbol):
+        """
+        设置引擎使用的合约
+        会自动从合约详情里面加载相关的基础数据
+        :param vtSymbol:
+        :return:
+        """
+        self.vtSymbol = vtSymbol
+        sql = {
+            'vtSymbol': self.vtSymbol
+        }
+        # contract = self.ctpColContract.find_one(sql, {'_id': 0})
 
     # ------------------------------------------------
     # 数据回放相关
@@ -628,7 +642,6 @@ class BacktestingEngine(VTBacktestingEngine):
         if __debug__:
             self.df = df
 
-
         # 计算统计结果
         startDate = df.index[0]
         endDate = df.index[-1]
@@ -683,7 +696,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'总收益率：\t%s%%' % formatNumber(totalReturn))
         self.output(u'总盈亏：\t%s' % formatNumber(totalNetPnl))
         self.output(u'最大回撤: \t%s' % formatNumber(maxDrawdown))
-        self.output(u'最大回撤比例: \t%s%%' % formatNumber(maxDrawdownPer*100))
+        self.output(u'最大回撤比例: \t%s%%' % formatNumber(maxDrawdownPer * 100))
 
         self.output(u'总手续费：\t%s' % formatNumber(totalCommission))
         self.output(u'总滑点：\t%s' % formatNumber(totalSlippage))
@@ -766,7 +779,6 @@ class BacktestingEngine(VTBacktestingEngine):
                             if t.volume == exitTrade.volume:
                                 break
                         entryTrade = t
-
 
                         # 清算开平仓交易
                         closedVolume = min(exitTrade.volume, entryTrade.volume)

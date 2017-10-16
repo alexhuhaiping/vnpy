@@ -13,8 +13,8 @@
 
 
 EVENT_TIMER = 'eTimer'                  # 计时器事件，每隔1秒发送一次
-EVENT_MARGIN_RATE = 'eMarginRate.'            # 查询保证金比例回报
-
+EVENT_MARGIN_RATE = 'eMarginRate.'      # 查询保证金率回报
+EVENT_COMMISSION_RATE = 'eCommissionRate.'   # 查询手续费率回报
 
 #----------------------------------------------------------------------
 def test():

@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+import signal
 import multiprocessing
 from time import sleep
 from datetime import datetime, time
@@ -36,14 +37,27 @@ from vnpy.trader.app.ctaStrategy.ctaBase import EVENT_CTA_LOG
 #     printLog(content)
     
 #----------------------------------------------------------------------
+
+_active = True
+
 def runChildProcess():
     """子进程运行函数"""
 
     ee = EventEngine2()
     ee.log.info(u'事件引擎创建成功')
 
+
     me = MainEngine(ee)
     me.log.info(u'主引擎创建成功')
+
+    def shutdownFunction(signalnum, frame):
+        me.log.info(u'系统即将关闭')
+        global _active
+        _active = False
+        me.exit()
+
+    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
+        signal.signal(sig, shutdownFunction)
 
     # 执行连接到数据库
     # 大部分的功能依赖于 db 接口
@@ -73,8 +87,10 @@ def runChildProcess():
     cta.startAll()
     cta.log.info(u'CTA策略启动成功')
 
-    while True:
+
+    while _active:
         sleep(1)
+    me.log.info(u'系统完全关闭')
 
 #----------------------------------------------------------------------
 def runParentProcess():

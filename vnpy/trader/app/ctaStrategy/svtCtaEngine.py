@@ -20,7 +20,6 @@ from __future__ import division
 
 import time
 import traceback
-import arrow
 import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
@@ -212,13 +211,13 @@ class CtaEngine(VtCtaEngine):
         stopOrders.extend(shortStopOrders)
         return stopOrders
 
-    def saveCtaDB(self, document):
+    def saveCtaDB(self, sql, document):
         """
         将 cta 策略的数据保存到数据库
         :return:
         """
 
-        self.ctaCol.insert_one(document)
+        self.ctaCol.find_one_and_update(sql, document, upsert=True)
 
     def createCtaCollection(self):
         """
@@ -247,12 +246,23 @@ class CtaEngine(VtCtaEngine):
         self.mainEngine.createCollectionIndex(ctaCol, indexes)
 
     def initAll(self):
-        super(CtaEngine, self).initAll()
-        # 加载品种保证金率
+        try:
+            super(CtaEngine, self).initAll()
 
+            # 加载品种保证金率
+            self.initQryMarginRate()
+
+            # 查询手续费率
+            self.initQryCommissionRate()
+        except Exception as e:
+            err = e.message
+            self.log.critical(err)
+            raise
+
+    def initQryMarginRate(self):
         for s in self.strategyDict.values():
             count = 0
-            while s.marginRate is None:
+            while s._marginRate is None:
                 if count > 300:
                     # 30秒超时
                     raise ValueError(u'加载品种 {} 保证金率失败'.format(s.vtSymbol))
@@ -265,3 +275,36 @@ class CtaEngine(VtCtaEngine):
                 # 每0.1秒检查一次返回结果
                 time.sleep(0.1)
                 count += 1
+
+    def initQryCommissionRate(self):
+        for s in list(self.strategyDict.values()):
+            count = 0
+            # 每个合约都要重新强制查询
+            s.commissionRate = None
+
+            while s.commissionRate is None:
+                if count > 300:
+                    # 30秒超时
+                    raise ValueError(u'加载品种 {} 手续费率失败'.format(s.vtSymbol))
+
+                if count % 30 == 0:
+                    # 每3秒重新发送一次
+                    self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
+                    self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
+
+                # 每0.1秒检查一次返回结果
+                time.sleep(0.1)
+                count += 1
+
+    def stop(self):
+        """
+        程序停止时退出前的调用
+        :return:
+        """
+        self.stopAll()
+
+    def stopStrategy(self, name):
+        super(CtaEngine, self).stopStrategy(name)
+        if name in self.strategyDict:
+            strategy = self.strategyDict[name]
+            strategy.onStop()

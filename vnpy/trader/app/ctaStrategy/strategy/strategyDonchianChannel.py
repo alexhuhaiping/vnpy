@@ -8,9 +8,7 @@ import logging
 import time
 from collections import OrderedDict
 from itertools import chain
-from threading import Thread
 
-import arrow
 import talib
 import numpy as np
 import pandas as pd
@@ -239,6 +237,44 @@ class Unit(object):
         """
         return vtOrderID in self.dealVtTradIDs
 
+    def toSave(self):
+        """
+        要存库的数据
+        :return:
+        """
+        dic = {
+            'pos': self.pos,  # 该unit的当前持仓
+            'maxPos': self.maxPos,  # 该开仓阶段曾经达到的最大仓位
+            'targetPos': self.targetPos,  # 目标持仓
+            # self.openStopOrder = None  # 开仓停止单
+            # self.closeStopOrder = None  # 平仓停止单
+            'openTotalCost': self.openTotalCost,
+            'closeTotalCost': self.closeTotalCost,
+            'openCostPrice': self.openCostPrice,  # 要使用 None 作为默认值
+            'closeCostPrice': self.closeCostPrice,  # 要使用 None 作为默认值
+            # self.status = self.STATUS_EMPTY
+            'atr': self.atr,  # 开仓时的 atr
+            'atrStopPrice': self.atrStopPrice,  # atr 止损价格
+            'dealVtTradIDs': list(self.dealVtTradIDs),
+            'dealVtOrderIDs': list(self.dealVtOrderIDs),
+        }
+        return dic
+
+    def fromSave(self, document):
+        """
+        读取数据
+        :param document:
+        :return:
+        """
+        for k in self.toSave().keys():
+            key = u'u.{}.{}.{}'.format(self.direction, self.number, k)
+            v = document.get(key, getattr(self, k))
+            setattr(self, k, v)
+
+        self.dealVtTradIDs = set(self.dealVtTradIDs)
+        self.dealVtOrderIDs = set(self.dealVtOrderIDs)
+
+
 
 ########################################################################
 class DonchianChannelStrategy(CtaTemplate):
@@ -381,11 +417,6 @@ class DonchianChannelStrategy(CtaTemplate):
         # for u in self.unitList:
         #     u.clearDealVtOrderIDs()
 
-        # 从数据库加载策略数据
-        if not self.isBackTesting():
-            document = self.fromDB()
-            self.loadCtaDB(document)
-
         initData = self.loadBar(self.maxBarNum)
         self.log.info(u'即将加载 {} 个 bar'.format(len(initData)))
         initData.sort(key=lambda bar: bar.datetime)
@@ -432,6 +463,12 @@ class DonchianChannelStrategy(CtaTemplate):
             self.log.warning(u'初始化数据不足，初始化失败!')
             self.inited = False
 
+        # 从数据库加载策略数据
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
         self.putEvent()
 
     def onStart(self):
@@ -451,6 +488,7 @@ class DonchianChannelStrategy(CtaTemplate):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'策略 {} 停止'.format(self.className))
         self.putEvent()
+        self.saveDB()
 
     def onTick(self, tick):
         tickMinute = tick.datetime.minute
@@ -523,6 +561,8 @@ class DonchianChannelStrategy(CtaTemplate):
         if self.status in (self.INDEX_STATUS_OPEN, self.INDEX_STATUS_FULL):
             self.refreshCloseStopOrderOnBar()
 
+        self.saveDB()
+
     def onOrder(self, order):
         """
 
@@ -588,6 +628,7 @@ class DonchianChannelStrategy(CtaTemplate):
 
         # 发出状态更新事件
         self.putEvent()
+        self.saveDB()
 
     def onTrade(self, trade):
         """
@@ -639,6 +680,7 @@ class DonchianChannelStrategy(CtaTemplate):
 
         # 发出状态更新事件
         self.putEvent()
+        self.saveDB()
 
     def _handleOpenOnTrade(self, vtTrade):
         """
@@ -972,6 +1014,27 @@ class DonchianChannelStrategy(CtaTemplate):
             self.log.error(err)
             raise ValueError(err)
 
+        self.saveDB()
+
+    def loadCtaDB(self, document):
+        # todo 加载数据库中的 cta 策略数据
+        if document is None:
+            self.log.info(u'没有可加载的存库数据')
+            return
+
+        self.pos = document['pos']
+        self.status = document['status']
+        self.balance = document['balance']
+        self.cd = document['cd']
+        self.sys2 = document['sys2']
+
+        for dire in [DIRECTION_LONG, DIRECTION_SHORT]:
+            for u in self.getUnitListByDirection(dire):
+                u.fromSave(document)
+        #         for k, v in dic.items():
+        #             v = document[u'u.{}.{}.{}'.format(DIRECTION_LONG, u.number, k)]
+        #             setattr(k, v)
+
     def toSave(self):
         """
         要存库的数据
@@ -981,9 +1044,15 @@ class DonchianChannelStrategy(CtaTemplate):
         document.update({
             'pos': self.pos,
             'status': self.status,
-            'unitList': [],
+            'balance': self.balance,
+            'cd': self.cd,
             'sys2': True,
         })
+        for dire in [DIRECTION_LONG, DIRECTION_SHORT]:
+            for u in self.getUnitListByDirection(dire):
+                dic = u.toSave()
+                for k, v in dic.items():
+                    document[u'u.{}.{}.{}'.format(DIRECTION_LONG, u.number, k)] = v
 
         # self.status = self.STATUS_EMPTY
         #
@@ -995,13 +1064,6 @@ class DonchianChannelStrategy(CtaTemplate):
         # self.vtOrderID2Unit = {}  # {vtOrderID : unit}
 
         return document
-
-    def loadCtaDB(self, document):
-        # todo 加载数据库中的 cta 策略数据
-        self.log.info(u'{}'.format(str(document)))
-        if document is None:
-            self.log.info(u'没有可加载的存库数据')
-            return
 
     def setStatus(self, status):
         """
@@ -1396,7 +1458,7 @@ class DonchianChannelStrategy(CtaTemplate):
         :return:
         """
         minHands = max(0, int(self.balance * self.risk / (self.size * self.atr * self.stopAtr)))
-        maxHands = max(0, int(self.balance * 0.98 / (self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
+        maxHands = max(0, int(self.balance * 0.95 / (self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
 
         # if minHands > maxHands:
         #     self.log.warning(u'过小')

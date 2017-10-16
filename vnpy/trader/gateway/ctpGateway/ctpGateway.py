@@ -1469,9 +1469,17 @@ class CtpGateway(svtCtpGateway):
     def qryMarginRate(self, symbol):
         self.tdApi.qryMarginRate(symbol)
 
+    def qryCommissionRate(self, symbol):
+        self.tdApi.qryCommissionRate(symbol)
+
 
 class CtpTdApi(svtCtpTdApi):
     def qryMarginRate(self, symbol):
+        """
+        查询保证金率
+        :param symbol:
+        :return:
+        """
         self.reqID += 1
         req = {}
         req['BrokerID'] = self.brokerID
@@ -1482,7 +1490,14 @@ class CtpTdApi(svtCtpTdApi):
         self.reqQryInstrumentMarginRate(req, self.reqID)
 
     def onRspQryInstrumentMarginRate(self, data, error, n, last):
-        """合约查询回报"""
+        """
+        保证金率查询回报
+        :param data:
+        :param error:
+        :param n:
+        :param last:
+        :return:
+        """
         mr = VtMarginRate()
         mr.gatewayName = self.gatewayName
         mr.rawData = data
@@ -1493,3 +1508,44 @@ class CtpTdApi(svtCtpTdApi):
         mr.rate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)
 
         self.gateway.onMraginRate(mr)
+
+    def qryCommissionRate(self, symbol):
+        """
+        查询手续费率
+        :param symbol:
+        :return:
+        """
+        self.reqID += 1
+        req = {}
+        req['BrokerID'] = self.brokerID
+        req['InvestorID'] = self.userID
+        req['InstrumentID'] = str(symbol)
+        # req['ExchangeID'] = exchangeID   # 交易所ID，目前暂时不需要
+
+        self.reqQryInstrumentCommissionRate(req, self.reqID)
+
+    def onRspQryInstrumentCommissionRate(self, data, error, n, last):
+        """
+        手续费率查询回报
+        :param data:
+        :param error:
+        :param n:
+        :param last:
+        :return:
+        """
+        vtCr = VtCommissionRate()
+        vtCr.gatewayName = self.gatewayName
+        vtCr.rawData = data
+
+        vtCr.underlyingSymbol = data['InstrumentID']
+        vtCr.investorRange = data['InvestorRange']
+
+        vtCr.openRatioByMoney = data['OpenRatioByMoney']
+        vtCr.closeRatioByMoney = data['CloseRatioByMoney']
+        vtCr.closeTodayRatioByMoney = data['CloseTodayRatioByMoney']
+
+        vtCr.openRatioByVolume = data['OpenRatioByVolume']
+        vtCr.closeRatioByVolume = data['CloseRatioByVolume']
+        vtCr.closeTodayRatioByVolume = data['CloseTodayRatioByVolume']
+
+        self.gateway.onCommissionRate(vtCr)

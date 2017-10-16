@@ -13,11 +13,11 @@ from itertools import chain
 import arrow
 
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtEvent import EVENT_MARGIN_RATE
+from vnpy.trader.vtEvent import *
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
-from vnpy.trader.vtObject import VtBarData
+from vnpy.trader.vtObject import VtBarData, VtCommissionRate
 
 if __debug__:
     from vnpy.trader.svtEngine import MainEngine
@@ -75,6 +75,7 @@ class CtaTemplate(vtCtaTemplate):
         self._pos = 0
         self.posList = []
         self._marginRate = None
+        self.commissionRate = None  # 手续费率 vtObject.VtCommissionRate
         self.marginList = []
 
         self.registerEvent()
@@ -88,8 +89,15 @@ class CtaTemplate(vtCtaTemplate):
         self._pos = pos
         self.posList.append(pos)
 
-        margin = self._pos * self.size * self.bar1min.close * self.marginRate
-        self.marginList.append(abs(margin / self.balance))
+        try:
+            margin = self._pos * self.size * self.bar1min.close * self.marginRate
+            self.marginList.append(abs(margin / self.balance))
+        except AttributeError as e:
+            if self.bar1min is None:
+                pass
+        except TypeError:
+            if self.marginRate is None:
+                pass
 
     @property
     def calssName(self):
@@ -194,7 +202,7 @@ class CtaTemplate(vtCtaTemplate):
             return '111'
         else:
             contract = self.mainEngine.getContract(self.vtSymbol)
-            assert isinstance(contract, VtContractData)
+            assert isinstance(contract, VtContractData) or contract is None
             return contract
 
     def isBackTesting(self):
@@ -219,13 +227,52 @@ class CtaTemplate(vtCtaTemplate):
             if self.isBackTesting():
                 # 回测中
                 self._marginRate = self.ctaEngine.marginRate
-            # else:
-            #     # 实盘 默认设置为 10%
-            #     # self._marginRate = self.contract.marginRate
-            #     self._marginRate = None
+                # else:
+                #     # 实盘 默认设置为 10%
+                #     # self._marginRate = self.contract.marginRate
+                #     self._marginRate = None
 
-        # assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int)
+        assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int) or self._marginRate is None
         return self._marginRate
+
+    def getCommission(self, price, volume, offset):
+        """
+
+        :param price:
+        :param volume:
+        :param offset:
+        :return:
+        """
+
+        if self.isBackTesting():
+            # 回测中
+            return price * volume * self.ctaEngine.rate
+        else:
+
+            assert isinstance(self.commissionRate, VtCommissionRate)
+            m = self.commissionRate
+            if offset == OFFSET_OPEN:
+                # 开仓
+                # 直接将两种手续费计费方式累加
+                value = m.openRatioByMoney * price * volume
+                value += m.openRatioByVolume * volume
+            elif offset == OFFSET_CLOSE:
+                # 平仓
+                value = m.closeRatioByMoney * price * volume
+                value += m.closeRatioByVolume * volume
+            elif offset == OFFSET_CLOSEYESTERDAY:
+                # 平昨
+                value = m.closeRatioByMoney * price * volume
+                value += m.closeRatioByVolume * volume
+            elif offset == OFFSET_CLOSETODAY:
+                # 平今
+                value = m.closeTodayRatioByMoney * price * volume
+                value += m.closeTodayRatioByVolume * volume
+            else:
+                err = u'未知的开平方向 {}'.format(offset)
+                self.log.error(err)
+                raise ValueError(err)
+            return value
 
     @property
     def size(self):
@@ -260,6 +307,7 @@ class CtaTemplate(vtCtaTemplate):
         return self.bar1minCount % self.barPeriod == 0
 
     def stop(self):
+        # 执行停止策略
         self.ctaEngine.stopStrategy(self)
 
     def toSave(self):
@@ -268,11 +316,8 @@ class CtaTemplate(vtCtaTemplate):
         :return: {}
         """
         # 必要的三个字段
-        dic = {
-            'symbol': self.vtSymbol,
-            'datetime': arrow.now().datetime,
-            'class': self.className,
-        }
+        dic = self.filterSql()
+        dic['datetime'] = arrow.now().datetime,
         return dic
 
     def saveDB(self):
@@ -280,26 +325,28 @@ class CtaTemplate(vtCtaTemplate):
         将策略的数据保存到 mongodb 数据库
         :return:
         """
-        # 暂时不使用存库功能
-        return
         if self.isBackTesting():
             # 回测中，不存库
             return
 
         # 保存
-        self.ctaEngine.saveCtaDB(self.toSave())
+        document = self.toSave()
+        self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
 
+    def filterSql(self):
+        gateWay = self.mainEngine.getGateway('CTP')
+        return {
+            'symbol': self.vtSymbol,
+            'className': self.className,
+            'userID': gateWay.tdApi.userID,
+        }
     def fromDB(self):
         """
 
         :return:
         """
-        filter = {
-            'symbol': self.vtSymbol,
-            'class': self.className,
-        }
         # 对 datetime 倒叙，获取第一条
-        return self.ctaEngine.ctaCol.find_one(filter, sort=[('datetime', pymongo.DESCENDING)])
+        return self.ctaEngine.ctaCol.find_one(self.filterSql(), sort=[('datetime', pymongo.DESCENDING)])
 
     def onOrder(self, order):
         """
@@ -361,15 +408,37 @@ class CtaTemplate(vtCtaTemplate):
 
     def registerEvent(self):
         """注册事件监听"""
+        if self.isBackTesting():
+            # 回测中不注册监听事件
+            return
         en = self.ctaEngine.mainEngine.eventEngine
         en.register(EVENT_MARGIN_RATE, self.updateMarginRate)
+        en.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
 
     def updateMarginRate(self, event):
         """更新合约数据"""
         marginRate = event.dict_['data']
         if marginRate.vtSymbol != self.vtSymbol:
             return
+
         self._marginRate = marginRate.rate
+
+    def updateCommissionRate(self, event):
+        """更新合约数据"""
+        commissionRate = event.dict_['data']
+
+        # commissionRate.vtSymbol 可能为 'rb' 或者 'rb1801' 前者说明合约没改过，后者说明该合约有变动
+        if commissionRate.underlyingSymbol == self.vtSymbol:
+            # 返回 rb1801, 合约有变动，强制更新
+            self.commissionRate = commissionRate
+            return
+        elif self.vtSymbol.startswith(commissionRate.underlyingSymbol):
+            # 返回 rb ,合约没有变动
+            self.commissionRate = commissionRate
+            return
+        else:
+            pass
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
