@@ -285,7 +285,8 @@ class CtaEngine(VtCtaEngine):
             while s.commissionRate is None:
                 if count > 300:
                     # 30秒超时
-                    raise ValueError(u'加载品种 {} 手续费率失败'.format(s.vtSymbol))
+                    err = u'加载品种 {} 手续费率失败'.format(s.vtSymbol)
+                    raise ValueError(err)
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
