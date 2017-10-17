@@ -819,7 +819,7 @@ class CtpTdApi(TdApi):
         mr.vtSymbol = data['InstrumentID']
         mr.ShortMarginRatioByMoney = data['ShortMarginRatioByMoney']
         mr.LongMarginRatioByMoney = data['LongMarginRatioByMoney']
-        mr.rate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)
+        mr.marginRate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)
 
         self.gateway.onMraginRate(mr)
 

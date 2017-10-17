@@ -435,7 +435,7 @@ class DrEngine(object):
 
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
-        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol}, {'$set': {'marginRate': marginRate.rate}})
+        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol}, {'$set': {'marginRate': marginRate.marginRate}})
 
     def updateCommissionRate(self, event):
         """
