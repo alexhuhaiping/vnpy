@@ -64,8 +64,8 @@ def runChildProcess():
     me.dbConnect()
 
     me.addGateway(ctpGateway)
-    me.log.info(u'启动网页UI')
     me.addApp(ctaStrategy)
+    me.log.info(u'启动网页UI')
     me.addApp(webUI)  # 网页UI
 
     # ee.register(EVENT_LOG, processLogEvent)
@@ -88,6 +88,8 @@ def runChildProcess():
     cta.log.info(u'CTA策略启动成功')
 
     while _active:
+        if __debug__:
+            me.testfunc()
         sleep(1)
     me.log.info(u'系统完全关闭')
 

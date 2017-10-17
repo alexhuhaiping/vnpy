@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+from threading import Thread
 from bson.codec_options import CodecOptions
 import pytz
 
@@ -11,6 +12,8 @@ from vnpy.trader.vtGateway import *
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtEngine import MainEngine as VtMaingEngine
 
+if __debug__:
+    import vnpy.trader.debuginject as debuginject
 
 ########################################################################
 class MainEngine(VtMaingEngine):
@@ -23,6 +26,9 @@ class MainEngine(VtMaingEngine):
         super(MainEngine, self).__init__(eventEngine)
         self.ctpdb = None  # ctp 历史行情数据库
         self.strategyDB = None  # cta 策略相关的数据
+
+        if __debug__:
+            self.log.info(u'DEBUG 模式')
 
     # ----------------------------------------------------------------------
     def dbConnect(self):
@@ -97,3 +103,17 @@ class MainEngine(VtMaingEngine):
         gateway = self.getGateway(gatewayName)
         if gateway:
             gateway.qryCommissionRate(vtSymbol)
+
+    def testfunc(self):
+        try:
+            reload(debuginject)
+            debuginject.run(self)
+            time.sleep(2)
+        except Exception as e:
+            self.log.debug(e.message)
+
+    def exit(self):
+        super(MainEngine, self).exit()
+        if __debug__:
+            self._testActive = False
+

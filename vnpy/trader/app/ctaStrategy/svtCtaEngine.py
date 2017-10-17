@@ -165,7 +165,7 @@ class CtaEngine(VtCtaEngine):
             # 遍历等待中的停止单，检查是否会被触发
             # for so in self.workingStopOrderDict.values():
             #     if so.vtSymbol == vtSymbol:
-            for so in self.getAllStopOrdersSorted(vtSymbol):
+            for so in self.getAllStopOrdersSorted(tick):
                 longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
                 shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
 
@@ -184,31 +184,68 @@ class CtaEngine(VtCtaEngine):
                     del self.workingStopOrderDict[so.stopOrderID]
                     so.strategy.onStopOrder(so)
 
-    def getAllStopOrdersSorted(self, vtSymbol):
+    def getAllStopOrdersSorted(self, vtTick):
         """
         对全部停止单排序后
         :return:
         """
-        longStopOrders = []
-        shortStopOrders = []
+        longOpenStopOrders = []
+        shortCloseStopOrders = []
+        shortOpenStopOrders = []
+        longCloseStopOrders = []
         stopOrders = []
-        for so in self.workingStopOrderDict.values():
-            if so.vtSymbol == vtSymbol:
-                if so.direction == DIRECTION_LONG:
-                    longStopOrders.append(so)
-                elif so.direction == DIRECTION_SHORT:
-                    shortStopOrders.append(so)
+        soBySymbols = [so for so in self.workingStopOrderDict.values() if so.vtSymbol == vtTick.vtSymbol]
+
+        for so in soBySymbols:
+            if so.direction == DIRECTION_LONG:
+                if so.offset == OFFSET_OPEN:
+                    # 买开
+                    longOpenStopOrders.append(so)
                 else:
-                    stopOrders.append(so)
-                    self.log.error(u'未知的停止单方向 {}'.format(so.direction))
+                    # 卖空
+                    shortCloseStopOrders.append(so)
+            elif so.direction == DIRECTION_SHORT:
+                if so.offset == OFFSET_OPEN:
+                    # 卖开
+                    shortOpenStopOrders.append(so)
+                else:
+                    # 买空
+                    longCloseStopOrders.append(so)
+            else:
+                stopOrders.append(so)
+                self.log.error(u'未知的停止单方向 {}'.format(so.direction))
 
         # 根据触发价排序，优先触发更优的
-        longStopOrders.sort(key=lambda so: so.price)
-        shortStopOrders.sort(key=lambda so: so.price)
-        shortStopOrders.reverse()
+        # 买开
+        longOpenStopOrders.sort(key=lambda so: (so.price, so.priority))
+        # 平多
+        shortCloseStopOrders.sort(key=lambda so: (so.price, -so.priority))
+        # 开多
+        shortOpenStopOrders.sort(key=lambda so: (so.price, -so.priority))
+        shortOpenStopOrders.reverse()
+        # 卖空
+        longCloseStopOrders.sort(key=lambda so: (so.price, so.priority))
+        longCloseStopOrders.reverse()
 
-        stopOrders.extend(longStopOrders)
-        stopOrders.extend(shortStopOrders)
+        stopOrders.extend(shortCloseStopOrders)
+        stopOrders.extend(longCloseStopOrders)
+        stopOrders.extend(longOpenStopOrders)
+        stopOrders.extend(shortOpenStopOrders)
+
+        # # 先撮合平仓单
+        # if self.bar.open >= self.bar.close:
+        #     # 阴线，撮合优先级 平仓单 > 多单
+        #     stopOrders.extend(shortCloseStopOrders)
+        #     stopOrders.extend(longCloseStopOrders)
+        #     stopOrders.extend(longOpenStopOrders)
+        #     stopOrders.extend(shortOpenStopOrders)
+        # else:
+        #     # 阳线，撮合优先级，平仓单 > 空单
+        #     stopOrders.extend(longCloseStopOrders)
+        #     stopOrders.extend(shortCloseStopOrders)
+        #     stopOrders.extend(shortOpenStopOrders)
+        #     stopOrders.extend(longOpenStopOrders)
+
         return stopOrders
 
     def saveCtaDB(self, sql, document):
@@ -285,7 +322,7 @@ class CtaEngine(VtCtaEngine):
             while s.commissionRate is None:
                 if count > 300:
                     # 30秒超时
-                    err = u'加载品种 {} 手续费率失败'.format(s.vtSymbol)
+                    err = u'加载品种 {} 手续费率失败'.format(str(s.vtSymbol))
                     raise ValueError(err)
 
                 if count % 30 == 0:

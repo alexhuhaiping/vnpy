@@ -31,7 +31,8 @@ def runBacktesting(vtSymbol, dbn, slippage, rate, size, priceTick, capital, marg
     # 设置回测使用的数据
     engine.setSymbol(vtSymbol) # 设置该次回测使用的合约
 
-    # engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
+    engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
+
     # engine.setDatabase(dbn, vtSymbol)  # 设置使用的历史数据库
     # engine.setStartDate(startDate)  # 设置回测用的数据起始日期
     # if endDate:

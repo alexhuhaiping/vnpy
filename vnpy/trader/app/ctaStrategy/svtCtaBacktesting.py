@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtGlobal import globalSetting
-from vnpy.trader.vtObject import VtTickData, VtBarData
+from vnpy.trader.vtObject import VtTickData, VtBarData, VtContractData, VtMarginRate, VtCommissionRate
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import TradingResult, formatNumber, DailyResult
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
@@ -57,6 +57,9 @@ class BacktestingEngine(VTBacktestingEngine):
         super(BacktestingEngine, self).__init__()
 
         self.vtSymbol = None  # 引擎使用的合约
+        self.vtContract = None  # 合约详情 VtConcractData
+        self.vtMarginRate = None  # 保证金率
+        self.vtCommissionRate = None  # 手续费率
 
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
@@ -292,7 +295,24 @@ class BacktestingEngine(VTBacktestingEngine):
         sql = {
             'vtSymbol': self.vtSymbol
         }
-        # contract = self.ctpColContract.find_one(sql, {'_id': 0})
+        dic = self.ctpColContract.find_one(sql, {'_id': 0})
+
+        # 合约详情
+        self.vtContract = vtCon = VtContractData()
+        # 保证金率
+        self.vtMarginRate = vtMar = VtMarginRate()
+        # 手续费率
+        self.vtCommissionRate = vtCom = VtCommissionRate()
+        for k, v in dic.items():
+            if hasattr(vtCon, k):
+                setattr(vtCon, k, v)
+
+            if hasattr(vtMar, k):
+                setattr(vtMar, k, v)
+
+            if hasattr(vtCom, k):
+                setattr(vtCom, k, v)
+
 
     # ------------------------------------------------
     # 数据回放相关
