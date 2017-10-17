@@ -147,7 +147,7 @@ class VtTradeData(VtBaseData):
         self.price = EMPTY_FLOAT  # 成交价格
         self.volume = EMPTY_INT  # 成交数量
         self.tradeTime = EMPTY_STRING  # 成交时间
-
+        self.tradingDay = None # 交易日
 
 ########################################################################
 class VtOrderData(VtBaseData):
@@ -295,7 +295,7 @@ class VtMarginRate(VtBaseData):
         self.vtSymbol = EMPTY_STRING  # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
         self.ShortMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
         self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
-        self.rate = EMPTY_FLOAT
+        self.marginRate = 1.
 
 
 ########################################################################

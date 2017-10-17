@@ -29,22 +29,22 @@ def runBacktesting(vtSymbol, dbn, slippage, rate, size, priceTick, capital, marg
     engine = BacktestingEngine()
 
     # 设置回测使用的数据
+    engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol) # 设置该次回测使用的合约
 
-    engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
-
     # engine.setDatabase(dbn, vtSymbol)  # 设置使用的历史数据库
+
     # engine.setStartDate(startDate)  # 设置回测用的数据起始日期
     # if endDate:
     #     engine.setEndDate(endDate)  # 设置回测用的数据起始日期
 
-    # # 配置回测引擎参数
+    # 配置回测引擎参数
     # engine.setSlippage(slippage)  # 设置滑点为股指1跳
     # engine.setRate(rate)  # 设置手续费万0.3
     # engine.setSize(size)  # 设置股指合约大小
     # engine.setPriceTick(priceTick)  # 设置股指最小价格变动
-    # engine.setCapital(capital)  # 设置回测本金
     # engine.setMarginRate(marginRate)  # 设置保证金比例
+    engine.setCapital(capital)  # 设置回测本金
 
     # 在引擎中创建策略对象
     setting

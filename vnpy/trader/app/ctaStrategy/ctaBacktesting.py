@@ -26,7 +26,7 @@ except ImportError:
     pass
 
 from vnpy.trader.vtGlobal import globalSetting
-from vnpy.trader.vtObject import VtTickData, VtBarData
+from vnpy.trader.vtObject import VtTickData, VtBarData, VtCommissionRate
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 
@@ -264,7 +264,7 @@ class BacktestingEngine(object):
         self.crossStopOrder()  # 再撮合停止单
         self.strategy.onBar(bar)  # 推送K线到策略中
 
-        self.updateDailyClose(bar.datetime, bar.close)
+        self.updateDailyClose(bar.tradingDay, bar.close)
 
     # ----------------------------------------------------------------------
     def newTick(self, tick):
@@ -276,7 +276,7 @@ class BacktestingEngine(object):
         self.crossStopOrder()
         self.strategy.onTick(tick)
 
-        self.updateDailyClose(tick.datetime, tick.lastPrice)
+        self.updateDailyClose(tick.tradingDay, tick.lastPrice)
 
     # ----------------------------------------------------------------------
     def initStrategy(self, strategyClass, setting=None):
@@ -331,6 +331,7 @@ class BacktestingEngine(object):
                 trade.vtOrderID = order.orderID
                 trade.direction = order.direction
                 trade.offset = order.offset
+                trade.tradingDay = self.bar.tradingDay
 
                 # 以买入为例：
                 # 1. 假设当根K线的OHLC分别为：100, 125, 90, 110
@@ -391,6 +392,7 @@ class BacktestingEngine(object):
                 trade.vtSymbol = so.vtSymbol
                 trade.tradeID = tradeID
                 trade.vtTradeID = tradeID
+                trade.tradingDay = self.bar.tradingDay
 
                 if buyCross:
                     self.strategy.pos += so.volume
@@ -917,7 +919,7 @@ class BacktestingEngine(object):
 
         # 将成交添加到每日交易结果中
         for trade in self.tradeDict.values():
-            date = trade.dt.date()
+            date = trade.tradingDay.date()
             dailyResult = self.dailyResultDict[date]
             dailyResult.addTrade(trade)
 
@@ -1044,7 +1046,7 @@ class BacktestingEngine(object):
 
 
 ########################################################################
-class TradingResult(object):
+class VtTradingResult(object):
     """每笔交易的结果"""
 
     # ----------------------------------------------------------------------
@@ -1064,6 +1066,28 @@ class TradingResult(object):
         self.slippage = slippage * 2 * size * abs(volume)  # 滑点成本
         self.pnl = ((self.exitPrice - self.entryPrice) * volume * size
                     - self.commission - self.slippage)  # 净盈亏
+
+
+class TradingResult(VtTradingResult):
+    """每笔交易的结果"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self, entryPrice, entryDt, exitPrice,
+                 exitDt, volume, rate, slippage, size):
+        """Constructor"""
+        super(TradingResult, self).__init__(entryPrice, entryDt, exitPrice,
+                                            exitDt, volume, rate, slippage, size)
+
+        assert isinstance(rate, VtCommissionRate)
+
+        # 手续费成本
+        # 按成交额算
+        self.commission = self.turnover * (
+            rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
+        self.commission += self.volume * (
+            rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
+        # 基准手续费 * 2
+        self.commission *= rate.backtestingRate
 
 
 ########################################################################
@@ -1129,6 +1153,7 @@ class VTDailyResult(object):
         self.totalPnl = self.tradingPnl + self.positionPnl
         self.netPnl = self.totalPnl - self.commission - self.slippage
 
+
 class DailyResult(VTDailyResult):
     """每日交易的结果"""
 
@@ -1137,9 +1162,39 @@ class DailyResult(VTDailyResult):
         super(DailyResult, self).__init__(date, closePrice)
         self.margin = 0  # 收盘时保证金
 
-    def calculatePnl(self, openPosition=0, size=1, rate=0, slippage=0, marginRate=1):
-        super(DailyResult, self).calculatePnl(openPosition, size, rate, slippage)
-        self.margin = abs(self.closePosition * size * self.closePrice * marginRate)
+    def calculatePnl(self, openPosition=0, size=1, rate=None, slippage=0, marginRate=None):
+        self.openPosition = openPosition
+        self.positionPnl = self.openPosition * (self.closePrice - self.previousClose) * size
+        self.closePosition = self.openPosition
+
+        # 交易部分
+        self.tradeCount = len(self.tradeList)
+
+        for trade in self.tradeList:
+            if trade.direction == DIRECTION_LONG:
+                posChange = trade.volume
+            else:
+                posChange = -trade.volume
+
+            self.tradingPnl += posChange * (self.closePrice - trade.price) * size
+            self.closePosition += posChange
+            self.turnover += trade.price * trade.volume * size
+
+            # 计算手续费
+            turnover = trade.price * trade.volume * size
+            commission = turnover * (rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
+            commission += trade.volume * (rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
+            # 惩罚性的手续费倍率
+            commission *= rate.backtestingRate
+            self.commission += commission
+
+            self.slippage += trade.volume * size * slippage
+
+        # 汇总
+        self.totalPnl = self.tradingPnl + self.positionPnl
+        self.netPnl = self.totalPnl - self.commission - self.slippage
+
+        self.margin = abs(self.closePosition * size * self.closePrice * marginRate.rate)
 
 
 ########################################################################

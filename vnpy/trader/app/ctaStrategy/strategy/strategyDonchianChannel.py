@@ -275,7 +275,6 @@ class Unit(object):
         self.dealVtOrderIDs = set(self.dealVtOrderIDs)
 
 
-
 ########################################################################
 class DonchianChannelStrategy(CtaTemplate):
     """唐奇安通道交易策略"""
@@ -370,6 +369,7 @@ class DonchianChannelStrategy(CtaTemplate):
         super(DonchianChannelStrategy, self).__init__(ctaEngine, setting)
 
         self.maxBarNum = max(self.in1, self.out1, self.in2, self.out2, self.atrPeriod)  # 最大的入场周期
+        self.barCount = 0
         self.barList = []
         self.highList = []  # 最高价队列
         self.lowList = []  # 最低价队列
@@ -531,6 +531,7 @@ class DonchianChannelStrategy(CtaTemplate):
         # 保存极值队列
         self.barList.append(bar)
         self.barList = self.barList[-self.maxBarNum:]
+        # self.barCount = len(self.barList)
 
         self.highList.append(bar.high)
         self.highList = self.highList[-self.maxBarNum:]
@@ -1017,23 +1018,23 @@ class DonchianChannelStrategy(CtaTemplate):
         self.saveDB()
 
     def loadCtaDB(self, document):
-        # todo 加载数据库中的 cta 策略数据
+        # 加载数据库中的 cta 策略数据
         if document is None:
             self.log.info(u'没有可加载的存库数据')
             return
 
-        self.pos = document['pos']
+        super(DonchianChannelStrategy, self).loadCtaDB(document)
+
         self.status = document['status']
-        self.balance = document['balance']
         self.cd = document['cd']
         self.sys2 = document['sys2']
 
         for dire in [DIRECTION_LONG, DIRECTION_SHORT]:
             for u in self.getUnitListByDirection(dire):
                 u.fromSave(document)
-        #         for k, v in dic.items():
-        #             v = document[u'u.{}.{}.{}'.format(DIRECTION_LONG, u.number, k)]
-        #             setattr(k, v)
+                #         for k, v in dic.items():
+                #             v = document[u'u.{}.{}.{}'.format(DIRECTION_LONG, u.number, k)]
+                #             setattr(k, v)
 
     def toSave(self):
         """
@@ -1457,20 +1458,23 @@ class DonchianChannelStrategy(CtaTemplate):
         更新开仓仓位
         :return:
         """
-        minHands = max(0, int(self.balance * self.risk / (self.size * self.atr * self.stopAtr)))
-        maxHands = max(0, int(self.balance * 0.95 / (self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
+        try:
+            minHands = max(0, int(self.balance * self.risk / (self.size * self.atr * self.stopAtr)))
+            maxHands = max(0, int(
+                self.balance * 0.95 / (
+                    self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
 
-        # if minHands > maxHands:
-        #     self.log.warning(u'过小')
-        #     self.log.warning(u'{} {}'.format(minHands, maxHands))
-        #     self.log.warning(u'{} {} {} {}'.format(self.size, self.unitsNum, self.bar1min.close, self.marginRate))
+            self.hands = min(minHands, maxHands)
 
-        self.hands = min(minHands, maxHands)
-
-        # self.log.warning(u'hands {}'.format(self.hands))
-
-        # self.hands = 1
-        # self.log.warning(u'b{} r{} a{} s{} h{}'.format(self.balance, self.risk, self.atr, self.size, self.hands))
+        except TypeError as e:
+            if 'NoneType' in e.message:
+                pass
+        except ValueError as e:
+            self.log.warning(u'b{} r{} a{} s{} h{}'.format(self.balance, self.risk, self.atr, self.size, self.hands))
+            raise
+        except  ZeroDivisionError as e:
+            self.log.warning(u'{} {} {} {}'.format(self.size, self.unitsNum, self.bar1min.close, self.marginRate))
+            raise
 
     def setCDOnStopOrder(self, so):
         assert isinstance(so, StopOrder)

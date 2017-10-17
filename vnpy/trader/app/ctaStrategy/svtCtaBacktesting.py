@@ -56,14 +56,13 @@ class BacktestingEngine(VTBacktestingEngine):
         self.log = logging.getLogger('ctabacktesting')
         super(BacktestingEngine, self).__init__()
 
-        self.vtSymbol = None  # 引擎使用的合约
         self.vtContract = None  # 合约详情 VtConcractData
         self.vtMarginRate = None  # 保证金率
         self.vtCommissionRate = None  # 手续费率
 
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
-        self.marginRate = 1  # 保证金比例 默认100%
+        self.marginRate = None  # 保证金比例 默认100%
 
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
@@ -283,6 +282,7 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         self.marginRate = marginRate
+        assert isinstance(marginRate, VtMarginRate)
 
     def setSymbol(self, vtSymbol):
         """
@@ -291,19 +291,23 @@ class BacktestingEngine(VTBacktestingEngine):
         :param vtSymbol:
         :return:
         """
-        self.vtSymbol = vtSymbol
+        self.symbol = vtSymbol
         sql = {
-            'vtSymbol': self.vtSymbol
+            'vtSymbol': self.symbol
         }
-        dic = self.ctpColContract.find_one(sql, {'_id': 0})
+        contractDic = self.ctpColContract.find_one(sql, {'_id': 0})
 
         # 合约详情
         self.vtContract = vtCon = VtContractData()
         # 保证金率
         self.vtMarginRate = vtMar = VtMarginRate()
         # 手续费率
-        self.vtCommissionRate = vtCom = VtCommissionRate()
-        for k, v in dic.items():
+        vtCom = VtCommissionRate()
+
+        # 回测时手续费的惩罚性倍率
+        vtCom.backtestingRate = 2
+
+        for k, v in contractDic.items():
             if hasattr(vtCon, k):
                 setattr(vtCon, k, v)
 
@@ -313,6 +317,30 @@ class BacktestingEngine(VTBacktestingEngine):
             if hasattr(vtCom, k):
                 setattr(vtCom, k, v)
 
+        # 设置数据库
+        # self.setDatabase(MINUTE_DB_NAME, self.vtSymbol)
+        startDate = contractDic['activeStartDate']
+        endDate = contractDic['activeEndDate']
+        if startDate is None:
+            err = u'{} 不是主力合约'.format(self.symbol)
+            self.log.error(err)
+            raise ValueError(err)
+        self.setStartDate(startDate)  # 设置回测用的数据起始日期
+        if endDate:
+            self.setEndDate(endDate)  # 设置回测用的数据起始日期
+
+        # 默认都是1滑点
+        self.setSlippage(1)
+
+        # 设置手续费
+        self.setRate(vtCom)
+        assert isinstance(self.rate, VtCommissionRate)
+
+        # 一手的大小
+        self.setSize(vtCon.size)
+        self.setPriceTick(vtCon.priceTick)  # 设置股指最小价格变动
+        self.setMarginRate(vtMar)
+        assert isinstance(self.marginRate, VtMarginRate)
 
     # ------------------------------------------------
     # 数据回放相关
@@ -479,6 +507,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 trade.vtSymbol = so.vtSymbol
                 trade.tradeID = tradeID
                 trade.vtTradeID = tradeID
+                trade.tradingDay = self.bar.tradingDay
 
                 if buyCross:
                     self.strategy.pos += so.volume
@@ -613,11 +642,11 @@ class BacktestingEngine(VTBacktestingEngine):
     # ----------------------------------------------------------------------
     def calculateDailyResult(self):
         """计算按日统计的交易结果"""
-        self.output(u'计算按日统计结果')
+        self.output(u'计算按日统计结果 {}'.format(self.symbol))
 
         # 将成交添加到每日交易结果中
         for trade in self.tradeDict.values():
-            date = trade.dt.date()
+            date = trade.tradingDay.date()
             dailyResult = self.dailyResultDict[date]
             dailyResult.addTrade(trade)
 
@@ -733,8 +762,9 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'收益标准差：\t%s%%' % formatNumber(returnStd))
         self.output(u'Sharpe Ratio：\t%s' % formatNumber(sharpeRatio))
 
-        # # TODO 测试代码，暂时不输出图片
-        # return
+        # TODO 测试代码，暂时不输出图片
+        return
+
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
@@ -929,7 +959,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for result in resultList:
             pos += result.volume
-            margin = abs(pos * self.size * result.entryPrice * self.marginRate / capital)
+            margin = abs(pos * self.size * result.entryPrice * self.marginRate.rate / capital)
             capital += result.pnl
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital

@@ -30,18 +30,26 @@ class CtaTemplate(vtCtaTemplate):
 
     barPeriod = 1  # n 分钟的K线
     barMinute = 1  # K线当前的分钟
+    capital = 10000  # 默认资金1万
 
     paramList = vtCtaTemplate.paramList[:]
     paramList.extend([
         'barPeriod',
         'barMinute',
         'marginRate',
+        'capital',
+    ])
+    varList = vtCtaTemplate.varList[:]
+    varList.extend([
+        'balance',
     ])
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
         logger = logging.getLogger(loggerName)
+
+        self.lastPrice = 0. # 最后一个价格
 
         # 定制 logger.name
         self.log = logging.getLogger(self.vtSymbol)
@@ -67,10 +75,10 @@ class CtaTemplate(vtCtaTemplate):
 
         if self.isBackTesting():
             # 回测时的资金
-            self.balance = self.ctaEngine.capital
+            self.capital = self.ctaEngine.capital
         else:
-            # TODO 实盘中的资金
-            self.balance = 100000
+            pass
+            # 实盘资金需要靠外部设定
 
         self._pos = 0
         self.posList = []
@@ -81,23 +89,28 @@ class CtaTemplate(vtCtaTemplate):
         self.registerEvent()
 
     @property
+    def balance(self):
+        return self.pos * self.lastPrice + self.capital
+
+    @property
     def pos(self):
         return self._pos
 
     @pos.setter
     def pos(self, pos):
         self._pos = pos
-        self.posList.append(pos)
 
-        try:
-            margin = self._pos * self.size * self.bar1min.close * self.marginRate
-            self.marginList.append(abs(margin / self.balance))
-        except AttributeError as e:
-            if self.bar1min is None:
-                pass
-        except TypeError:
-            if self.marginRate is None:
-                pass
+        if self.inited and self.trading and self.isBackTesting():
+            self.posList.append(pos)
+            try:
+                margin = self._pos * self.size * self.bar1min.close * self.marginRate
+                self.marginList.append(abs(margin / self.balance))
+            except AttributeError as e:
+                if self.bar1min is None:
+                    pass
+            except TypeError:
+                if self.marginRate is None:
+                    pass
 
     @property
     def calssName(self):
@@ -124,14 +137,19 @@ class CtaTemplate(vtCtaTemplate):
         扣除手续费
         :return:
         """
-        charge = volume * self.getCharge(offset, price)
+        charge = volume * self.getCommission(price, volume, offset)
         self.log.info(u'手续费 {}'.format(charge))
-        self.balance -= charge
+        self.capital -= charge
 
     def chargeSplipage(self, volume):
-        slippage = volume * self.size * self.ctaEngine.slippage
-        self.balance -= slippage
-        self.log.info(u'滑点 {}'.format(slippage))
+        """
+        回测时的滑点
+        :param volume:
+        :return:
+        """
+        if self.isBackTesting():
+            slippage = volume * self.size * self.ctaEngine.slippage
+            self.capital -= slippage
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -199,7 +217,7 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         if self.isBackTesting():
-            return '111'
+            return self.ctaEngine.vtContract
         else:
             contract = self.mainEngine.getContract(self.vtSymbol)
             assert isinstance(contract, VtContractData) or contract is None
@@ -223,17 +241,15 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def marginRate(self):
-        if self._marginRate is None:
+        try:
+            return self._marginRate.marginRate
+        except AttributeError:
             if self.isBackTesting():
                 # 回测中
                 self._marginRate = self.ctaEngine.marginRate
-                # else:
-                #     # 实盘 默认设置为 10%
-                #     # self._marginRate = self.contract.marginRate
-                #     self._marginRate = None
-
-        assert isinstance(self._marginRate, float) or isinstance(self._marginRate, int) or self._marginRate is None
-        return self._marginRate
+                return self.marginRate
+            else:
+                return 0.9
 
     def getCommission(self, price, volume, offset):
         """
@@ -246,33 +262,35 @@ class CtaTemplate(vtCtaTemplate):
 
         if self.isBackTesting():
             # 回测中
-            return price * volume * self.ctaEngine.rate
+            m = self.ctaEngine.rate
         else:
 
-            assert isinstance(self.commissionRate, VtCommissionRate)
             m = self.commissionRate
-            if offset == OFFSET_OPEN:
-                # 开仓
-                # 直接将两种手续费计费方式累加
-                value = m.openRatioByMoney * price * volume
-                value += m.openRatioByVolume * volume
-            elif offset == OFFSET_CLOSE:
-                # 平仓
-                value = m.closeRatioByMoney * price * volume
-                value += m.closeRatioByVolume * volume
-            elif offset == OFFSET_CLOSEYESTERDAY:
-                # 平昨
-                value = m.closeRatioByMoney * price * volume
-                value += m.closeRatioByVolume * volume
-            elif offset == OFFSET_CLOSETODAY:
-                # 平今
-                value = m.closeTodayRatioByMoney * price * volume
-                value += m.closeTodayRatioByVolume * volume
-            else:
-                err = u'未知的开平方向 {}'.format(offset)
-                self.log.error(err)
-                raise ValueError(err)
-            return value
+
+        assert isinstance(m, VtCommissionRate)
+
+        if offset == OFFSET_OPEN:
+            # 开仓
+            # 直接将两种手续费计费方式累加
+            value = m.openRatioByMoney * price * volume
+            value += m.openRatioByVolume * volume
+        elif offset == OFFSET_CLOSE:
+            # 平仓
+            value = m.closeRatioByMoney * price * volume
+            value += m.closeRatioByVolume * volume
+        elif offset == OFFSET_CLOSEYESTERDAY:
+            # 平昨
+            value = m.closeRatioByMoney * price * volume
+            value += m.closeRatioByVolume * volume
+        elif offset == OFFSET_CLOSETODAY:
+            # 平今
+            value = m.closeTodayRatioByMoney * price * volume
+            value += m.closeTodayRatioByVolume * volume
+        else:
+            err = u'未知的开平方向 {}'.format(offset)
+            self.log.error(err)
+            raise ValueError(err)
+        return value
 
     @property
     def size(self):
@@ -288,6 +306,8 @@ class CtaTemplate(vtCtaTemplate):
         return self._size
 
     def onBar(self, bar1min):
+        self.lastPrice = bar1min.close
+
         if self.isBackTesting():
             self.bar1min = bar1min
 
@@ -304,20 +324,29 @@ class CtaTemplate(vtCtaTemplate):
         self.bar1minCount += 1
 
     def isNewBar(self):
-        return self.bar1minCount % self.barPeriod == 0
+        return self.bar1minCount % self.barPeriod == 0 and self.bar1minCount != 0
 
     def stop(self):
         # 执行停止策略
         self.ctaEngine.stopStrategy(self)
+
+    def loadCtaDB(self, document):
+        self.lastPrice = document['lastPrice']
+        self.pos = document['pos']
+        self.capital = document['capital']
 
     def toSave(self):
         """
         要存库的数据
         :return: {}
         """
-        # 必要的三个字段
         dic = self.filterSql()
-        dic['datetime'] = arrow.now().datetime,
+
+        dic['datetime'] = arrow.now().datetime
+        dic['lastPrice'] = self.lastPrice
+        dic['pos'] = self.pos
+        dic['capital'] = self.capital
+
         return dic
 
     def saveDB(self):
@@ -340,6 +369,7 @@ class CtaTemplate(vtCtaTemplate):
             'className': self.className,
             'userID': gateWay.tdApi.userID,
         }
+
     def fromDB(self):
         """
 
@@ -421,7 +451,7 @@ class CtaTemplate(vtCtaTemplate):
         if marginRate.vtSymbol != self.vtSymbol:
             return
 
-        self._marginRate = marginRate.rate
+        self._marginRate = marginRate
 
     def updateCommissionRate(self, event):
         """更新合约数据"""
