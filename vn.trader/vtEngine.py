@@ -66,7 +66,9 @@ class MainEngine(object):
             try:
                 self.addGateway(gatewayModule.gateway, gatewayModule.gatewayName)
                 if gatewayModule.gatewayQryEnabled:
-                    self.gatewayDict[gatewayModule.gatewayName].setQryEnabled(True)
+                    # 数据录入机制，不需要查询持仓和权益
+                    # self.gatewayDict[gatewayModule.gatewayName].setQryEnabled(True)
+                    pass
             except:
                 traceback.print_exc()
 
