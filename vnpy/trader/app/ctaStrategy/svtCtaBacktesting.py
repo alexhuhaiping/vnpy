@@ -340,6 +340,11 @@ class BacktestingEngine(VTBacktestingEngine):
         self.setSize(vtCon.size)
         self.setPriceTick(vtCon.priceTick)  # 设置股指最小价格变动
         self.setMarginRate(vtMar)
+
+        # 回测时调高保证金比例
+        vtMar.backtestingRate = 1.2
+        vtMar.marginRate *= vtMar.backtestingRate
+
         assert isinstance(self.marginRate, VtMarginRate)
 
     # ------------------------------------------------
@@ -762,8 +767,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'收益标准差：\t%s%%' % formatNumber(returnStd))
         self.output(u'Sharpe Ratio：\t%s' % formatNumber(sharpeRatio))
 
-        # TODO 测试代码，暂时不输出图片
-        return
+        # # TODO 测试代码，暂时不输出图片
+        # return
 
         # 绘图
         fig = plt.figure(figsize=(10, 16))
@@ -794,7 +799,8 @@ class BacktestingEngine(VTBacktestingEngine):
         pKDE.set_title('Daily Pnl Distribution')
         df['netPnl'].hist(bins=50)
 
-        plt.show()
+        if __debug__:
+            plt.show()
 
     def calculateBacktestingResult(self):
         """
@@ -959,7 +965,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for result in resultList:
             pos += result.volume
-            margin = abs(pos * self.size * result.entryPrice * self.marginRate.rate / capital)
+            margin = abs(pos * self.size * result.entryPrice * self.marginRate.marginRate / capital)
             capital += result.pnl
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital

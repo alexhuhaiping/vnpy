@@ -8,8 +8,7 @@ from vnpy.trader.app.ctaStrategy.ctaBacktesting import MINUTE_DB_NAME
 from vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel import DonchianChannelStrategy
 
 
-def runBacktesting(vtSymbol, dbn, slippage, rate, size, priceTick, capital, marginRate, setting, startDate, endDate=None,
-                   mode=BacktestingEngine.BAR_MODE):
+def runBacktesting(vtSymbol, setting, mode=BacktestingEngine.BAR_MODE):
     """
 
     :param vtSymbol: 合约编号
@@ -44,10 +43,10 @@ def runBacktesting(vtSymbol, dbn, slippage, rate, size, priceTick, capital, marg
     # engine.setSize(size)  # 设置股指合约大小
     # engine.setPriceTick(priceTick)  # 设置股指最小价格变动
     # engine.setMarginRate(marginRate)  # 设置保证金比例
-    engine.setCapital(capital)  # 设置回测本金
+    # engine.setCapital(capital)  # 设置回测本金
 
     # 在引擎中创建策略对象
-    setting
+
     # 策略参数配置
     engine.initStrategy(DonchianChannelStrategy, setting)  # 创建策略对象
 
@@ -56,6 +55,7 @@ def runBacktesting(vtSymbol, dbn, slippage, rate, size, priceTick, capital, marg
 
     # 输出回测结果
     engine.showDailyResult()
+    # engine.showBacktestingResult()
 
 
 if __name__ == '__main__':
@@ -63,13 +63,6 @@ if __name__ == '__main__':
 
     runBacktesting(
         vtSymbol=vtSymbol,
-        slippage=1,
-        rate=0.2 / 10000,
-        size=10,
-        priceTick=1,
-        capital=100000,
-        dbn=MINUTE_DB_NAME,
-        marginRate=0.15,
         setting={
             'unitsNum': 4,
             'vtSymbol': vtSymbol,
@@ -77,7 +70,7 @@ if __name__ == '__main__':
             'atrPeriod': 14,
             'maxCD': 1,
             'sys2Vaild': True,
+            'capital': 100000,
         },
-        startDate='2017-04-01 00:00:00+08:00',
         mode=BacktestingEngine.BAR_MODE,
     )

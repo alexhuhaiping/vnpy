@@ -323,7 +323,6 @@ class DonchianChannelStrategy(CtaTemplate):
     atr = None
 
     hands = 1  # 每仓多少手
-    balance = 0  # 策略的权益
 
     cd = 0  # 冷却中，不下单
     sys2 = False
@@ -332,7 +331,6 @@ class DonchianChannelStrategy(CtaTemplate):
     varList = CtaTemplate.varList[:]
     varList.extend([
         'status',
-        'balance',
         'cd',
         'sys2',
 
@@ -667,9 +665,13 @@ class DonchianChannelStrategy(CtaTemplate):
             if self.isBackTesting():
                 self.chargeSplipage(trade.volume)
 
+            # 可用资金变动
+            self.capital -= trade.volume * trade.price * self.marginRate
+
             self._handleOpenOnTrade(trade)
 
         if trade.offset in OFFSET_CLOSE_LIST:
+            # 平仓
             # 手续费
             self.charge(trade.offset, trade.price, trade.volume)
 
@@ -744,8 +746,7 @@ class DonchianChannelStrategy(CtaTemplate):
         # 总盈利
         profile *= self.size
 
-        # 更新策略权益
-        self.balance += profile
+        self.capital += profile
 
         self.log.info(u'汇总')
         self.log.info(u'盈利 {} 每单位 {}'.format(profile, handPro))
@@ -1043,9 +1044,7 @@ class DonchianChannelStrategy(CtaTemplate):
         """
         document = super(DonchianChannelStrategy, self).toSave()
         document.update({
-            'pos': self.pos,
             'status': self.status,
-            'balance': self.balance,
             'cd': self.cd,
             'sys2': True,
         })
@@ -1459,18 +1458,18 @@ class DonchianChannelStrategy(CtaTemplate):
         :return:
         """
         try:
-            minHands = max(0, int(self.balance * self.risk / (self.size * self.atr * self.stopAtr)))
-            maxHands = max(0, int(
-                self.balance * 0.95 / (
-                    self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
+            minHands = max(0, int(self.capital * self.risk / (self.size * self.atr * self.stopAtr)))
 
+            maxHands = max(0, int(
+                self.capital * 0.95 / (
+                    self.size * self.unitsNum * self.bar1min.close * self.marginRate)))
             self.hands = min(minHands, maxHands)
 
         except TypeError as e:
             if 'NoneType' in e.message:
                 pass
         except ValueError as e:
-            self.log.warning(u'b{} r{} a{} s{} h{}'.format(self.balance, self.risk, self.atr, self.size, self.hands))
+            self.log.warning(u'b{} r{} a{} s{} h{}'.format(self.capital, self.risk, self.atr, self.size, self.hands))
             raise
         except  ZeroDivisionError as e:
             self.log.warning(u'{} {} {} {}'.format(self.size, self.unitsNum, self.bar1min.close, self.marginRate))

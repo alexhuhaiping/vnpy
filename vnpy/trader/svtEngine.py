@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+import traceback
 from threading import Thread
 from bson.codec_options import CodecOptions
 import pytz
@@ -107,10 +108,11 @@ class MainEngine(VtMaingEngine):
     def testfunc(self):
         try:
             reload(debuginject)
-            debuginject.run(self)
+            debuginject.me = self
+            debuginject.run()
             time.sleep(2)
         except Exception as e:
-            self.log.debug(e.message)
+            traceback.print_exc()
 
     def exit(self):
         super(MainEngine, self).exit()

@@ -30,7 +30,10 @@ class CtaTemplate(vtCtaTemplate):
 
     barPeriod = 1  # n 分钟的K线
     barMinute = 1  # K线当前的分钟
-    capital = 10000  # 默认资金1万
+
+    # 默认初始资金是1万, 在 onTrade 中平仓时计算其盈亏
+    # 有存库的时候使用存库中的 capital 值，否则使用 CTA_setting.json 中的值
+    capital = 10000
 
     paramList = vtCtaTemplate.paramList[:]
     paramList.extend([
@@ -41,15 +44,13 @@ class CtaTemplate(vtCtaTemplate):
     ])
     varList = vtCtaTemplate.varList[:]
     varList.extend([
-        'balance',
+
     ])
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
         logger = logging.getLogger(loggerName)
-
-        self.lastPrice = 0. # 最后一个价格
 
         # 定制 logger.name
         self.log = logging.getLogger(self.vtSymbol)
@@ -73,13 +74,6 @@ class CtaTemplate(vtCtaTemplate):
         self.bar = None  # 根据 barPeriod 聚合的 bar
         self.bar1minCount = 0
 
-        if self.isBackTesting():
-            # 回测时的资金
-            self.capital = self.ctaEngine.capital
-        else:
-            pass
-            # 实盘资金需要靠外部设定
-
         self._pos = 0
         self.posList = []
         self._marginRate = None
@@ -87,10 +81,6 @@ class CtaTemplate(vtCtaTemplate):
         self.marginList = []
 
         self.registerEvent()
-
-    @property
-    def balance(self):
-        return self.pos * self.lastPrice + self.capital
 
     @property
     def pos(self):
@@ -104,7 +94,7 @@ class CtaTemplate(vtCtaTemplate):
             self.posList.append(pos)
             try:
                 margin = self._pos * self.size * self.bar1min.close * self.marginRate
-                self.marginList.append(abs(margin / self.balance))
+                self.marginList.append(abs(margin / self.capital))
             except AttributeError as e:
                 if self.bar1min is None:
                     pass
@@ -306,8 +296,6 @@ class CtaTemplate(vtCtaTemplate):
         return self._size
 
     def onBar(self, bar1min):
-        self.lastPrice = bar1min.close
-
         if self.isBackTesting():
             self.bar1min = bar1min
 
@@ -331,7 +319,6 @@ class CtaTemplate(vtCtaTemplate):
         self.ctaEngine.stopStrategy(self)
 
     def loadCtaDB(self, document):
-        self.lastPrice = document['lastPrice']
         self.pos = document['pos']
         self.capital = document['capital']
 
@@ -343,7 +330,6 @@ class CtaTemplate(vtCtaTemplate):
         dic = self.filterSql()
 
         dic['datetime'] = arrow.now().datetime
-        dic['lastPrice'] = self.lastPrice
         dic['pos'] = self.pos
         dic['capital'] = self.capital
 

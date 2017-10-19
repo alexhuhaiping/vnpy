@@ -320,18 +320,19 @@ class CtaEngine(VtCtaEngine):
             s.commissionRate = None
 
             while s.commissionRate is None:
-                if count > 300:
+                if count > 60:
                     # 30秒超时
-                    err = u'加载品种 {} 手续费率失败'.format(str(s.vtSymbol))
-                    raise ValueError(err)
+                    self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
+                    self.log.warning(u'ctpGateway 重连')
+                    ctpGateway = self.mainEngine.getGateway('CTP')
 
-                if count % 30 == 0:
+                if count % 6 == 0:
                     # 每3秒重新发送一次
                     self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
                     self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
-                time.sleep(0.1)
+                time.sleep(0.5)
                 count += 1
 
     def stop(self):
