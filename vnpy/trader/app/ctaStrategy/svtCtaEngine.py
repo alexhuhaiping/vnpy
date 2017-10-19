@@ -325,6 +325,9 @@ class CtaEngine(VtCtaEngine):
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
                     self.log.warning(u'ctpGateway 重连')
                     ctpGateway = self.mainEngine.getGateway('CTP')
+                    ctpGateway.close()
+                    ctpGateway.connect()
+                    time.sleep(5)
 
                 if count % 6 == 0:
                     # 每3秒重新发送一次

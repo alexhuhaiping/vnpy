@@ -51,7 +51,7 @@ class CtaTemplate(vtCtaTemplate):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
         logger = logging.getLogger(loggerName)
-
+        self.log.warning('{}'.format(self.capital))
         # 定制 logger.name
         self.log = logging.getLogger(self.vtSymbol)
         # self.log.parent = logger
