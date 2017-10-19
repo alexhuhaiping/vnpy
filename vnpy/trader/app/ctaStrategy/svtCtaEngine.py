@@ -302,7 +302,12 @@ class CtaEngine(VtCtaEngine):
             while s._marginRate is None:
                 if count > 300:
                     # 30秒超时
-                    raise ValueError(u'加载品种 {} 保证金率失败'.format(s.vtSymbol))
+                    err= u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
+                    self.log.warning(err)
+                    # ctpGateway = self.mainEngine.getGateway('CTP')
+                    # ctpGateway.close()
+                    # ctpGateway.connect()
+                    # time.sleep(5)
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
@@ -323,11 +328,11 @@ class CtaEngine(VtCtaEngine):
                 if count > 60:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
-                    self.log.warning(u'ctpGateway 重连')
-                    ctpGateway = self.mainEngine.getGateway('CTP')
-                    ctpGateway.close()
-                    ctpGateway.connect()
-                    time.sleep(5)
+                    # self.log.warning(u'ctpGateway 重连')
+                    # ctpGateway = self.mainEngine.getGateway('CTP')
+                    # ctpGateway.close()
+                    # ctpGateway.connect()
+                    # time.sleep(5)
 
                 if count % 6 == 0:
                     # 每3秒重新发送一次
