@@ -1,4 +1,5 @@
 # coding:utf-8
+from collections import OrderedDict
 import pytz
 from bson.codec_options import CodecOptions
 from itertools import product
@@ -18,21 +19,20 @@ param = {
     'sys2Vaild': True,
     'capital': 100000,
 
-   # 'group': u'系统2最大CD1~2' + '_' + str(arrow.now().date()),
+    # 'group': u'系统2最大CD1~2' + '_' + str(arrow.now().date()),
     'group': u'开发调试',
 }
 print(u'group: {}'.format(param['group']))
 
 # 要优化的参数，设定优化步长
-opts = {
-    'barPeriod': [14],
-    'maxCD': [1],
-}
-
+opts = OrderedDict([
+    ('barPeriod', [14, 29]),
+    ('maxCD', [1])
+])
 if not opts:
     raise ValueError(u'未设置需要优化的参数')
 
-param['opts'] = list(opts.values())
+param['opts'] = list(opts.keys())
 
 # opts = {}
 
@@ -63,6 +63,8 @@ strategyArgs = []
 for s in settingList:
     d = param.copy()
     d.update(s)
+    # 将待优化的参数组合成唯一索引
+    d['optsv'] = ','.join(['{}:{}'.format(n, d[n]) for n in nameList])
     strategyArgs.append(d)
     d['createTime'] = arrow.now().datetime
 
@@ -70,7 +72,6 @@ mongoKwargs = {
     'host': '192.168.31.208',
     'port': 30020,
 }
-
 
 client = MongoClient(
     **mongoKwargs,
@@ -84,7 +85,7 @@ db = client['ctp']
 db.authenticate(username, password)
 
 coll = db['contract'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+    codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
 sql = {
     'activeStartDate': {'$ne': None},
@@ -121,7 +122,7 @@ collName = 'btarg'  # 回测参数
 db = client['cta']
 db.authenticate(username, password)
 coll = db[collName].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+    codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
 # 删掉同名的参数组
 coll.delete_many({'group': d['group'], 'className': d['className']})
