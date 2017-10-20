@@ -286,11 +286,12 @@ class CtaEngine(VtCtaEngine):
         try:
             super(CtaEngine, self).initAll()
 
+            # 查询手续费率
+            self.initQryCommissionRate()
+
             # 加载品种保证金率
             self.initQryMarginRate()
 
-            # 查询手续费率
-            self.initQryCommissionRate()
         except Exception as e:
             err = e.message
             self.log.critical(err)
@@ -300,7 +301,7 @@ class CtaEngine(VtCtaEngine):
         for s in self.strategyDict.values():
             count = 0
             while s._marginRate is None:
-                if count > 300:
+                if count % 3000:
                     # 30秒超时
                     err= u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
                     self.log.warning(err)
@@ -325,7 +326,7 @@ class CtaEngine(VtCtaEngine):
             s.commissionRate = None
 
             while s.commissionRate is None:
-                if count > 60:
+                if count % 3000:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
                     # self.log.warning(u'ctpGateway 重连')
@@ -334,13 +335,13 @@ class CtaEngine(VtCtaEngine):
                     # ctpGateway.connect()
                     # time.sleep(5)
 
-                if count % 6 == 0:
+                if count % 30 == 0:
                     # 每3秒重新发送一次
                     self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
                     self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
-                time.sleep(0.5)
+                time.sleep(0.1)
                 count += 1
 
     def stop(self):

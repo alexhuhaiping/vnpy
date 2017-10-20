@@ -8,7 +8,7 @@ from vnpy.trader.app.ctaStrategy.ctaBacktesting import MINUTE_DB_NAME
 from vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel import DonchianChannelStrategy
 
 
-def runBacktesting(vtSymbol, setting, mode=BacktestingEngine.BAR_MODE):
+def runBacktesting(vtSymbol, setting, mode=BacktestingEngine.BAR_MODE, isShowFig=True):
     """
 
     :param vtSymbol: 合约编号
@@ -30,23 +30,9 @@ def runBacktesting(vtSymbol, setting, mode=BacktestingEngine.BAR_MODE):
     # 设置回测使用的数据
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol) # 设置该次回测使用的合约
-
-    # engine.setDatabase(dbn, vtSymbol)  # 设置使用的历史数据库
-
-    # engine.setStartDate(startDate)  # 设置回测用的数据起始日期
-    # if endDate:
-    #     engine.setEndDate(endDate)  # 设置回测用的数据起始日期
-
-    # 配置回测引擎参数
-    # engine.setSlippage(slippage)  # 设置滑点为股指1跳
-    # engine.setRate(rate)  # 设置手续费万0.3
-    # engine.setSize(size)  # 设置股指合约大小
-    # engine.setPriceTick(priceTick)  # 设置股指最小价格变动
-    # engine.setMarginRate(marginRate)  # 设置保证金比例
-    # engine.setCapital(capital)  # 设置回测本金
+    engine.setShowFig(isShowFig)
 
     # 在引擎中创建策略对象
-
     # 策略参数配置
     engine.initStrategy(DonchianChannelStrategy, setting)  # 创建策略对象
 
@@ -56,13 +42,14 @@ def runBacktesting(vtSymbol, setting, mode=BacktestingEngine.BAR_MODE):
     # 输出回测结果
     engine.showDailyResult()
     # engine.showBacktestingResult()
-
+    return engine
 
 if __name__ == '__main__':
     vtSymbol = 'hc1801'
 
     runBacktesting(
         vtSymbol=vtSymbol,
+
         setting={
             'unitsNum': 4,
             'vtSymbol': vtSymbol,
@@ -73,4 +60,5 @@ if __name__ == '__main__':
             'capital': 100000,
         },
         mode=BacktestingEngine.BAR_MODE,
+        isShowFig=False,
     )

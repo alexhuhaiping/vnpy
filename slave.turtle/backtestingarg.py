@@ -1,31 +1,38 @@
+# coding:utf-8
+import pytz
+from bson.codec_options import CodecOptions
 from itertools import product
 from pymongo import MongoClient
 import arrow
 
 # 回测模块的参数
 param = {
-    'name': '唐奇安通道',
+    'name': u'唐奇安通道',
     'className': 'DonchianChannelStrategy',
     'vtSymbol': None,
     'barPeriod': 10,
     'atrPeriod': 14,
-    'barMinute': None,
     'unitsNum': 4,
     'hands': 1,
     'maxCD': 1,
     'sys2Vaild': True,
+    'capital': 100000,
 
-    'group': '系统2最大CD1~3' + '_' + str(arrow.now().date()),
+   # 'group': u'系统2最大CD1~2' + '_' + str(arrow.now().date()),
+    'group': u'开发调试',
 }
+print(u'group: {}'.format(param['group']))
 
 # 要优化的参数，设定优化步长
 opts = {
-    'barPeriod': [5, 7, 9, 12, 14, 16, 18, 21, 24, 27, 31, 43, 60],
-    'maxCD': [1, 2],
+    'barPeriod': [14],
+    'maxCD': [1],
 }
 
 if not opts:
-    raise ValueError('未设置需要优化的参数')
+    raise ValueError(u'未设置需要优化的参数')
+
+param['opts'] = list(opts.values())
 
 # opts = {}
 
@@ -64,11 +71,6 @@ mongoKwargs = {
     'port': 30020,
 }
 
-if __debug__:
-    mongoKwargs = {
-        'host': 'localhost',
-        'port': 30020,
-    }
 
 client = MongoClient(
     **mongoKwargs,
@@ -77,11 +79,13 @@ client = MongoClient(
 # 读取合约信息
 username = 'vnpy'
 password = 'a90asdl22cv0SjS2dac'
-if __debug__:
-    password = 'vnpy'
+
 db = client['ctp']
 db.authenticate(username, password)
-coll = db['contract']
+
+coll = db['contract'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+
 sql = {
     'activeStartDate': {'$ne': None},
     'activeEndDate': {'$ne': None}
@@ -92,6 +96,10 @@ cursor.sort('activeEndDate', -1)
 # 每个品种的回测参数
 documents = []
 for c in cursor:
+    # TODO 测试代码，先只测试螺纹
+    if c['underlyingSymbol'] != 'hc':
+        continue
+
     for a in strategyArgs:
         d = a.copy()
         d['vtSymbol'] = c['vtSymbol']
@@ -103,12 +111,17 @@ for c in cursor:
         documents.append(d)
 
 # 将回测参数保存到数据库
+client = MongoClient(
+    'localhost',
+    30020,
+)
 username = 'vnpy'
 password = 'vnpy'
-collName = 'argturtle'
-db = client['backtesting']
+collName = 'btarg'  # 回测参数
+db = client['cta']
 db.authenticate(username, password)
-coll = db[collName]
+coll = db[collName].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
 # 删掉同名的参数组
 coll.delete_many({'group': d['group'], 'className': d['className']})

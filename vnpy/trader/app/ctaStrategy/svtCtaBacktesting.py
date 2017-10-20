@@ -6,6 +6,7 @@
 '''
 from __future__ import division
 
+from collections import OrderedDict
 import time
 import logging
 import logging.config
@@ -62,7 +63,10 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
-        self.marginRate = None  # 保证金比例 默认100%
+        self.marginRate = None  # 保证金比例对象 VtMarginRate()
+
+        self.isShowFig = True  # 回测后输出结果时是否展示图片
+        self.dailyResult = OrderedDict() # 按日汇总的回测结果
 
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
@@ -218,6 +222,15 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.strategyStartDate = dayBar['tradingDay']
     #
     #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
+
+    def setShowFig(self, isShow):
+        """
+        回测后是否展示图片
+        :param isShow:
+        :return:
+        """
+        self.isShowFig = isShow
+
 
     def setStartDate(self, startDate=None, initDays=None):
         """
@@ -647,7 +660,8 @@ class BacktestingEngine(VTBacktestingEngine):
     # ----------------------------------------------------------------------
     def calculateDailyResult(self):
         """计算按日统计的交易结果"""
-        self.output(u'计算按日统计结果 {}'.format(self.symbol))
+        self.output('-' * 30)
+        self.output(u'{} 计算按日统计结果'.format(self.symbol))
 
         # 将成交添加到每日交易结果中
         for trade in self.tradeDict.values():
@@ -666,7 +680,7 @@ class BacktestingEngine(VTBacktestingEngine):
             openPosition = dailyResult.closePosition
 
         # 生成DataFrame
-        resultDict = {k: [] for k in dailyResult.__dict__.keys()}
+        resultDict = {k: [] for k in DailyResult(None, None).__dict__.keys()}
         for dailyResult in self.dailyResultDict.values():
             for k, v in dailyResult.__dict__.items():
                 resultDict[k].append(v)
@@ -723,9 +737,9 @@ class BacktestingEngine(VTBacktestingEngine):
         totalTradeCount = df['tradeCount'].sum()
         dailyTradeCount = totalTradeCount / totalDays
 
-        totalReturn = (endBalance / self.capital - 1) * 100
-        dailyReturn = df['return'].mean() * 100
-        returnStd = df['return'].std() * 100
+        totalReturn = (endBalance / self.capital - 1)
+        dailyReturn = df['return'].mean()
+        returnStd = df['return'].std()
 
         maxMarginPer = df['marginPer'].max()
 
@@ -736,39 +750,50 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 输出统计结果
         self.output('-' * 30)
-        self.output(u'首个交易日：\t%s' % startDate)
-        self.output(u'最后交易日：\t%s' % endDate)
 
-        self.output(u'总交易日：\t%s' % totalDays)
-        self.output(u'盈利交易日\t%s' % profitDays)
-        self.output(u'亏损交易日：\t%s' % lossDays)
+        self.dailyResult[u'首个交易日'] = startDate
+        self.dailyResult[u'最后交易日'] = endDate
 
-        self.output(u'起始资金：\t%s' % self.capital)
-        self.output(u'结束资金：\t%s' % formatNumber(endBalance))
-        self.output(u'最大保证金占用：\t%s' % formatNumber(maxMarginPer))
+        self.dailyResult[u'总交易日'] = totalDays
+        self.dailyResult[u'盈利交易日'] = profitDays
+        self.dailyResult[u'亏损交易日'] = lossDays
 
-        self.output(u'总收益率：\t%s%%' % formatNumber(totalReturn))
-        self.output(u'总盈亏：\t%s' % formatNumber(totalNetPnl))
-        self.output(u'最大回撤: \t%s' % formatNumber(maxDrawdown))
-        self.output(u'最大回撤比例: \t%s%%' % formatNumber(maxDrawdownPer * 100))
+        self.dailyResult[u'起始资金'] = self.capital
+        self.dailyResult[u'结束资金'] = endBalance
+        self.dailyResult[u'最大保证金占用'] = maxMarginPer
 
-        self.output(u'总手续费：\t%s' % formatNumber(totalCommission))
-        self.output(u'总滑点：\t%s' % formatNumber(totalSlippage))
-        self.output(u'总成交金额：\t%s' % formatNumber(totalTurnover))
-        self.output(u'总成交笔数：\t%s' % formatNumber(totalTradeCount))
+        self.dailyResult[u'总收益率'] = totalReturn
+        self.dailyResult[u'总盈亏'] = totalNetPnl
+        self.dailyResult[u'最大回撤'] = maxDrawdown
+        self.dailyResult[u'最大回撤比例'] = maxDrawdownPer
 
-        self.output(u'日均盈亏：\t%s' % formatNumber(dailyNetPnl))
-        self.output(u'日均手续费：\t%s' % formatNumber(dailyCommission))
-        self.output(u'日均滑点：\t%s' % formatNumber(dailySlippage))
-        self.output(u'日均成交金额：\t%s' % formatNumber(dailyTurnover))
-        self.output(u'日均成交笔数：\t%s' % formatNumber(dailyTradeCount))
+        self.dailyResult[u'总手续费'] = totalCommission
+        self.dailyResult[u'总滑点'] = totalSlippage
+        self.dailyResult[u'总成交金额'] = totalTurnover
+        self.dailyResult[u'总成交笔数'] = totalTradeCount
 
-        self.output(u'日均收益率：\t%s%%' % formatNumber(dailyReturn))
-        self.output(u'收益标准差：\t%s%%' % formatNumber(returnStd))
-        self.output(u'Sharpe Ratio：\t%s' % formatNumber(sharpeRatio))
+        self.dailyResult[u'日均盈亏'] = dailyNetPnl
+        self.dailyResult[u'日均手续费'] = dailyCommission
+        self.dailyResult[u'日均滑点'] = dailySlippage
+        self.dailyResult[u'日均成交金额'] = dailyTurnover
+        self.dailyResult[u'日均成交笔数'] = dailyTradeCount
 
-        # # TODO 测试代码，暂时不输出图片
-        # return
+        self.dailyResult[u'日均收益率'] = dailyReturn
+        self.dailyResult[u'收益标准差'] = returnStd
+        self.dailyResult[u'夏普率'] = sharpeRatio
+
+        for k, v in self.dailyResult.items():
+            if isinstance(v, float) or isinstance(v, int):
+                v = formatNumber(v)
+            self.output(u'%s：\t%s' % (k, v))
+
+        # 收益率曲线
+        balanceList = [self.capital] + list(df['balance'].values)
+        balanceList = pd.Series(balanceList).pct_change()
+        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
+
+        if not self.isShowFig:
+            return
 
         # 绘图
         fig = plt.figure(figsize=(10, 16))
@@ -1054,6 +1079,9 @@ class BacktestingEngine(VTBacktestingEngine):
         self.output(u'盈利交易平均值\t%s' % formatNumber(d['averageWinning']))
         self.output(u'亏损交易平均值\t%s' % formatNumber(d['averageLosing']))
         self.output(u'盈亏比：\t%s' % formatNumber(d['profitLossRatio']))
+
+        if not self.isShowFig:
+            return
 
         # 绘图
         fig = plt.figure(figsize=(10, 16))

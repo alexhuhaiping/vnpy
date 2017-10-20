@@ -449,8 +449,9 @@ class DonchianChannelStrategy(CtaTemplate):
         #     self.log.debug(u'强制入场')
         #     self.highIn1 = 4330
 
-        # 计算出入场价格
-        self._calIndexValue()
+        if len(self.barList) >= self.maxBarNum:
+            # 计算出入场价格
+            self._calIndexValue()
 
         if __debug__ and self.status == self.INDEX_STATUS_EMPTY:
             self.log.info(self.varList2Log())
@@ -473,12 +474,16 @@ class DonchianChannelStrategy(CtaTemplate):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'策略 {} 启动'.format(self.className))
 
-        if self.status == self.INDEX_STATUS_EMPTY:
-            # 更新仓位大小
-            self.updateHands()
+        if len(self.barList) >= self.maxBarNum:
+            if self.status == self.INDEX_STATUS_EMPTY:
+                # 更新仓位大小
+                self.updateHands()
 
-        # 启动后，挂停止单挂停止单
-        self.sendOpenStopOrder()
+            # 启动后，挂停止单挂停止单
+            self.sendOpenStopOrder()
+
+        if self.isBackTesting() and len(self.barList) < self.maxBarNum:
+            self.trading = False
 
         self.putEvent()
 
