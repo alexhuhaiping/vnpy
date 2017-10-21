@@ -163,26 +163,33 @@ class CtaEngine(VtCtaEngine):
         # 首先检查是否有策略交易该合约
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
-            # for so in self.workingStopOrderDict.values():
-            #     if so.vtSymbol == vtSymbol:
             for so in self.getAllStopOrdersSorted(tick):
-                longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
-                shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+                if so.vtSymbol == vtSymbol:
+                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
+                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
 
-                if longTriggered or shortTriggered:
-                    # 买入和卖出分别以涨停跌停价发单（模拟市价单）
-                    if so.direction == DIRECTION_LONG:
-                        price = tick.upperLimit
-                    else:
-                        price = tick.lowerLimit
+                    if longTriggered or shortTriggered:
+                        # 买入和卖出分别以涨停跌停价发单（模拟市价单）
+                        if so.direction == DIRECTION_LONG:
+                            price = tick.upperLimit
+                        else:
+                            price = tick.lowerLimit
 
-                    so.status = STOPORDER_TRIGGERED
-                    if so.volume > 0:
-                        # 成交量 >0 时才是正式下单，否则只是触发价格事件
-                        vtOrderID = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
-                        so.vtOrderID = vtOrderID
-                    del self.workingStopOrderDict[so.stopOrderID]
-                    so.strategy.onStopOrder(so)
+                        # 发出市价委托
+                        self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+
+                        # 从活动停止单字典中移除该停止单
+                        del self.workingStopOrderDict[so.stopOrderID]
+
+                        # 从策略委托号集合中移除
+                        s = self.strategyOrderDict[so.strategy.name]
+                        if so.stopOrderID in s:
+                            s.remove(so.stopOrderID)
+
+                        # 更新停止单状态，并通知策略
+                        so.status = STOPORDER_TRIGGERED
+                        so.strategy.onStopOrder(so)
+
 
     def getAllStopOrdersSorted(self, vtTick):
         """
@@ -341,7 +348,7 @@ class CtaEngine(VtCtaEngine):
                     self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
-                time.sleep(0.1)
+                time.sleep(0.)
                 count += 1
 
     def stop(self):

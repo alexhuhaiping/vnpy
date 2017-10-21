@@ -5,3 +5,4 @@ qdarkstyle
 arrow
 log4mongo>=1.6.1
 flask
+SortedContainers

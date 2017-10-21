@@ -471,15 +471,19 @@ class BacktestingEngine(object):
         self.workingLimitOrderDict[orderID] = order
         self.limitOrderDict[orderID] = order
 
-        return orderID
-
-    # ----------------------------------------------------------------------
+        return [orderID]
+    
+    #----------------------------------------------------------------------
     def cancelOrder(self, vtOrderID):
         """撤单"""
         if vtOrderID in self.workingLimitOrderDict:
             order = self.workingLimitOrderDict[vtOrderID]
+            
             order.status = STATUS_CANCELLED
             order.cancelTime = self.dt.strftime('%H:%M:%S')
+            
+            self.strategy.onOrder(order)
+            
             del self.workingLimitOrderDict[vtOrderID]
 
     # ----------------------------------------------------------------------
@@ -515,10 +519,9 @@ class BacktestingEngine(object):
 
         # 推送停止单初始更新
         self.strategy.onStopOrder(so)
-
-        return stopOrderID
-
-    # ----------------------------------------------------------------------
+        
+        return [stopOrderID]
+    
     def cancelStopOrder(self, stopOrderID):
         """撤销停止单"""
         # 检查停止单是否存在
@@ -553,6 +556,16 @@ class BacktestingEngine(object):
         """记录日志"""
         log = str(self.dt) + ' ' + content
         self.logList.append(log)
+    #----------------------------------------------------------------------
+    def cancelAll(self, name):
+        """全部撤单"""
+        # 撤销限价单
+        for orderID in self.workingLimitOrderDict.keys():
+            self.cancelOrder(orderID)
+        
+        # 撤销停止单
+        for stopOrderID in self.workingStopOrderDict.keys():
+            self.cancelStopOrder(stopOrderID)
 
     # ------------------------------------------------
     # 结果计算相关
@@ -950,7 +963,7 @@ class BacktestingEngine(object):
     # ----------------------------------------------------------------------
     def showDailyResult(self, df=None):
         """显示按日统计的交易结果"""
-        if not df:
+        if df is None:
             df = self.calculateDailyResult()
 
         df['balance'] = df['netPnl'].cumsum() + self.capital
@@ -1045,7 +1058,7 @@ class BacktestingEngine(object):
 
         plt.show()
 
-
+        
 ########################################################################
 class VtTradingResult(object):
     """每笔交易的结果"""

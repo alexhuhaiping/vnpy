@@ -1,6 +1,7 @@
 # encoding: UTF-8
 
 import time
+from logging import INFO
 
 from vnpy.trader.vtConstant import (EMPTY_STRING, EMPTY_UNICODE,
                                     EMPTY_FLOAT, EMPTY_INT)
@@ -254,8 +255,9 @@ class VtLogData(VtBaseData):
         """Constructor"""
         super(VtLogData, self).__init__()
 
-        self.logTime = time.strftime('%X', time.localtime())  # 日志生成时间
-        self.logContent = EMPTY_UNICODE  # 日志信息
+        self.logTime = time.strftime('%X', time.localtime())    # 日志生成时间
+        self.logContent = EMPTY_UNICODE                         # 日志信息
+        self.logLevel = INFO                                    # 日志级别
 
 
 ########################################################################
@@ -344,15 +346,16 @@ class VtOrderReq(object):
     # ----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        self.symbol = EMPTY_STRING  # 代码
-        self.exchange = EMPTY_STRING  # 交易所
-        self.price = EMPTY_FLOAT  # 价格
-        self.volume = EMPTY_INT  # 数量
-
-        self.priceType = EMPTY_STRING  # 价格类型
-        self.direction = EMPTY_STRING  # 买卖
-        self.offset = EMPTY_STRING  # 开平
-
+        self.symbol = EMPTY_STRING              # 代码
+        self.exchange = EMPTY_STRING            # 交易所
+        self.vtSymbol = EMPTY_STRING            # VT合约代码
+        self.price = EMPTY_FLOAT                # 价格
+        self.volume = EMPTY_INT                 # 数量
+    
+        self.priceType = EMPTY_STRING           # 价格类型
+        self.direction = EMPTY_STRING           # 买卖
+        self.offset = EMPTY_STRING              # 开平
+        
         # 以下为IB相关
         self.productClass = EMPTY_UNICODE  # 合约类型
         self.currency = EMPTY_STRING  # 合约货币
@@ -370,9 +373,10 @@ class VtCancelOrderReq(object):
     # ----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        self.symbol = EMPTY_STRING  # 代码
-        self.exchange = EMPTY_STRING  # 交易所
-
+        self.symbol = EMPTY_STRING              # 代码
+        self.exchange = EMPTY_STRING            # 交易所
+        self.vtSymbol = EMPTY_STRING            # VT合约代码
+        
         # 以下字段主要和CTP、LTS类接口相关
         self.orderID = EMPTY_STRING  # 报单号
         self.frontID = EMPTY_STRING  # 前置机号

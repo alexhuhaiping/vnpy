@@ -909,7 +909,7 @@ class DonchianChannelStrategy(CtaTemplate):
             else:
                 # 还没开仓过
                 self.log.info(u'开仓下单')
-                stopOrderID = self.sendOrder(CTAORDER_BUY, openPrice, hands, stop=True)
+                stopOrderID, = self.sendOrder(CTAORDER_BUY, openPrice, hands, stop=True)
                 stopOrder = self.getStopOrderByStopID(stopOrderID)
                 stopOrder.unit = unit
                 stopOrder.priority = unit.number
@@ -953,7 +953,7 @@ class DonchianChannelStrategy(CtaTemplate):
                     self.isRefreshOpenPrice = True
             else:
                 self.log.info(u'开仓下单')
-                stopOrderID = self.sendOrder(CTAORDER_SHORT, openPrice, hands, stop=True)
+                stopOrderID, = self.sendOrder(CTAORDER_SHORT, openPrice, hands, stop=True)
                 stopOrder = self.getStopOrderByStopID(stopOrderID)
                 stopOrder.unit = unit
                 stopOrder.priority = unit.number
@@ -1388,7 +1388,7 @@ class DonchianChannelStrategy(CtaTemplate):
         else:
             self.log.info(u'下止损单 {}'.format(outPrice))
             # 还没下单过
-            stopOrderID = self.sendOrder(ctaOrderOffset, outPrice, volume, stop=True)
+            stopOrderID, = self.sendOrder(ctaOrderOffset, outPrice, volume, stop=True)
             stopOrder = self.getStopOrderByStopID(stopOrderID)
             stopOrder.unit = unit
             stopOrder.priority = unit.number
