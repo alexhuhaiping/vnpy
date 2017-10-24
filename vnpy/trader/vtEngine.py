@@ -345,6 +345,8 @@ class MainEngine(object):
     #----------------------------------------------------------------------
     def registerLogEvent(self, eventType):
         """注册日志事件监听"""
+        if self.logEngine is None:
+            return
         self.eventEngine.register(eventType, self.logEngine.processLogEvent)
     
     #----------------------------------------------------------------------
@@ -832,6 +834,7 @@ class PositionDetail(object):
     #----------------------------------------------------------------------
     def output(self):
         """"""
+        return
         print self.vtSymbol, '-'*30
         print 'long, total:%s, td:%s, yd:%s' %(self.longPos, self.longTd, self.longYd)
         print 'long frozen, total:%s, td:%s, yd:%s' %(self.longPosFrozen, self.longTdFrozen, self.longYdFrozen)
@@ -922,3 +925,25 @@ class PositionDetail(object):
         
         # 其他情况则直接返回空
         return []
+
+    def toHtml(self):
+        """
+
+        :return:
+        """
+        dic = OrderedDict([
+            ('longPos', self.longPos),
+            ('longYd', self.longYd),
+            ('longTd', self.longTd),
+            ('longPosFrozen', self.longPosFrozen),
+            ('longYdFrozen', self.longYdFrozen),
+            ('longTdFrozen', self.longTdFrozen),
+
+            ('shortPos', self.shortPos),
+            ('shortYd', self.shortYd),
+            ('shortTd', self.shortTd),
+            ('shortPosFrozen', self.shortPosFrozen),
+            ('shortYdFrozen', self.shortYdFrozen),
+            ('shortTdFrozen', self.shortTdFrozen),
+        ])
+        return dic

@@ -306,9 +306,9 @@ class CtaEngine(VtCtaEngine):
 
     def initQryMarginRate(self):
         for s in self.strategyDict.values():
-            count = 0
+            count = 1
             while s._marginRate is None:
-                if count % 3000:
+                if count % 3000 == 0:
                     # 30秒超时
                     err= u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
                     self.log.warning(err)
@@ -328,12 +328,12 @@ class CtaEngine(VtCtaEngine):
 
     def initQryCommissionRate(self):
         for s in list(self.strategyDict.values()):
-            count = 0
+            count = 1
             # 每个合约都要重新强制查询
             s.commissionRate = None
 
             while s.commissionRate is None:
-                if count % 3000:
+                if count % 3000 == 0:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
                     # self.log.warning(u'ctpGateway 重连')
@@ -348,7 +348,7 @@ class CtaEngine(VtCtaEngine):
                     self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
-                time.sleep(0.)
+                time.sleep(0.1)
                 count += 1
 
     def stop(self):
@@ -363,3 +363,34 @@ class CtaEngine(VtCtaEngine):
         if name in self.strategyDict:
             strategy = self.strategyDict[name]
             strategy.onStop()
+
+            # ----------------------------------------------------------------------
+
+    def savePosition(self, strategy):
+        """保存策略的持仓情况到数据库"""
+        flt = {'name': strategy.name,
+               'className': strategy.className,
+               'vtSymbol': strategy.vtSymbol}
+
+        d = {'name': strategy.name,
+             'vtSymbol': strategy.vtSymbol,
+             'className': strategy.className,
+             'pos': strategy.pos}
+
+        self.mainEngine.dbUpdate(POSITION_DB_NAME, POSITION_COLLECTION_NAME,
+                                 d, flt, True)
+
+        content = u'策略%s持仓保存成功，当前持仓%s' % (strategy.name, strategy.pos)
+        self.writeCtaLog(content)
+
+    # ----------------------------------------------------------------------
+    def loadPosition(self):
+        """从数据库载入策略的持仓情况"""
+        for strategy in self.strategyDict.values():
+            flt = {'name': strategy.name,
+                   'className': strategy.className,
+                   'vtSymbol': strategy.vtSymbol}
+            posData = self.mainEngine.dbQuery(POSITION_DB_NAME, POSITION_COLLECTION_NAME, flt)
+
+            for d in posData:
+                strategy.pos = d['pos']

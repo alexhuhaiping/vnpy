@@ -6,6 +6,7 @@
 
 # CTA引擎中涉及的数据类定义
 from vnpy.trader.vtConstant import EMPTY_UNICODE, EMPTY_STRING, EMPTY_FLOAT, EMPTY_INT
+from collections import OrderedDict
 
 # 常量定义
 # CTA引擎中涉及到的交易方向类型
@@ -58,6 +59,7 @@ STOPORDERPREFIX = 'CtaStopOrder.'
 SETTING_DB_NAME = 'cta'
 # POSITION_DB_NAME = 'VnTrader_Position_Db'
 POSITION_DB_NAME = 'cta'
+POSITION_COLLECTION_NAME = 'pos'
 CTA_DB_NAME = 'strategy'
 CTA_COL_NAME = 'cta'
 
@@ -120,3 +122,49 @@ class StopOrder(VtStopOrder):
         s += u'{} '.format(self.status)
         s += u'>'
         return s
+
+    def toHtml(self):
+        """
+        用于网页显示
+        :return:
+        """
+        self.vtSymbol = EMPTY_STRING
+        self.orderType = EMPTY_UNICODE
+        self.direction = EMPTY_UNICODE
+        self.offset = EMPTY_UNICODE
+        self.price = EMPTY_FLOAT
+        self.volume = EMPTY_INT
+
+        self.strategy = None  # 下停止单的策略对象
+        self.stopOrderID = EMPTY_STRING  # 停止单的本地编号
+
+        self.status = EMPTY_STRING  # 停止单状态
+
+        self.vtOrderID = None  # 触发后，触发后对应的停止单
+        self.unit = None  # 绑定的对应的 unit
+        self.priority = 0  # 同样价格时，成交的优先级。值越小越优先触发
+
+        items = [
+            ('stopOrderID', self.stopOrderID),
+            ('orderType', self.orderType),
+            ('direction', self.direction),
+            ('offset', self.offset),
+            ('price', self.price),
+            ('volume', self.volume),
+            ('priority', self.priority),
+        ]
+
+        orderDic = OrderedDict()
+        for k, v in items:
+            if isinstance(v, float):
+                try:
+                    # 尝试截掉过长的浮点数
+                    v = u'%0.3f' % v
+                    while v.endswith('0'):
+                        v = v[:-1]
+                    if v.endswith('.'):
+                        v = v[:-1]
+                except:
+                    pass
+            orderDic[k] = v
+        return orderDic

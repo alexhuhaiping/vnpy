@@ -354,7 +354,7 @@ class BarManager(object):
             
             # 推送已经结束的上一分钟K线
             self.onBar(self.bar)
-            
+
             # 创建新的K线对象
             self.bar = VtBarData()
             newMinute = True
@@ -377,7 +377,7 @@ class BarManager(object):
         self.bar.close = tick.lastPrice        
         self.bar.datetime = tick.datetime  
         self.bar.openInterest = tick.openInterest
-   
+
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume) # 当前K线内的成交量
             

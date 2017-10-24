@@ -4,23 +4,30 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
+import time
+import talib
 import logging
 import copy
 from collections import OrderedDict
 import pymongo
 from itertools import chain
+import datetime
 
+import pandas as pd
 import arrow
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtEvent import *
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
+from vnpy.trader.app.ctaStrategy.ctaTemplate import ArrayManager as VtArrayManager
+from vnpy.trader.app.ctaStrategy.ctaTemplate import BarManager as VtBarManager
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
 from vnpy.trader.vtObject import VtBarData, VtCommissionRate
 
 if __debug__:
     from vnpy.trader.svtEngine import MainEngine
+    from vnpy.trader.vtEngine import DataEngine
     from vnpy.trader.vtObject import VtContractData
 
 
@@ -28,8 +35,7 @@ if __debug__:
 class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
-    barPeriod = 1  # n 分钟的K线
-    barMinute = 1  # K线当前的分钟
+    barXmin = 1  # n 分钟的K线
 
     # 默认初始资金是1万, 在 onTrade 中平仓时计算其盈亏
     # 有存库的时候使用存库中的 capital 值，否则使用 CTA_setting.json 中的值
@@ -37,8 +43,7 @@ class CtaTemplate(vtCtaTemplate):
 
     paramList = vtCtaTemplate.paramList[:]
     paramList.extend([
-        'barPeriod',
-        'barMinute',
+        'barXmin',
         'marginRate',
         'capital',
     ])
@@ -69,15 +74,23 @@ class CtaTemplate(vtCtaTemplate):
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
-        self.bar1min = None  # 1min bar
-        self.bar = None  # 根据 barPeriod 聚合的 bar
-        self.bar1minCount = 0
+        # self.bar1min = None  # 1min bar
+        # self.bar = None  # 根据 barXmin 聚合的 bar
+        # self.bar1minCount = 0
 
         self._pos = 0
         self.posList = []
         self._marginRate = None
         self.commissionRate = None  # 手续费率 vtObject.VtCommissionRate
         self.marginList = []
+        self._positionDetail = None  # 仓位详情
+
+        # K线管理器
+        self.maxBarNum = 0
+        self.initMaxBarNum()
+        self.bm = BarManager(self, self.onBar, self.barXmin, self.onXminBar)  # 创建K线合成器对象
+        # 技术指标生成器
+        self.am = ArrayManager(self.maxBarNum)
 
         self.registerEvent()
 
@@ -92,14 +105,20 @@ class CtaTemplate(vtCtaTemplate):
         if self.inited and self.trading and self.isBackTesting():
             self.posList.append(pos)
             try:
-                margin = self._pos * self.size * self.bar1min.close * self.marginRate
+                margin = self._pos * self.size * self.bar.close * self.marginRate
                 self.marginList.append(abs(margin / self.capital))
             except AttributeError as e:
-                if self.bar1min is None:
+                if self.bar is None:
                     pass
             except TypeError:
                 if self.marginRate is None:
                     pass
+    @property
+    def bar(self):
+        return self.bm.bar
+    @property
+    def xminBar(self):
+        return self.bm.xminBar
 
     @property
     def calssName(self):
@@ -186,18 +205,38 @@ class CtaTemplate(vtCtaTemplate):
             ('var', self.varList2Html()),
         )
         orderDic = OrderedDict(items)
-        orderDic['bar{}Min'.format(self.barPeriod)] = self.barToHtml()
-        orderDic['bar1min'] = self.bar1minToHtml()
+        orderDic['bar'] = self.barToHtml()
+        orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
+
+        # 本地停止单
+        stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
+        units = [so.toHtml() for so in stopOrders]
+        orderDic['stopOrder'] = pd.DataFrame(units).to_html()
+
+        # 持仓详情
+        orderDic['posdetail'] = self.positionDetail.toHtml()
+
         return orderDic
+
+    @property
+    def positionDetail(self):
+        if self._positionDetail is None:
+            self._positionDetail = self.dataEngine.getPositionDetail(self.vtSymbol)
+        return self._positionDetail
 
     def loadBar(self, barNum):
         """加载用于初始化策略的数据"""
-        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barPeriod)
+        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barXmin)
 
     @property
     def mainEngine(self):
         assert isinstance(self.ctaEngine.mainEngine, MainEngine)
         return self.ctaEngine.mainEngine
+
+    @property
+    def dataEngine(self):
+        assert isinstance(self.ctaEngine.mainEngine.dataEngine, DataEngine)
+        return self.ctaEngine.mainEngine.dataEngine
 
     @property
     def contract(self):
@@ -294,31 +333,33 @@ class CtaTemplate(vtCtaTemplate):
         assert isinstance(self._size, float) or isinstance(self._size, int)
         return self._size
 
-    def onBar(self, bar1min):
-        if self.isBackTesting():
-            self.bar1min = bar1min
+    def onXminBar(self, xminBar):
+        raise NotImplementedError(u'尚未定义')
 
-        if self.bar is None:
-            # 还没有任何数据
-            self.bar = copy.copy(bar1min)
-        elif self.isNewBar():
-            # bar1min 已经凑齐了一个完整的 bar
-            self.bar = copy.copy(bar1min)
-        else:
-            # 还没凑齐一个完整的 bar
-            self.refreshBarByBar(self.bar, bar1min)
+        # def onBar(self, bar1min):
+        # if self.isBackTesting():
+        #     self.bar1min = bar1min
+        #
+        # if self.bar is None:
+        #     # 还没有任何数据
+        #     self.bar = copy.copy(bar1min)
+        # elif self.isNewBar():
+        #     # bar1min 已经凑齐了一个完整的 bar
+        #     self.bar = copy.copy(bar1min)
+        # else:
+        #     # 还没凑齐一个完整的 bar
+        #     self.refreshBarByBar(self.bar, bar1min)
+        #
+        # self.bar1minCount += 1
 
-        self.bar1minCount += 1
-
-    def isNewBar(self):
-        return self.bar1minCount % self.barPeriod == 0 and self.bar1minCount != 0
+    # def isNewBar(self):
+    #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
     def stop(self):
         # 执行停止策略
         self.ctaEngine.stopStrategy(self)
 
     def loadCtaDB(self, document):
-        self.pos = document['pos']
         self.capital = document['capital']
 
     def toSave(self):
@@ -329,7 +370,6 @@ class CtaTemplate(vtCtaTemplate):
         dic = self.filterSql()
 
         dic['datetime'] = arrow.now().datetime
-        dic['pos'] = self.pos
         dic['capital'] = self.capital
 
         return dic
@@ -398,26 +438,29 @@ class CtaTemplate(vtCtaTemplate):
         return newPrice
 
     def barToHtml(self):
-        if self.bar is None:
+        bar = self.bm.bar
+        if bar is None:
             return u'bar 无数据'
         itmes = (
-            ('datetime', self.bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
-            ('open', self.bar.open,),
-            ('high', self.bar.high),
-            ('low', self.bar.low),
-            ('close', self.bar.close),
+            ('datetime', bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
+            ('open', bar.open,),
+            ('high', bar.high),
+            ('low', bar.low),
+            ('close', bar.close),
         )
         return OrderedDict(itmes)
 
-    def bar1minToHtml(self):
-        if self.bar1min is None:
-            return u'bar1min 无数据'
+    def xminBarToHtml(self):
+        bar = self.bm.xminBar
+        if bar is None:
+            return u'xminBar 无数据'
+
         itmes = (
-            ('datetime', self.bar1min.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
-            ('open', self.bar1min.open,),
-            ('high', self.bar1min.high),
-            ('low', self.bar1min.low),
-            ('close', self.bar1min.close),
+            ('datetime', bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
+            ('open', bar.open,),
+            ('high', bar.high),
+            ('low', bar.low),
+            ('close', bar.close),
         )
         return OrderedDict(itmes)
 
@@ -454,9 +497,170 @@ class CtaTemplate(vtCtaTemplate):
         else:
             pass
 
+    def initContract(self):
+        """
+        初始化订阅合约
+        :return:
+        """
+        waitContractSeconds = 0
+        while self.contract is None:
+            waitContractSeconds += 1
+            if waitContractSeconds > 10:
+                self.inited = False
+                self.log.error(u'策略未能订阅合约 {}'.format(self.vtSymbol))
+                return
+            self.log.info(u'等待合约 {}'.format(self.vtSymbol))
+            time.sleep(1)
+        else:
+            self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
+
+    def initMaxBarNum(self):
+        """
+        初始化最大 bar 数
+        :return:
+        """
+        self.maxBarNum = 0
+        raise NotImplementedError(u'')
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):
         vtTargetPosTemplate.onBar(self, bar1min)
         CtaTemplate.onBar(self, bar1min)
+
+
+#########################################################################
+class BarManager(VtBarManager):
+    def __init__(self, strategy, onBar, xmin=0, onXminBar=None):
+        super(BarManager, self).__init__(onBar, xmin, onXminBar)
+        self.strategy = strategy
+        # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
+        self.count = 0
+
+    # ----------------------------------------------------------------------
+    def updateTick(self, tick):
+        """TICK更新"""
+        newMinute = False  # 默认不是新的一分钟
+        oldBar = None
+
+        # 剔除错误数据
+        if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60*10):
+            # 如果当前 tick 比上一个 tick 差距达到 10分钟没成交的合约，则认为是错误数据
+            # CTA 策略默认使用比较活跃的合约
+            return
+
+        # 尚未创建对象
+        if not self.bar:
+            self.bar = VtBarData()
+            newMinute = True
+        # 新的一分钟
+        elif self.bar.datetime.minute != tick.datetime.minute:
+            # 生成上一分钟K线的时间戳
+            self.bar.datetime = self.bar.datetime.replace(second=0, microsecond=0)  # 将秒和微秒设为0
+            self.bar.date = self.bar.datetime.strftime('%Y%m%d')
+            self.bar.time = self.bar.datetime.strftime('%H:%M:%S.%f')
+
+            # 创建新的K线对象
+            oldBar, self.bar = self.bar, VtBarData()
+            newMinute = True
+
+        # 初始化新一分钟的K线数据
+        if newMinute:
+            self.bar.vtSymbol = tick.vtSymbol
+            self.bar.symbol = tick.symbol
+            self.bar.exchange = tick.exchange
+
+            self.bar.open = tick.lastPrice
+            self.bar.high = tick.lastPrice
+            self.bar.low = tick.lastPrice
+        # 累加更新老一分钟的K线数据
+        else:
+            self.bar.high = max(self.bar.high, tick.lastPrice)
+            self.bar.low = min(self.bar.low, tick.lastPrice)
+
+        # 通用更新部分
+        self.bar.close = tick.lastPrice
+        self.bar.datetime = tick.datetime
+        self.bar.openInterest = tick.openInterest
+
+        if self.lastTick:
+            self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
+
+        if newMinute and oldBar:
+            # 推送已经结束的上一分钟K线
+            self.onBar(oldBar)
+
+        # 缓存Tick
+        self.lastTick = tick
+
+    def updateBar(self, bar):
+        """1分钟K线更新"""
+        self.count += 1
+
+        # 尚未创建对象
+        if not self.xminBar:
+            self.xminBar = VtBarData()
+
+            self.xminBar.vtSymbol = bar.vtSymbol
+            self.xminBar.symbol = bar.symbol
+            self.xminBar.exchange = bar.exchange
+
+            self.xminBar.open = bar.open
+            self.xminBar.high = bar.high
+            self.xminBar.low = bar.low
+            # 累加老K线
+        else:
+            self.xminBar.high = max(self.xminBar.high, bar.high)
+            self.xminBar.low = min(self.xminBar.low, bar.low)
+
+        # 通用部分
+        self.xminBar.close = bar.close
+        self.xminBar.datetime = bar.datetime
+        self.xminBar.openInterest = bar.openInterest
+        self.xminBar.volume += int(bar.volume)
+
+        # X分钟已经走完
+        if self.count % self.xmin == 0:  # 可以用X整除
+            # 生成上一X分钟K线的时间戳
+            self.xminBar.datetime = self.xminBar.datetime.replace(second=0, microsecond=0)  # 将秒和微秒设为0
+            self.xminBar.date = self.xminBar.datetime.strftime('%Y%m%d')
+            self.xminBar.time = self.xminBar.datetime.strftime('%H:%M:%S.%f')
+
+            # 推送
+            self.onXminBar(self.xminBar)
+
+            if self.strategy.isBackTesting():
+                self.xminBar = None
+            else:
+                # 清空老K线缓存对象
+                self.xminBar = VtBarData()
+                # 直接将当前的 1min bar 数据 copy 到 xminBar
+                for k, v in self.bar.__dict__.items():
+                    setattr(self.xminBar, k, v)
+
+
+#########################################################################
+class ArrayManager(VtArrayManager):
+    # ----------------------------------------------------------------------
+    def ma(self, n, array=False):
+        """简单均线"""
+        result = talib.MA(self.close, n)
+        if array:
+            return result
+        return result[-1]
+
+    def __init__(self, size=100):
+        size += 1
+        super(ArrayManager, self).__init__(size)
+
+
+    #----------------------------------------------------------------------
+    def atr(self, n, array=False):
+        """ATR指标"""
+        result = talib.ATR(self.high, self.low, self.close, n)
+
+        if array:
+            return result
+
+        return result[-1]

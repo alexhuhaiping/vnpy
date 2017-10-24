@@ -242,6 +242,7 @@ class Unit(object):
         要存库的数据
         :return:
         """
+
         dic = {
             'pos': self.pos,  # 该unit的当前持仓
             'maxPos': self.maxPos,  # 该开仓阶段曾经达到的最大仓位
@@ -429,17 +430,7 @@ class DonchianChannelStrategy(CtaTemplate):
             #     # self.log.debug(u'{}'.format(str(bar.__dict__)))
             #     self.log.debug(u'{} {} '.format(bar.high, bar.low))
 
-        waitContractSeconds = 0
-        while self.contract is None:
-            waitContractSeconds += 1
-            if waitContractSeconds > 10:
-                self.inited = False
-                self.log.error(u'策略未能订阅合约 {}'.format(self.vtSymbol))
-                return
-            self.log.info(u'等待合约 {}'.format(self.vtSymbol))
-            time.sleep(1)
-        else:
-            self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
+        self.initContract()
 
         for bar1min in initData:
             self.bar1min = bar1min
