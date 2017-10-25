@@ -237,11 +237,9 @@ class DrEngine(object):
             bar.tickNew(drTick)
         elif bar.datetime != bar.dt2DTM(drTick.datetime):
             # 新的1分钟
-            is_tradingtime, tradeday = tt.get_tradingday(bar.dt2DTM(drTick.datetime))
-            tradeday = LOCAL_TZINFO.localize(tradeday)
-
-            if tradeday == bar.tradingDay:
-                # 同一个交易日的才是连续的数据
+            now = LOCAL_TZINFO.localize(datetime.datetime.now())
+            if drTick.datetime - now < datetime.timedelta(hours=1):
+                # 如果这个 tick 跟当前时间戳差距超过1小时就视为无效
                 if bar.vtSymbol:
                     oldBar = copy.copy(bar)
                     # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
