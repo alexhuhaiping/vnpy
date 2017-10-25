@@ -238,6 +238,7 @@ class DrEngine(object):
         elif bar.datetime != bar.dt2DTM(drTick.datetime):
             # 新的1分钟
             is_tradingtime, tradeday = tt.get_tradingday(bar.dt2DTM(drTick.datetime))
+            tradeday = LOCAL_TZINFO.localize(tradeday)
 
             if tradeday == bar.tradingDay:
                 # 同一个交易日的才是连续的数据
