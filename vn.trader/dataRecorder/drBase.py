@@ -123,14 +123,18 @@ class DrBarData(object):
         bar.last = drTick.datetime
         bar.high = max(bar.high, drTick.lastPrice)
         bar.low = min(bar.low, drTick.lastPrice)
-        bar.close = drTick.lastPrice
+
+        if drTick.datetime >= bar.last:
+            bar.close = drTick.lastPrice
+
+        bar.volume = max(drTick.volume, drTick.volume)
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit
         if bar.vtSymbol is None and bar.volume != drTick.volume:
             # if __debug__:
             #     print(u'{} bar 更新，要保存'.format(self.symbol))
             bar.vtSymbol = drTick.vtSymbol
-        bar.volume = drTick.volume
+
         bar.openInterest = drTick.openInterest
 
     @staticmethod

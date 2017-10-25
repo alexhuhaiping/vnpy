@@ -229,30 +229,6 @@ class DrEngine(object):
         drTick.datetime = LOCAL_TZINFO.localize(
             datetime.datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f'))
 
-        # 更新Tick数据 ====================
-        # if vtSymbol in self.tickDict:
-        # tickColName = self.vtSymbol2TickCollectionName(vtSymbol)
-        # barColName = self.vtSymbol2BarCollectionName(vtSymbol, min=1)
-
-        # self.insertData(TICK_DB_NAME, vtSymbol, drTick)
-        # self.insertData(TICK_DB_NAME, tickColName, drTick)
-        # self.insertData('ctp', 'tick', drTick)
-
-        # if vtSymbol in self.activeSymbolDict:
-        #     activeSymbol = self.activeSymbolDict[vtSymbol]
-        #     self.insertData(TICK_DB_NAME, activeSymbol, drTick)
-
-        # 发出日志
-        # self.writeDrLog(text.TICK_LOGGING_MESSAGE.format(symbol=drTick.vtSymbol,
-        #                                                  time=drTick.time,
-        #                                                  last=drTick.lastPrice,
-        #                                                  bid=drTick.bidPrice1,
-        #                                                  ask=drTick.askPrice1))
-        # 更新Tick数据 ====================
-
-        # 更新分钟线数据 ================================================================
-        #
-        # if vtSymbol in self.barDict:
         bar = self.barDict.get(vtSymbol)
 
         # 如果第一个TICK或者新的一分钟
@@ -261,23 +237,30 @@ class DrEngine(object):
             bar.tickNew(drTick)
         elif bar.datetime != bar.dt2DTM(drTick.datetime):
             # 新的1分钟
-            if bar.vtSymbol:
-                oldBar = copy.copy(bar)
-                # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
-                self.insertData(MINUTE_DB_NAME, BAR_COLLECTION_NAME, oldBar)
-                # if vtSymbol in self.activeSymbolDict:
-                #     保存主力合约
-                #     activeSymbol = self.activeSymbolDict[vtSymbol]
-                #     self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
+            is_tradingtime, tradeday = tt.get_tradingday(bar.dt2DTM(drTick.datetime))
 
-                self.writeDrLog(text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
-                                                                time=bar.time,
-                                                                open=bar.open,
-                                                                high=bar.high,
-                                                                low=bar.low,
-                                                                close=bar.close))
-            bar.tickNew(drTick)
-            # 否则继续累加新的K线
+            if tradeday == bar.tradingDay:
+                # 同一个交易日的才是连续的数据
+                if bar.vtSymbol:
+                    oldBar = copy.copy(bar)
+                    # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
+                    self.insertData(MINUTE_DB_NAME, BAR_COLLECTION_NAME, oldBar)
+                    # if vtSymbol in self.activeSymbolDict:
+                    #     保存主力合约
+                    #     activeSymbol = self.activeSymbolDict[vtSymbol]
+                    #     self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
+
+                    self.writeDrLog(text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
+                                                                    time=bar.time,
+                                                                    open=bar.open,
+                                                                    high=bar.high,
+                                                                    low=bar.low,
+                                                                    close=bar.close))
+                bar.tickNew(drTick)
+                # 否则继续累加新的K线
+            else:
+                pass # 忽略这个 tick
+
         else:
             bar.tickUpdate(drTick)
             # 更新分钟线数据 ================================================================
