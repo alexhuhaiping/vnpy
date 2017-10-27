@@ -12,6 +12,7 @@ import sys
 import datetime
 import pytz
 import tradingtime as tt
+import arrow
 
 sys.path.append('..')
 
@@ -109,6 +110,14 @@ class DrBarData(object):
             # bar 没更新，不保存
             bar.vtSymbol = None
         bar.volume = drTick.volume
+
+        now = arrow.now()
+        timeDelta = drTick.datetime - now
+        deltaSec = abs(timeDelta.total_seconds())
+
+        if deltaSec > 60 * 5:
+            # 跟当前时间差超过5分钟，则认为是无效的 tick
+            bar.vtSymbol = None
 
         bar.upperLimit = drTick.upperLimit
         bar.lowerLimit = drTick.lowerLimit

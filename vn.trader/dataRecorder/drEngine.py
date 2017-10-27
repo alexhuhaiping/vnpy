@@ -12,6 +12,7 @@ import os
 import time
 from datetime import datetime
 
+import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 from vtFunction import todayDate
 
@@ -261,6 +262,7 @@ class DrEngine(object):
             bar.tickNew(drTick)
         elif bar.datetime != bar.dt2DTM(drTick.datetime):
             # 新的1分钟
+
             if bar.vtSymbol:
                 oldBar = copy.copy(bar)
                 # self.insertData(MINUTE_DB_NAME, vtSymbol, newBar)
@@ -435,7 +437,8 @@ class DrEngine(object):
 
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
-        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol}, {'$set': {'marginRate': marginRate.marginRate}})
+        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol},
+                                       {'$set': {'marginRate': marginRate.marginRate}})
 
     def updateCommissionRate(self, event):
         """
@@ -508,7 +511,6 @@ class DrEngine(object):
                 }
 
                 collection.find_one_and_update({'vtSymbol': symbol}, {'$set': setting})
-
 
     def updateContractDetail(self):
         self.getMarginRate()
