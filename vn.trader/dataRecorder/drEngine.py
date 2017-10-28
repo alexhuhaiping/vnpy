@@ -373,27 +373,45 @@ class DrEngine(object):
         self.initBarCollection(BAR_COLLECTION_NAME_BAK)
 
     def initContractCollection(self):
-        if CONTRACT_INFO_COLLECTION_NAME in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
-            # colleciton contract 已经存在
-            return
-        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(CONTRACT_INFO_COLLECTION_NAME)
+        if CONTRACT_INFO_COLLECTION_NAME not in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
+            # colleciton contract 还未创建,先创建
+            self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(CONTRACT_INFO_COLLECTION_NAME)
+
+
+        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+
+        indexDic = collection.index_information()
+        indexes = []
+        if 'symbol' not in indexDic:
+            indexes.append(
+                IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
+            )
+        if 'underlyingStymbol' not in indexDic:
+            indexes.append(
+                IndexModel([('underlyingStymbol', ASCENDING)], name='underlyingStymbol', background=True)
+            )
+        for index in indexes:
+            collection.create_indexes([index])
 
     def initBarCollection(self, barCollectionName):
-        if barCollectionName in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
-            # colleciton bar_1min 已经存在
-            return
-        # 创建新的 collection
-        self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(barCollectionName)
-        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][barCollectionName]
+        if barCollectionName not in self.mainEngine.dbClient[MINUTE_DB_NAME].collection_names():
+            # colleciton bar_1min 创建新的 collection
+            self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(barCollectionName)
 
-        indexSymbol = IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
-        indexTradingDay = IndexModel([('tradingDay', DESCENDING)], name='tradingDay', background=True)
-        collection.create_indexes(
-            [
-                indexSymbol,
-                indexTradingDay,
-            ],
-        )
+        collection = self.mainEngine.dbClient[MINUTE_DB_NAME][barCollectionName]
+        indexDic = collection.index_information()
+        indexes = []
+
+        if 'symbol' not in indexDic:
+            indexes.append(
+                IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
+            )
+        if 'tradingDay' not in indexDic:
+            indexes.append(
+                IndexModel([('tradingDay', ASCENDING)], name='tradingDay', background=True)
+            )
+        for index in indexes:
+            collection.create_indexes([index])
 
     def getMarginRate(self):
         """
