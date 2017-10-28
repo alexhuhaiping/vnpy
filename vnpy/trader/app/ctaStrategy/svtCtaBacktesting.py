@@ -67,6 +67,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
         self.dailyResult = OrderedDict() # 按日汇总的回测结果
+        self.tradeResult = OrderedDict() # 按笔汇总回测结果
 
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
@@ -764,8 +765,8 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.dailyResult[u'总收益率'] = totalReturn
         self.dailyResult[u'总盈亏'] = totalNetPnl
-        self.dailyResult[u'最大回撤'] = maxDrawdown
-        self.dailyResult[u'最大回撤比例'] = maxDrawdownPer
+        self.dailyResult[u'日最大回撤'] = maxDrawdown
+        self.dailyResult[u'日最大回撤比例'] = maxDrawdownPer
 
         self.dailyResult[u'总手续费'] = totalCommission
         self.dailyResult[u'总滑点'] = totalSlippage
@@ -790,7 +791,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
+        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
 
         if not self.isShowFig:
             return
@@ -831,7 +832,8 @@ class BacktestingEngine(VTBacktestingEngine):
         """
         计算回测结果
         """
-        self.output(u'{} 计算回测结果'.format(self.symbol))
+        self.output('-' * 30)
+        self.output(u'{} 逐笔计算回测结果'.format(self.symbol))
 
         # 首先基于回测后的成交记录，计算每笔交易的盈亏
         resultList = []  # 交易结果列表
@@ -1016,7 +1018,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 totalLosing += result.pnl
 
         # 计算盈亏相关数据
-        winningRate = winningResult / totalResult * 100  # 胜率
+        winningRate = winningResult / totalResult # 胜率
 
         averageWinning = 0  # 这里把数据都初始化为0
         averageLosing = 0
@@ -1063,22 +1065,34 @@ class BacktestingEngine(VTBacktestingEngine):
             self.d = d
         # 输出
         self.output('-' * 30)
-        self.output(u'第一笔交易：\t%s' % d['timeList'][0])
-        self.output(u'最后一笔交易：\t%s' % d['timeList'][-1])
 
-        self.output(u'总交易次数：\t%s' % formatNumber(d['totalResult']))
-        self.output(u'总盈亏：\t%s' % formatNumber(d['capital']))
-        self.output(u'最大回撤: \t%s' % formatNumber(min(d['drawdownList'])))
-        self.output(u'最大回撤率: \t%s' % formatNumber(min(d['drawdownPerList'])))
+        self.tradeResult[u'第一笔交易'] = d['timeList'][0]
+        self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
+        self.tradeResult[u'总交易次数'] = d['totalResult']
 
-        self.output(u'平均每笔盈利：\t%s' % formatNumber(d['capital'] / d['totalResult']))
-        self.output(u'平均每笔滑点：\t%s' % formatNumber(d['totalSlippage'] / d['totalResult']))
-        self.output(u'平均每笔佣金：\t%s' % formatNumber(d['totalCommission'] / d['totalResult']))
+        self.tradeResult[u'总盈亏'] = d['capital']
+        self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
+        self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
+        self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
 
-        self.output(u'胜率\t\t%s%%' % formatNumber(d['winningRate']))
-        self.output(u'盈利交易平均值\t%s' % formatNumber(d['averageWinning']))
-        self.output(u'亏损交易平均值\t%s' % formatNumber(d['averageLosing']))
-        self.output(u'盈亏比：\t%s' % formatNumber(d['profitLossRatio']))
+        self.tradeResult[u'平均每笔盈利'] = d['capital'] / d['totalResult']
+        self.tradeResult[u'平均每笔滑点'] = d['totalSlippage'] / d['totalResult']
+        self.tradeResult[u'平均每笔佣金'] = d['totalCommission'] / d['totalResult']
+
+        self.tradeResult[u'胜率'] = d['winningRate']
+        self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
+        self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
+        self.tradeResult[u'盈亏比'] = d['profitLossRatio']
+
+        for k, v in self.tradeResult.items():
+            if isinstance(v, float) or isinstance(v, int):
+                v = formatNumber(v)
+            self.output(u'%s：\t%s' % (k, v))
+
+        # 收益率曲线
+        balanceList = [self.capital] + d['capitalList']
+        balanceList = pd.Series(balanceList).pct_change()
+        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
 
         if not self.isShowFig:
             return

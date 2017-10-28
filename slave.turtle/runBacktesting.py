@@ -36,21 +36,14 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     # 在引擎中创建策略对象
     # 策略参数配置
     setting['vtSymbol'] = vtSymbol
-    engine.initStrategy(strategyClass, setting)  # 创建策略对象
-
-    # 运行回测
-    engine.runBacktesting()  # 运行回测
-
-    # 输出回测结果
-    engine.showDailyResult()
-    # engine.showBacktestingResult()
+    engine.initStrategy(globals()[strategyClass], setting)  # 创建策略对象
     return engine
 
 
 if __name__ == '__main__':
     vtSymbol = 'hc1801'
 
-    runBacktesting(
+    engine = runBacktesting(
         vtSymbol=vtSymbol,
 
         # setting={
@@ -70,11 +63,18 @@ if __name__ == '__main__':
             # 'bollDev': 3.4,  # 布林通道的偏差
             # 'cciWindow': 10,  # CCI窗口数
             # 'atrWindow': 30,  # ATR窗口数
-            'slMultiplier': 2,  # 计算止损距离的乘数
+            # 'slMultiplier': 2,  # 计算止损距离的乘数
             # 'risk': 0.02,
         },
-        strategyClass=BollChannelStrategy,
+        strategyClass='BollChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
 
     )
+
+    # 运行回测
+    engine.runBacktesting()  # 运行回测
+
+    # 输出回测结果
+    engine.showDailyResult()
+    engine.showBacktestingResult()

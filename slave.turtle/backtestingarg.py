@@ -1,4 +1,6 @@
 # coding:utf-8
+
+import json
 from collections import OrderedDict
 import pytz
 from bson.codec_options import CodecOptions
@@ -6,43 +8,22 @@ from itertools import product
 from pymongo import MongoClient
 import arrow
 
-# 回测模块的参数
-param = {
-    'name': u'唐奇安通道',
-    'className': 'DonchianChannelStrategy',
-    'vtSymbol': None,
-    'barPeriod': 10,
-    'atrPeriod': 14,
-    'unitsNum': 4,
-    'hands': 1,
-    'maxCD': 1,
-    'sys2Vaild': True,
-    'capital': 100000,
+fileName = 'opt_CCI_BollChannel.json'
 
-    # 'group': u'系统2最大CD1~2' + '_' + str(arrow.now().date()),
-    'group': u'开发调试',
-}
+with open(fileName, 'r') as f:
+    dic = json.load(f)
+
+param = dic['param']
+opts = OrderedDict(dic['opts'])
+
 print(u'group: {}'.format(param['group']))
 
-# 要优化的参数，设定优化步长
-opts = OrderedDict([
-    ('barPeriod', [14, 29]),
-    ('maxCD', [1])
-])
+# 回测模块的参数
+
 if not opts:
     raise ValueError(u'未设置需要优化的参数')
 
 param['opts'] = list(opts.keys())
-
-# opts = {}
-
-# for k, v in opt.items():
-#     b, e, s = v
-#     args = [b]
-#     while b < e:
-#         b += s
-#         args.append(b)
-#     opts[k] = args
 
 """生成优化参数组合"""
 # 参数名的列表
@@ -74,7 +55,7 @@ mongoKwargs = {
 }
 
 client = MongoClient(
-    **mongoKwargs,
+    **mongoKwargs
 )
 
 # 读取合约信息
@@ -97,8 +78,9 @@ cursor.sort('activeEndDate', -1)
 # 每个品种的回测参数
 documents = []
 for c in cursor:
-    # TODO 测试代码，先只测试螺纹
+    # # TODO 测试代码，先只测试螺纹
     if c['underlyingSymbol'] != 'hc':
+    # if c['vtSymbol'] != 'hc1710':
         continue
 
     for a in strategyArgs:
@@ -110,6 +92,8 @@ for c in cursor:
         d['size'] = c['size']
         d['underlyingSymbol'] = c['underlyingSymbol']
         documents.append(d)
+
+print(u'生成 {}万组参数'.format(len(documents) / 10000.))
 
 # 将回测参数保存到数据库
 client = MongoClient(
@@ -126,5 +110,4 @@ coll = db[collName].with_options(
 
 # 删掉同名的参数组
 coll.delete_many({'group': d['group'], 'className': d['className']})
-
 coll.insert_many(documents)

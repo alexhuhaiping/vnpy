@@ -127,6 +127,7 @@ class BollChannelStrategy(CtaTemplate):
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略启动' % self.name)
+
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -158,6 +159,7 @@ class BollChannelStrategy(CtaTemplate):
         am = self.am
 
         am.updateBar(bar)
+
         if not am.inited:
             return
 
@@ -259,15 +261,16 @@ class BollChannelStrategy(CtaTemplate):
         :return:
         """
 
-        self.hands = 10
-        return
-
         if self.capital < 0:
             self.hands = 0
             return
-
-        minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
-        # minHands = int(self.capital / 10000)
+        try:
+            minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
+            # minHands = int(self.capital / 10000)
+        except:
+            print(self.vtSymbol, self.bar.datetime)
+            print(self.capital, self.risk, self.size, self.atrValue, self.slMultiplier)
+            raise
 
         maxHands = max(0, int(
             self.capital * 0.95 / (

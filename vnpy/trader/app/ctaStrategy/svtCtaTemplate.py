@@ -596,6 +596,9 @@ class BarManager(VtBarManager):
 
     def updateBar(self, bar):
         """1分钟K线更新"""
+        if self.strategy.isBackTesting():
+            self.bar = bar
+
         self.count += 1
 
         # 尚未创建对象
@@ -662,5 +665,8 @@ class ArrayManager(VtArrayManager):
 
         if array:
             return result
-
+        if result[-1] == 0:
+            print(self.high)
+            print(self.low)
+            print(self.close)
         return result[-1]
