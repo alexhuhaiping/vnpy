@@ -8,4 +8,4 @@ RUN cd /srv/vnpy \
     && pip install --upgrade tradingtime \
     && echo "更新镜像结束"
 
-WORKDIR /srv/vnpy/slave.turtle
+WORKDIR /srv/vnpy

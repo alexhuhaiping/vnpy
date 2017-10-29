@@ -1,3 +1,4 @@
 #/bin/bash
 
-python -O runCtaTrading.py
+cd /srv/vnpy/slave.turtle
+python runCtaTrading.py

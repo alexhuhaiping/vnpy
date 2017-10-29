@@ -112,8 +112,7 @@ class BollChannelStrategy(CtaTemplate):
         if len(initData) >= self.maxBarNum:
             self.log.info(u'初始化完成')
         else:
-            self.log.warning(u'初始化数据不足，初始化失败!')
-            self.inited = False
+            self.log.info(u'初始化数据不足!')
 
         # 从数据库加载策略数据
         if not self.isBackTesting():

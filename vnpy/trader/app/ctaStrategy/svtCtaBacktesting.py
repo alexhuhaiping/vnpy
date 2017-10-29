@@ -459,7 +459,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 只返回指定数量的 bar
         initDataNum = len(initDatas)
         if initDataNum < needBarNum:
-            self.log.warning(u'预加载的 bar 数量 {} != barAmount:{}'.format(initDataNum, needBarNum))
+            self.log.info(u'预加载的 bar 数量 {} != barAmount:{}'.format(initDataNum, needBarNum))
             return initDatas
 
         # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
@@ -661,8 +661,6 @@ class BacktestingEngine(VTBacktestingEngine):
     # ----------------------------------------------------------------------
     def calculateDailyResult(self):
         """计算按日统计的交易结果"""
-        self.output('-' * 30)
-        self.output(u'{} 计算按日统计结果'.format(self.symbol))
 
         # 将成交添加到每日交易结果中
         for trade in self.tradeDict.values():
@@ -750,7 +748,6 @@ class BacktestingEngine(VTBacktestingEngine):
             sharpeRatio = 0
 
         # 输出统计结果
-        self.output('-' * 30)
 
         self.dailyResult[u'首个交易日'] = startDate
         self.dailyResult[u'最后交易日'] = endDate
@@ -782,11 +779,6 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'日均收益率'] = dailyReturn
         self.dailyResult[u'收益标准差'] = returnStd
         self.dailyResult[u'夏普率'] = sharpeRatio
-
-        for k, v in self.dailyResult.items():
-            if isinstance(v, float) or isinstance(v, int):
-                v = formatNumber(v)
-            self.output(u'%s：\t%s' % (k, v))
 
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
@@ -828,12 +820,33 @@ class BacktestingEngine(VTBacktestingEngine):
         if __debug__:
             plt.show()
 
+    def printResult(self, result):
+        """
+
+        :param result: {}
+        :return:
+        """
+        if result is self.dailyResult:
+            print('-' * 30)
+            print(u'{} 计算按日统计结果'.format(self.symbol))
+            print('-' * 30)
+        elif result is self.tradeResult:
+            print('-' * 30)
+            print(u'{} 逐笔计算回测结果'.format(self.symbol))
+            print('-' * 30)
+
+        for k, v in result.items():
+            if isinstance(v, dict) or isinstance(v, list):
+                continue
+            if isinstance(v, float) or isinstance(v, int):
+                v = formatNumber(v)
+            print(u'%s：\t%s' % (k, v))
+
+
     def calculateBacktestingResult(self):
         """
         计算回测结果
         """
-        self.output('-' * 30)
-        self.output(u'{} 逐笔计算回测结果'.format(self.symbol))
 
         # 首先基于回测后的成交记录，计算每笔交易的盈亏
         resultList = []  # 交易结果列表
@@ -1064,7 +1077,6 @@ class BacktestingEngine(VTBacktestingEngine):
         if __debug__:
             self.d = d
         # 输出
-        self.output('-' * 30)
 
         self.tradeResult[u'第一笔交易'] = d['timeList'][0]
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
@@ -1083,11 +1095,6 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
-
-        for k, v in self.tradeResult.items():
-            if isinstance(v, float) or isinstance(v, int):
-                v = formatNumber(v)
-            self.output(u'%s：\t%s' % (k, v))
 
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']

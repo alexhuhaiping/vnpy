@@ -41,7 +41,7 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'hc1801'
+    vtSymbol = 'hc1410'
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
@@ -77,4 +77,6 @@ if __name__ == '__main__':
 
     # 输出回测结果
     engine.showDailyResult()
+    engine.printResult(engine.dailyResult)
     engine.showBacktestingResult()
+    engine.printResult(engine.tradeResult)
