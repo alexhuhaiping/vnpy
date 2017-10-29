@@ -6,47 +6,46 @@ MA 策略
 
 from __future__ import division
 
+import time
+
 import talib
 import numpy as np
 
-from vnpy.trader.vtObject import VtBarData
-from vnpy.trader.vtConstant import EMPTY_STRING, EMPTY_FLOAT
-from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate
+from vnpy.trader.vtObject import *
+from vnpy.trader.vtConstant import *
+from vnpy.trader.app.ctaStrategy.ctaBase import *
+from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
 
 
-class MAStrategy(TargetPosTemplate):
+class MAStrategy(CtaTemplate):
     """
 
     """
     className = 'MAStrategy'
     author = u'lamter'
-
     # 策略参数
     period = 5  # 几根均线
     initDays = 10  # 初始化数据所用的天数
 
     # 策略变量
     bar = None  # K线对象
-    barMinute = EMPTY_STRING  # K线当前的分钟
-    closeList = []  # K线最高点列表
-    ma = None # 移动均线的值
-    hands = 0 # 仓位是多少手
+    barPeriod = 15  # K线当前的分钟
+    closeList = []  # K线收盘列表
+
+    ma = None  # 移动均线的值
+    hands = 1  # 仓位是多少手
 
     # 参数列表，保存了参数的名称
-    paramList = ['name',
-                 'className',
-                 'author',
-                 'vtSymbol',
-                 'period',
-                 'hands'
-                 ]
+    paramList = CtaTemplate.paramList[:]
+    paramList.extend([
+        'hands',
+    ])
 
     # 变量列表，保存了变量的名称
-    varList = ['inited',
-               'trading',
-               'pos',
-               'ma'
-               ]
+    varList = CtaTemplate.varList[:]
+    varList.extend([
+        'ma',
+    ])
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
@@ -55,16 +54,31 @@ class MAStrategy(TargetPosTemplate):
         self.closeList = []
 
     def onInit(self):
-        initData = self.loadBar(self.initDays)
+        initData = self.loadBar(self.period)
 
         for bar in initData:
             self.onBar(bar)
+
+        waitContractSeconds = 0
+        while self.contract is None:
+            waitContractSeconds += 1
+            if waitContractSeconds > 10:
+                self.inited = False
+                self.log.error(u'策略未能订阅合约 {}'.format(self.vtSymbol))
+                return
+            self.log.info(u'等待合约 {}'.format(self.vtSymbol))
+            time.sleep(1)
+        else:
+            self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
 
         self.putEvent()
 
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.writeCtaLog(u'MA 演示仓策略启动')
+        if __debug__:
+            self.log.debug(u'测试下单')
+            self.sendOrder(CTAORDER_BUY, 3900, self.hands, stop=True)
         self.putEvent()
 
     def onStop(self):
@@ -76,23 +90,27 @@ class MAStrategy(TargetPosTemplate):
         tickMinute = tick.datetime.minute
 
         if tickMinute != self.barMinute:
-            if self.bar:
-                self.onBar(self.bar)
+            if self.bar1min:
+                self.onBar(self.bar1min)
 
-            bar = self.newBar(tick)
-
-            self.bar = bar  # 这种写法为了减少一层访问，加快速度
+            self.bar1min = self.newBar(tick)
             self.barMinute = tickMinute  # 更新当前的分钟
 
         else:  # 否则继续累加新的K线
-            self.refreshBar(tick)
+            self.refreshBarByTick(self.bar1min, tick)
 
-        super(MAStrategy, self).onTick(tick)
+    def onBar(self, bar1min):
+        CtaTemplate.onBar(self, bar1min)
 
-    def onBar(self, bar):
-        super(MAStrategy, self).onBar(bar)
-        self.bar = bar
+        if not self.isNewBar():
+            # 尚未累积到一个 new bar
+            return
 
+        #############
+        bar = self.bar
+
+        assert isinstance(bar1min, VtBarData)
+        assert isinstance(self.bar, VtBarData)
         # 填入最高点
         self.closeList.append(float(self.bar.close))
 
@@ -109,16 +127,45 @@ class MAStrategy(TargetPosTemplate):
         # 调仓
         if self.bar.close > self.ma:
             # 向上突破，做多
-            self.setTargetPos(self.hands)
+            if self.pos < 0:
+                # 有空仓，先平仓
+                self.log.info(u'反手 平空')
+                stopOrderID = self.sendOrder(CTAORDER_COVER, self.bar1min.high, self.pos, stop=True)
+                # 在开仓
+                self.log.info(u'开多')
+                self.sendOrder(CTAORDER_BUY, self.bar1min.low, self.hands, stop=True)
+            else:
+                addHands = self.pos - self.hands
+                if addHands > 0:
+                    self.sendOrder(CTAORDER_BUY, self.bar1min.low, addHands, stop=True)
+
         elif self.bar.close < self.ma:
             # 均线之下，做空
-            self.setTargetPos(-self.hands)
+            if self.pos > 0:
+                # 有空仓，先平仓
+                self.log.info(u'反手 平多')
+                self.sendOrder(CTAORDER_SELL, self.bar1min.low, -self.pos, stop=True)
+                # 在开仓
+                self.log.info(u'开空')
+                self.sendOrder(CTAORDER_SHORT, self.bar1min.high, self.hands, stop=True)
+            else:
+                addHands = abs(self.pos) - self.hands
+                if addHands > 0:
+                    self.sendOrder(CTAORDER_SHORT, self.bar1min.high, addHands, stop=True)
         else:
             pass
 
-        if self.targetPos != self.pos:
-            self.writeCtaLog(u'close {} ma {} tarPos {} pos {}'.format(self.bar.close, self.ma, self.targetPos, self.pos))
-
-
     def onTrade(self, trade):
-        pass
+        self.log.debug(u'=======================')
+        for k, v in trade.__dict__.items():
+            self.log.debug(u'{}\t{}'.format(k, v))
+
+    def onOrder(self, order):
+        self.log.debug(u'=======================')
+        for k, v in order.__dict__.items():
+            self.log.debug(u'{}\t{}'.format(k, v))
+
+    def onStopOrder(self, so):
+        self.log.debug(u'=======================')
+        for k, v in so.__dict__.items():
+            self.log.debug(u'{}\t{}'.format(k, v))

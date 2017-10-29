@@ -1,0 +1,142 @@
+# encoding: UTF-8
+
+import signal
+import multiprocessing
+from time import sleep
+from datetime import datetime, time
+
+from vnpy.event import EventEngine2
+from vnpy.trader.vtEvent import EVENT_LOG
+from vnpy.trader.svtEngine import MainEngine
+from vnpy.trader.gateway import ctpGateway
+from vnpy.trader.app import ctaStrategy
+from vnpy.trader.app import webUI
+from vnpy.trader.app.ctaStrategy.ctaBase import EVENT_CTA_LOG
+
+# #----------------------------------------------------------------------
+# def printLog(content):
+#     """输出日志"""
+#     t = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#     print '%s\t%s' %(t, content)
+#
+# #----------------------------------------------------------------------
+# def processLogEvent(event):
+#     """处理日志事件"""
+#     log = event.dict_['data']
+#     if log.gatewayName:
+#         content = '%s:%s' %(log.gatewayName, log.logContent)
+#     else:
+#         content = '%s:%s' %('MainEngine', log.logContent)
+#     printLog(content)
+
+# ----------------------------------------------------------------------
+# def processCtaLogEvent(event):
+#     """处理CTA模块日志事件"""
+#     log = event.dict_['data']
+#     content = '%s:%s' %('CTA Engine', log.logContent)
+#     printLog(content)
+
+# ----------------------------------------------------------------------
+
+_active = True
+
+
+def runChildProcess():
+    """子进程运行函数"""
+
+    ee = EventEngine2()
+    ee.log.info(u'事件引擎创建成功')
+
+    me = MainEngine(ee)
+    me.log.info(u'主引擎创建成功')
+
+    def shutdownFunction(signalnum, frame):
+        me.log.info(u'系统即将关闭')
+        global _active
+        _active = False
+        me.exit()
+
+    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
+        signal.signal(sig, shutdownFunction)
+
+    # 执行连接到数据库
+    # 大部分的功能依赖于 db 接口
+    me.dbConnect()
+
+    me.addGateway(ctpGateway)
+    me.addApp(ctaStrategy)
+    me.log.info(u'启动网页UI')
+    me.addApp(webUI)  # 网页UI
+
+    # ee.register(EVENT_LOG, processLogEvent)
+    # ee.register(EVENT_CTA_LOG, processCtaLogEvent)
+    # ee.log.info(u'注册日志事件监听')
+    me.connect('CTP')
+    me.log.info(u'连接CTP接口')
+
+    sleep(5)  # 等待CTP接口初始化
+
+    cta = me.appDict[ctaStrategy.appName]
+
+    cta.loadSetting()
+    cta.log.info(u'CTA策略载入成功')
+
+    cta.initAll()
+    cta.log.info(u'CTA策略初始化成功')
+
+    cta.startAll()
+    cta.log.info(u'CTA策略启动成功')
+
+    while _active:
+        if __debug__:
+            me.testfunc()
+        sleep(1)
+    me.log.info(u'系统完全关闭')
+
+
+# ----------------------------------------------------------------------
+def runParentProcess():
+    """父进程运行函数"""
+    printLog(u'启动CTA策略守护父进程')
+
+    DAY_START = time(8, 45)  # 日盘启动和停止时间
+    DAY_END = time(15, 30)
+
+    NIGHT_START = time(20, 45)  # 夜盘启动和停止时间
+    NIGHT_END = time(2, 45)
+
+    p = None  # 子进程句柄
+
+    while True:
+        currentTime = datetime.now().time()
+        recording = False
+
+        # 判断当前处于的时间段
+        if ((currentTime >= DAY_START and currentTime <= DAY_END) or
+                (currentTime >= NIGHT_START) or
+                (currentTime <= NIGHT_END)):
+            recording = True
+
+        # 记录时间则需要启动子进程
+        if recording and p is None:
+            printLog(u'启动子进程')
+            p = multiprocessing.Process(target=runChildProcess)
+            p.start()
+            printLog(u'子进程启动成功')
+
+        # 非记录时间则退出子进程
+        if not recording and p is not None:
+            printLog(u'关闭子进程')
+            p.terminate()
+            p.join()
+            p = None
+            printLog(u'子进程关闭成功')
+
+        sleep(5)
+
+
+if __name__ == '__main__':
+    runChildProcess()
+
+    # 尽管同样实现了无人值守，但强烈建议每天启动时人工检查，为自己的PNL负责
+    # runParentProcess()

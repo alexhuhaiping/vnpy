@@ -10,7 +10,7 @@ from vnpy.trader.vtObject import *
 
 
 ########################################################################
-class VtGateway(object):
+class sVtGateway(object):
     """交易接口"""
 
     #----------------------------------------------------------------------
@@ -106,8 +106,8 @@ class VtGateway(object):
         # 通用事件
         event1 = Event(type_=EVENT_CONTRACT)
         event1.dict_['data'] = contract
-        self.eventEngine.put(event1)        
-    
+        self.eventEngine.put(event1)
+
     #----------------------------------------------------------------------
     def connect(self):
         """连接"""
@@ -143,11 +143,28 @@ class VtGateway(object):
         """关闭"""
         pass
     
-    
-    
-    
-    
 
-    
-    
-    
+class VtGateway(sVtGateway):
+    def onMraginRate(self, marginRate):
+        """
+        保证金率推送
+        :param marginRate:
+        :return:
+        """
+        event1 = Event(type_=EVENT_MARGIN_RATE)
+        event1.dict_['data'] = marginRate
+        self.eventEngine.put(event1)
+
+    def onCommissionRate(self, commisionRate):
+        """
+        手续费率推送
+        :param commisionRate:
+        :return:
+        """
+        assert isinstance(commisionRate, VtCommissionRate)
+        event1 = Event(type_=EVENT_COMMISSION_RATE)
+        event1.dict_['data'] = commisionRate
+
+        self.eventEngine.put(event1)
+
+

@@ -52,6 +52,7 @@ vn.trader/ctaAlgo/data/*
 vn.trader/build/*
 vn.trader/dist/*
 *.bak
+tmp/
 
 # project
 vn.trader/
@@ -59,3 +60,14 @@ tmp/
 temp/
 vnpy/api/ctp/
 *-info/
+CTA_setting.json
+CTP_connect.json
+VT_setting.json
+*.ipynb
+vtserver_test.sh
+test.py
+logging.conf
+temp/
+slave.turtle/vtserverdocker.sh
+slave.turtle/kill_turtle.sh
+log.sh

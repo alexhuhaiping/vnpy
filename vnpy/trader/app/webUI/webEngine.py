@@ -8,17 +8,15 @@ import pandas as pd
 app = Flask(__name__)
 
 if __debug__:
-    try:
-        from vnpy.trader.vtEngine import MainEngine
-
-        assert isinstance(app.mainEngine, MainEngine)
-    except AssertionError:
-        pass
+    from vnpy.trader.svtEngine import MainEngine
 
 class WebEngine(object):
     def __init__(self, mainEngine, eventEngine):
         self.app = app
         self.app.mainEngine = mainEngine
+
+        assert isinstance(app.mainEngine, MainEngine)
+
         self.mainEngine = mainEngine
         self.eventEngine = eventEngine
 
@@ -30,8 +28,8 @@ class WebEngine(object):
 
     def _run(self):
         debug = False
-        if __debug__:
-            debug = True
+        # if __debug__:
+        #     debug = True
         app.run(debug=debug, host='0.0.0.0', port=8080)
 
 
@@ -50,13 +48,26 @@ def showCtaStrategy():
     if __debug__:
         from vnpy.trader.app.ctaStrategy import CtaEngine
         assert isinstance(ctaApp, CtaEngine)
-    strategyDetails = []
+
     html = ''
     for ctaName, ctaStrategy in ctaApp.strategyDict.items():
-        html += pd.DataFrame([ctaStrategy.__dict__]).to_html()
+        html += ctaName
+        html += '</br>'
+        html += ctaStrategy.className
+        html += '</br>'
+        for index, data in ctaStrategy.toHtml().items():
+            if isinstance(data, dict):
+                html += pd.DataFrame([data], index=[index]).to_html()
+            else:
+                html += data
+
+            html += '</br>'
+            # html += pd.DataFrame([ctaStrategy.paramList2Html()], index=['param']).to_html()
+            # html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
+        html += '</br>'
+        html += '</br>'
     return html
-    # df = pd.DataFrame(strategyDetails )
-    # return df.to_html()
+
 
 
 
