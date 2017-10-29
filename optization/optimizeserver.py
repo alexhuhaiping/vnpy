@@ -183,7 +183,6 @@ class OptimizeService(object):
 
     def _run(self):
 
-        print(111111, datetime.datetime.now())
         # 检查 colleciton 中是否有新的回测任务
         cursor = self.argCol.find()
 
@@ -196,19 +195,10 @@ class OptimizeService(object):
         cursor = cursor.sort('activeEndDate', -1)
 
         # 每次取出前1000条来进行回测
-        settingList = [s for s in cursor.limit(1000)]
+        settingList = [s for s in cursor.limit(20)]
         for setting in settingList:
             # 一次最多只能放8个
             self.settingQueue.put(setting)
-
-        # TODO 测试代码 >>>>>>>>
-        self.active = False
-        self.stop()
-        for w in self.wokers:
-            w.join()
-        # time.sleep(0.1)
-        print(12121, datetime.datetime.now())
-        # TODO 测试代码 <<<<<<<<
 
 
 class Optimization(multiprocessing.Process):
@@ -231,6 +221,7 @@ class Optimization(multiprocessing.Process):
         self.settingQueue = settingQueue
         self.logQueue = logQueue
         self.stopQueue = stopQueue
+        self.lastTime = arrow.now().datetime
 
         self.lastSymbol = ''
         self.datas = []
@@ -266,12 +257,11 @@ class Optimization(multiprocessing.Process):
 
         _id = setting.pop('_id')
         vtSymbol = setting['vtSymbol']
-        self.log('info', vtSymbol)
         # self.log('info', str(setting))
         # 执行回测
         engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False)
 
-        if self.lastSymbol == vtSymbol:
+        if self.lastSymbol == vtSymbol and arrow.now().datetime - self.lastTime < datetime.timedelta(minutes=1):
             # 设置成历史数据已经加载
             engine.datas = self.datas
             engine.loadHised = True
@@ -280,6 +270,7 @@ class Optimization(multiprocessing.Process):
 
         self.lastSymbol = vtSymbol
         self.datas = engine.datas
+        self.lastTime = arrow.now().datetime
 
         # 输出回测结果
         engine.showDailyResult()
