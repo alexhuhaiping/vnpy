@@ -48,7 +48,7 @@ class OptimizeService(object):
         with open(configPath, 'r') as f:
             self.config.readfp(f)
 
-        # # 数据库链接
+        # 数据库链接
         self.client = pymongo.MongoClient(
             host=self.config.get('mongo', 'host'),
             port=self.config.getint('mongo', 'port'),
@@ -85,7 +85,7 @@ class OptimizeService(object):
             name = 'wodker_{}'.format(i)
             self.logs[name] = logging.getLogger(name)
 
-            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.argCol, self.resultCol, name=name)
+            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, name=name)
             self.wokers.append(w)
             self.log.info('woker {}'.format(name))
 
@@ -207,7 +207,7 @@ class Optimization(multiprocessing.Process):
     """
     SIG_STOP = 'close_service'
 
-    def __init__(self, settingQueue, logQueue, stopQueue, argCol, resultCol, *args, **kwargs):
+    def __init__(self, settingQueue, logQueue, stopQueue, config, *args, **kwargs):
         super(Optimization, self).__init__(*args, **kwargs)
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -216,8 +216,7 @@ class Optimization(multiprocessing.Process):
 
         self.localzone = pytz.timezone('Asia/Shanghai')
 
-        self.argCol = argCol
-        self.resultCol = resultCol
+        self.config = config
         self.settingQueue = settingQueue
         self.logQueue = logQueue
         self.stopQueue = stopQueue
@@ -227,6 +226,26 @@ class Optimization(multiprocessing.Process):
         self.datas = []
 
         self.active = False
+
+        # 数据库链接
+        self.client = pymongo.MongoClient(
+            host=self.config.get('mongo', 'host'),
+            port=self.config.getint('mongo', 'port'),
+        )
+
+        self.db = self.client[self.config.get('mongo', 'dbn')]
+
+        self.db.authenticate(
+            self.config.get('mongo', 'username'),
+            self.config.get('mongo', 'password'),
+        )
+
+        # 回测任务参数队列
+        self.argCol = self.db[self.config.get('mongo', 'argCol')].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+
+        self.resultCol = self.db[self.config.get('mongo', 'resultCol')].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
     def _shutdown(self, signalnum, frame):
         self.stop()

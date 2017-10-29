@@ -96,12 +96,17 @@ for c in cursor:
 print(u'生成 {}万组参数'.format(len(documents) / 10000.))
 
 # 将回测参数保存到数据库
-client = MongoClient(
-    'localhost',
-    30020,
-)
+host = 'localhost'
+host = '192.168.31.208'
+port = 30020
 username = 'vnpy'
-password = 'vnpy'
+password = 'a90asdl22cv0SjS2dac'
+
+client = MongoClient(
+    host,
+    port,
+)
+
 collName = 'btarg'  # 回测参数
 db = client['cta']
 db.authenticate(username, password)
