@@ -360,6 +360,8 @@ class CtaTemplate(vtCtaTemplate):
         self.ctaEngine.stopStrategy(self)
 
     def loadCtaDB(self, document):
+        if not document:
+            return
         self.capital = document['capital']
 
     def toSave(self):
