@@ -27,7 +27,7 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class BollChannelStrategy(CtaTemplate):
+class SvtBollChannelStrategy(CtaTemplate):
     """基于布林通道的交易策略"""
     className = 'SvtBollChannelStrategy'
     author = u'用Python的交易员'
