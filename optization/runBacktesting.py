@@ -62,6 +62,6 @@ if __name__ == '__main__':
 
     # 输出回测结果
     engine.showDailyResult()
-    engine.printResult(engine.dailyResult)
-    engine.showBacktestingResult()
-    engine.printResult(engine.tradeResult)
+    # engine.printResult(engine.dailyResult)
+    # engine.showBacktestingResult()
+    # engine.printResult(engine.tradeResult)

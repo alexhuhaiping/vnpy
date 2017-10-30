@@ -128,24 +128,10 @@ class StopOrder(VtStopOrder):
         用于网页显示
         :return:
         """
-        self.vtSymbol = EMPTY_STRING
-        self.orderType = EMPTY_UNICODE
-        self.direction = EMPTY_UNICODE
-        self.offset = EMPTY_UNICODE
-        self.price = EMPTY_FLOAT
-        self.volume = EMPTY_INT
-
-        self.strategy = None  # 下停止单的策略对象
-        self.stopOrderID = EMPTY_STRING  # 停止单的本地编号
-
-        self.status = EMPTY_STRING  # 停止单状态
-
-        self.vtOrderID = None  # 触发后，触发后对应的停止单
-        self.unit = None  # 绑定的对应的 unit
-        self.priority = 0  # 同样价格时，成交的优先级。值越小越优先触发
 
         items = [
             ('stopOrderID', self.stopOrderID),
+            ('status', self.status),
             ('orderType', self.orderType),
             ('direction', self.direction),
             ('offset', self.offset),

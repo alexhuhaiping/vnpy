@@ -14,6 +14,10 @@ from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
 import copy
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import arrow
 import pymongo
@@ -783,7 +787,8 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
+        dailyReturnRateSereis = pd.Series(list(balanceList.values[1:]), index=df.index)
+        self.dailyResult[u'日收益率曲线'] = pickle.dumps(dailyReturnRateSereis.to_dict())
 
         if not self.isShowFig:
             return

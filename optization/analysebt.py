@@ -1,5 +1,10 @@
 # coding:utf-8
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 import pandas as pd
 import pytz
 from bson.codec_options import CodecOptions
@@ -19,7 +24,12 @@ class AnalyseBacktesting(object):
         """
         # 原始数据
         self.df = pd.DataFrame(documents)
+
+        # 主力连续的日收益和日净值
         self.dailyReturnRateByOptsv = {}  # {'optsv': pd.DataFrame()}
+
+        # 主力连续的统计汇总
+        self.dailyResultByOptsv = {} # {'optsv': pd.DataFrame()}
 
         self.navDf = None
 
@@ -55,9 +65,13 @@ class AnalyseBacktesting(object):
 
             # 取出每日收益率
             consisDF[u'日收益率曲线'].apply(lambda x: dailyReturnRateList.extend(x))
-            self.calDaily(optsv, dailyReturnRateList)
 
             # 生成日收益和日净值
+            self.calDaily(optsv, dailyReturnRateList)
+
+        # 汇总计算
+
+
 
     def calDaily(self, optsv, dailyReturnRateList):
         """
@@ -75,6 +89,13 @@ class AnalyseBacktesting(object):
 
         if __debug__:
             self.debugDF = df
+
+    def summarizingDaily(self):
+        """
+        按日汇总
+        :return:
+        """
+
 
 
 if __name__ == '__main__':
