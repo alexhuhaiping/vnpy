@@ -1,7 +1,7 @@
 # coding:utf-8
 
 import os
-from Queue import Empty
+from Queue import Empty, Full
 import threading
 import pytz
 from bson.codec_options import CodecOptions
@@ -19,6 +19,7 @@ from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from runBacktesting import runBacktesting
+
 
 # 读取日志配置文件
 loggingConFile = 'logging.conf'
@@ -48,6 +49,26 @@ class OptimizeService(object):
         with open(configPath, 'r') as f:
             self.config.readfp(f)
 
+        # 任务队列
+        self.settingQueue = multiprocessing.Queue(self.cpuCount)
+        self.logQueue = multiprocessing.Queue()
+        self.stopQueue = multiprocessing.Queue()
+        self.logs = {}
+        self.finishTasksIDSet = set()
+        self.finishSettingIDQueue = multiprocessing.Queue()
+
+        self.active = False
+
+        # 进程队列
+        self.wokers = []
+        for i in range(self.cpuCount):
+            name = 'wodker_{}'.format(i)
+            self.logs[name] = logging.getLogger(name)
+
+            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, self.finishSettingIDQueue, name=name)
+            self.wokers.append(w)
+            self.log.info('woker {}'.format(name))
+
         # 数据库链接
         self.client = pymongo.MongoClient(
             host=self.config.get('mongo', 'host'),
@@ -70,24 +91,6 @@ class OptimizeService(object):
 
         # 初始化索引
         self.initContractCollection()
-
-        # 任务队列
-        self.settingQueue = multiprocessing.Queue(self.cpuCount)
-        self.logQueue = multiprocessing.Queue()
-        self.stopQueue = multiprocessing.Queue()
-        self.logs = {}
-
-        self.active = False
-
-        # 进程队列
-        self.wokers = []
-        for i in range(self.cpuCount):
-            name = 'wodker_{}'.format(i)
-            self.logs[name] = logging.getLogger(name)
-
-            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, name=name)
-            self.wokers.append(w)
-            self.log.info('woker {}'.format(name))
 
         self.threadLog = threading.Thread(target=self.logout)
         self.logActive = True
@@ -114,8 +117,9 @@ class OptimizeService(object):
         indexClassName = IndexModel([('className', ASCENDING)], name='className', background=True)
         indexGroup = IndexModel([('group', ASCENDING)], name='group', background=True)
         indexUnderlyingSymbol = IndexModel([('underlyingSymbol', DESCENDING)], name='underlyingSymbol', background=True)
+        indexOptsv = IndexModel([('optsv', DESCENDING)], name='v', background=True)
 
-        indexes = [indexSymbol, indexClassName, indexGroup, indexUnderlyingSymbol]
+        indexes = [indexSymbol, indexClassName, indexGroup, indexUnderlyingSymbol, indexOptsv]
 
         self._initCollectionIndex(self.argCol, indexes)
         self._initCollectionIndex(self.resultCol, indexes)
@@ -173,6 +177,7 @@ class OptimizeService(object):
 
         :return:
         """
+
         for w in self.wokers:
             self.log.info('等待 {} 结束'.format(w.name))
             w.join()
@@ -195,10 +200,24 @@ class OptimizeService(object):
         cursor = cursor.sort('activeEndDate', -1)
 
         # 每次取出前1000条来进行回测
-        settingList = [s for s in cursor.limit(20)]
+        limitNum = 1000
+        settingList = [s for s in cursor.limit(limitNum)]
         for setting in settingList:
+            self.finishTasksIDSet.add(setting['_id'])
             # 一次最多只能放8个
-            self.settingQueue.put(setting)
+            while self.active:
+                try:
+                    self.settingQueue.put(setting, timeout=1)
+                    break
+                except Full:
+                    pass
+
+        while self.active and self.finishTasksIDSet:
+            try:
+                _id = self.finishSettingIDQueue.get(timeout=1)
+                self.finishTasksIDSet.remove(_id)
+            except (Empty, KeyError):
+                pass
 
 
 class Optimization(multiprocessing.Process):
@@ -207,7 +226,7 @@ class Optimization(multiprocessing.Process):
     """
     SIG_STOP = 'close_service'
 
-    def __init__(self, settingQueue, logQueue, stopQueue, config, *args, **kwargs):
+    def __init__(self, settingQueue, logQueue, stopQueue, config, finishSettingIDQueue, *args, **kwargs):
         super(Optimization, self).__init__(*args, **kwargs)
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -220,6 +239,7 @@ class Optimization(multiprocessing.Process):
         self.settingQueue = settingQueue
         self.logQueue = logQueue
         self.stopQueue = stopQueue
+        self.finishSettingIDQueue = finishSettingIDQueue
         self.lastTime = arrow.now().datetime
 
         self.lastSymbol = ''
@@ -227,6 +247,8 @@ class Optimization(multiprocessing.Process):
 
         self.active = False
 
+
+    def initDB(self):
         # 数据库链接
         self.client = pymongo.MongoClient(
             host=self.config.get('mongo', 'host'),
@@ -254,6 +276,7 @@ class Optimization(multiprocessing.Process):
         self.active = False
 
     def start(self):
+        self.initDB()
         self.active = True
         super(Optimization, self).start()
 
@@ -314,6 +337,7 @@ class Optimization(multiprocessing.Process):
         self.resultCol.insert_one(setting)
 
         # 删除掉任务
+        self.finishSettingIDQueue.put(_id)
         self.argCol.delete_one({'_id': _id})
 
     def log(self, level, msg):

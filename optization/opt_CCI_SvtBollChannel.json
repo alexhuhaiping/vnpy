@@ -1,19 +1,23 @@
 {
   "param": {
-      "group": "test",
-      "name": "CCI_布林带",
-      "barXmin": 15,
-      "className": "BollChannelStrategy",
-      "capital": 100000,
-      "bollWindow": 18,
-      "bollDev": 3.4,
-      "cciWindow": 10,
-      "atrWindow": 30,
-      "slMultiplier": 5.2
+    "group": "布林带宽度",
+    "name": "CCI_布林带",
+    "className": "SvtBollChannelStrategy",
+    "capital": 100000,
+    "barXmin": 15,
+    "bollWindow": 18,
+    "bollDev": 3.4,
+    "cciWindow": 10,
+    "atrWindow": 30,
+    "slMultiplier": 5.2
   },
   "opts": {
-    "barXmin":[15, 29, 49],
-    "slMultiplier": [2.4, 3.4, 5.2]
+    "bollWindow": [18],
+    "cciWindow": [10],
+    "atrWindow": [30],
+    "slMultiplier": [5.2],
+    "barXmin":[15],
+    "bollDev": [2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0]
   },
 
   "粗步长参数组合":{
@@ -21,7 +25,7 @@
       "group": "粗步长参数组合",
       "name": "CCI_布林带",
       "barXmin": 15,
-      "className": "BollChannelStrategy",
+      "className": "SvtBollChannelStrategy",
       "capital": 100000,
       "bollWindow": 18,
       "bollDev": 3.4,

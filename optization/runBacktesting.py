@@ -1,15 +1,11 @@
 # coding:utf-8
-import vnpy.trader.app.ctaStrategy.svtCtaBacktesting
-import vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel
-import vnpy.trader.app.ctaStrategy.svtCtaTemplate
-
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
-from vnpy.trader.app.ctaStrategy.ctaBacktesting import MINUTE_DB_NAME
-from vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel import DonchianChannelStrategy
-from vnpy.trader.app.ctaStrategy.strategy.strategySvtBollChannel import BollChannelStrategy
+from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
+
+globals().update(STRATEGY_CLASS)
 
 
-def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True, ):
+def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True):
     """
 
     :param vtSymbol: 合约编号
@@ -41,20 +37,10 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'hc1410'
+    vtSymbol = 'hc1705'
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
-
-        # setting={
-        #     'unitsNum': 4,
-        #     'vtSymbol': vtSymbol,
-        #     'barPeriod': 9,  # bar 周期
-        #     'atrPeriod': 14,
-        #     'maxCD': 1,
-        #     'sys2Vaild': True,
-        #     'capital': 100000,
-        # },
         setting={
             'barXmin': 15,
             'capital': 100000,
@@ -66,10 +52,9 @@ if __name__ == '__main__':
             # 'slMultiplier': 2,  # 计算止损距离的乘数
             # 'risk': 0.02,
         },
-        strategyClass='BollChannelStrategy',
+        strategyClass='SvtBollChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
-
     )
 
     # 运行回测

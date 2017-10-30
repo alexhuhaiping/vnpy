@@ -7,8 +7,17 @@ from bson.codec_options import CodecOptions
 from itertools import product
 from pymongo import MongoClient
 import arrow
+import ConfigParser
 
-fileName = 'opt_CCI_BollChannel.json'
+from vnpy.trader.vtFunction import getTempPath, getJsonPath
+
+config = ConfigParser.SafeConfigParser()
+configPath = getJsonPath('optimize.ini', __file__)
+
+with open(configPath, 'r') as f:
+    config.readfp(f)
+
+fileName = 'opt_CCI_SvtBollChannel.json'
 
 with open(fileName, 'r') as f:
     dic = json.load(f)
@@ -40,12 +49,14 @@ for p in productList:
     settingList.append(d)
 
 # 策略参数组合
+keyList = list(opts.keys())
+keyList.sort()
 strategyArgs = []
 for s in settingList:
     d = param.copy()
     d.update(s)
     # 将待优化的参数组合成唯一索引
-    d['optsv'] = ','.join(['{}:{}'.format(n, d[n]) for n in nameList])
+    d['optsv'] = ','.join(['{}:{}'.format(n, d[n]) for n in keyList])
     strategyArgs.append(d)
     d['createTime'] = arrow.now().datetime
 
@@ -80,11 +91,12 @@ documents = []
 for c in cursor:
     # # TODO 测试代码，先只测试螺纹
     if c['underlyingSymbol'] != 'hc':
-    # if c['vtSymbol'] != 'hc1710':
+        # if c['vtSymbol'] != 'hc1710':
         continue
 
     for a in strategyArgs:
         d = a.copy()
+        d['optsv'] = '{},{}'.format(c['underlyingSymbol'], d['optsv'])
         d['vtSymbol'] = c['vtSymbol']
         d['activeStartDate'] = c['activeStartDate']
         d['activeEndDate'] = c['activeEndDate']
@@ -93,14 +105,21 @@ for c in cursor:
         d['underlyingSymbol'] = c['underlyingSymbol']
         documents.append(d)
 
-print(u'生成 {}万组参数'.format(len(documents) / 10000.))
+count = len(documents)
+if count > 1000:
+    countStr = u'{}万'.format(count/ 10000.)
+else:
+    countStr = count
+print(u'生成 {} 组参数'.format(countStr))
 
 # 将回测参数保存到数据库
-host = 'localhost'
-host = '192.168.31.208'
-port = 30020
-username = 'vnpy'
-password = 'a90asdl22cv0SjS2dac'
+host = config.get('mongo', 'host')
+port = config.getint('mongo', 'port')
+username = config.get('mongo', 'username')
+password = config.get('mongo', 'password')
+dbn = config.get('mongo', 'dbn')
+
+print(u'参数存入 {}:{}/{}'.format(host, port, dbn))
 
 client = MongoClient(
     host,
@@ -108,7 +127,7 @@ client = MongoClient(
 )
 
 collName = 'btarg'  # 回测参数
-db = client['cta']
+db = client[dbn]
 db.authenticate(username, password)
 coll = db[collName].with_options(
     codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))

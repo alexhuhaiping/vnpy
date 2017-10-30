@@ -226,7 +226,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def loadBar(self, barNum):
         """加载用于初始化策略的数据"""
-        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum, self.barXmin)
+        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum+1, self.barXmin)
 
     @property
     def mainEngine(self):
