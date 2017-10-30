@@ -83,7 +83,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(BollChannelStrategy, self).__init__(ctaEngine, setting)
+        super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
 
         self.hands = self.fixedSize
         self.turnover = EMPTY_FLOAT  # 持仓成本
