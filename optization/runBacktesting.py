@@ -5,7 +5,8 @@ from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 globals().update(STRATEGY_CLASS)
 
 
-def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True):
+def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True,
+                   isOutputResult=True):
     """
 
     :param vtSymbol: 合约编号
@@ -28,6 +29,7 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol)  # 设置该次回测使用的合约
     engine.setShowFig(isShowFig)
+    engine.setOutputResult(isOutputResult)
 
     # 在引擎中创建策略对象
     # 策略参数配置
@@ -37,31 +39,27 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'hc1705'
+    vtSymbol = 'hc1608'
+
+    setting = {
+        'capital': 100000,
+        'vtSymbol': vtSymbol,
+    }
+    setting.update(
+        {"atrWindow":30,"barXmin":15,"bollDev":2.4,"bollWindow":18,"cciWindow":10,"slMultiplier":5.2}
+    )
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
-        setting={
-            'barXmin': 15,
-            'capital': 100000,
-            'vtSymbol': vtSymbol,
-            # 'bollWindow': 19,  # 布林通道窗口数
-            # 'bollDev': 3.4,  # 布林通道的偏差
-            # 'cciWindow': 10,  # CCI窗口数
-            # 'atrWindow': 30,  # ATR窗口数
-            # 'slMultiplier': 2,  # 计算止损距离的乘数
-            # 'risk': 0.02,
-        },
+        setting=setting,
         strategyClass='SvtBollChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
+        isOutputResult=True,
     )
 
     # 运行回测
     engine.runBacktesting()  # 运行回测
-
     # 输出回测结果
     engine.showDailyResult()
-    # engine.printResult(engine.dailyResult)
-    # engine.showBacktestingResult()
-    # engine.printResult(engine.tradeResult)
+    engine.showBacktestingResult()

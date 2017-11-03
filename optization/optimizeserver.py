@@ -11,6 +11,7 @@ import logging.config
 import multiprocessing
 import signal
 import datetime
+import traceback
 
 import arrow
 import pymongo
@@ -201,8 +202,11 @@ class OptimizeService(object):
 
         # 每次取出前1000条来进行回测
         limitNum = 1000
+        count = 0
+        total = cursor.count()
         settingList = [s for s in cursor.limit(limitNum)]
         for setting in settingList:
+            self.log.info(u'{} / {}'.format(count, total))
             self.finishTasksIDSet.add(setting['_id'])
             # 一次最多只能放8个
             while self.active:
@@ -301,7 +305,7 @@ class Optimization(multiprocessing.Process):
         vtSymbol = setting['vtSymbol']
         # self.log('info', str(setting))
         # 执行回测
-        engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False)
+        engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False, isOutputResult=False)
 
         if self.lastSymbol == vtSymbol and arrow.now().datetime - self.lastTime < datetime.timedelta(minutes=1):
             # 设置成历史数据已经加载
@@ -316,7 +320,12 @@ class Optimization(multiprocessing.Process):
 
         # 输出回测结果
         engine.showDailyResult()
-        engine.showBacktestingResult()
+        try:
+            engine.showBacktestingResult()
+        except:
+            print(vtSymbol, setting['optsv'])
+            self.log('error', traceback.format_exc())
+            raise
 
         # 更新回测结果
         # 逐日汇总

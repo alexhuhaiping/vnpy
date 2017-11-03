@@ -70,6 +70,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.marginRate = None  # 保证金比例对象 VtMarginRate()
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
+        self.isOutputResult = True  # 回测后输出结果时是否展示图片
         self.dailyResult = OrderedDict() # 按日汇总的回测结果
         self.tradeResult = OrderedDict() # 按笔汇总回测结果
 
@@ -235,6 +236,13 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         self.isShowFig = isShow
+    def setOutputResult(self, isOutputResult):
+        """
+        回测后是否展示图片
+        :param isShow:
+        :return:
+        """
+        self.isOutputResult = isOutputResult
 
 
     def setStartDate(self, startDate=None, initDays=None):
@@ -784,6 +792,9 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'收益标准差'] = returnStd
         self.dailyResult[u'夏普率'] = sharpeRatio
 
+        if self.isOutputResult:
+            self.printResult(self.dailyResult)
+
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
@@ -1101,10 +1112,13 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
 
+        if self.isOutputResult:
+            self.printResult(self.tradeResult)
+
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
+        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
 
         if not self.isShowFig:
             return

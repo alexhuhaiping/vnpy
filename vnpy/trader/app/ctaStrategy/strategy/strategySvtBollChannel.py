@@ -18,6 +18,8 @@
 
 from __future__ import division
 
+import arrow
+
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
@@ -40,7 +42,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     slMultiplier = 5.2  # 计算止损距离的乘数
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
-    risk = slMultiplier / 100. # 每笔风险投入
+    risk = slMultiplier / 100.  # 每笔风险投入
 
     # 策略变量
     bollUp = 0  # 布林通道上轨
@@ -215,6 +217,12 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if trade.offset == OFFSET_OPEN:
             self.avrPrice = trade.price
+            # 手续费
+            self.charge(trade.offset, trade.price, trade.volume)
+            # 回测时滑点
+            if self.isBackTesting():
+                self.chargeSplipage(trade.volume)
+
         elif trade.offset in OFFSET_CLOSE_LIST:
             # 累积盈利
             if trade.direction == DIRECTION_SHORT:
@@ -228,12 +236,23 @@ class SvtBollChannelStrategy(CtaTemplate):
 
             preCapital = self.capital
             self.capital += profile
-            # self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
+
+            # 手续费
+            self.charge(trade.offset, trade.price, trade.volume)
+            # 回测时滑点
+            if self.isBackTesting():
+                self.chargeSplipage(trade.volume)
+
+            if self.isBackTesting():
+                if self.capital <= 0:
+                    # 回测中爆仓了
+                    self.capital = 0
+
+            self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
 
         if self.pos == 0:
             # 重置成本价
             self.avrPrice = 0
-
 
         # # 仓位操作
         # if self.pos > 0:
@@ -260,7 +279,13 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
 
-        if self.capital < 0:
+        # TODO 测试代码 >>>>>>>
+        if self.bar.datetime < arrow.get('2014-05-25 00:00:00+08:00').datetime:
+            self.hands = 0
+            return
+        # <<<<<<<<<<<<<<<<<<<
+
+        if self.capital <= 0:
             self.hands = 0
             return
         try:

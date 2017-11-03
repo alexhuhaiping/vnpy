@@ -1,137 +1,232 @@
 # coding:utf-8
 
+import sys
+import logging
 import json
 from collections import OrderedDict
 import pytz
 from bson.codec_options import CodecOptions
 from itertools import product
+import ConfigParser
+import datetime
+
 from pymongo import MongoClient
 import arrow
-import ConfigParser
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 
-config = ConfigParser.SafeConfigParser()
-configPath = getJsonPath('optimize.ini', __file__)
 
-with open(configPath, 'r') as f:
-    config.readfp(f)
+class BacktestingArg(object):
+    """
+    生成批量回测的参数
+    """
 
-fileName = 'opt_CCI_SvtBollChannel.json'
+    def __init__(self, argFileName, optfile='optimize.ini'):
+        self.log = logging.getLogger()
+        self.log.setLevel(logging.INFO)
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.INFO)
+        self.log.addHandler(sh)
 
-with open(fileName, 'r') as f:
-    dic = json.load(f)
+        self.config = ConfigParser.SafeConfigParser()
+        configPath = getJsonPath(optfile, __file__)
 
-param = dic['param']
-opts = OrderedDict(dic['opts'])
+        # 指定回测参数的 collection
+        with open(configPath, 'r') as f:
+            self.config.readfp(f)
 
-print(u'group: {}'.format(param['group']))
+        with open(argFileName, 'r') as f:
+            dic = json.load(f)
 
-# 回测模块的参数
+        self.param = dic['param']
+        self.opts = OrderedDict(dic['opts'])
 
-if not opts:
-    raise ValueError(u'未设置需要优化的参数')
+        self.log.info(u'group: {}'.format(self.param['group']))
 
-param['opts'] = list(opts.keys())
+        # 回测模块的参数
 
-"""生成优化参数组合"""
-# 参数名的列表
-nameList = opts.keys()
-paramList = opts.values()
+        if not self.opts:
+            err = u'未设置需要优化的参数'
+            self.log.critical(err)
+            raise ValueError(err)
 
-# 使用迭代工具生产参数对组合
-productList = list(product(*paramList))
+        self.param['opts'] = list(self.opts.keys())
 
-# 把参数对组合打包到一个个字典组成的列表中
-settingList = []
-for p in productList:
-    d = dict(zip(nameList, p))
-    settingList.append(d)
+        # 合约详情的 collection
+        self.contractCol = None
+        # 生成的参数保存s
+        self.argCol = None
 
-# 策略参数组合
-keyList = list(opts.keys())
-keyList.sort()
-strategyArgs = []
-for s in settingList:
-    d = param.copy()
-    d.update(s)
-    # 将待优化的参数组合成唯一索引
-    d['optsv'] = ','.join(['{}:{}'.format(n, d[n]) for n in keyList])
-    strategyArgs.append(d)
-    d['createTime'] = arrow.now().datetime
+    @property
+    def group(self):
+        return self.param['group']
 
-mongoKwargs = {
-    'host': '192.168.31.208',
-    'port': 30020,
-}
+    @property
+    def className(self):
+        return self.param['className']
 
-client = MongoClient(
-    **mongoKwargs
-)
+    def dbConnect(self):
+        # 获取合约信息
+        host = self.config.get('contractMongo', 'host')
+        port = self.config.getint('contractMongo', 'port')
+        username = self.config.get('contractMongo', 'username')
+        password = self.config.get('contractMongo', 'password')
+        dbn = self.config.get('contractMongo', 'dbn')
+        colName = self.config.get('contractMongo', 'collection')
 
-# 读取合约信息
-username = 'vnpy'
-password = 'a90asdl22cv0SjS2dac'
+        client = MongoClient(
+            host,
+            port,
+        )
 
-db = client['ctp']
-db.authenticate(username, password)
+        db = client[dbn]
+        db.authenticate(username, password)
 
-coll = db['contract'].with_options(
-    codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+        self.contractCol = db[colName].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
-sql = {
-    'activeStartDate': {'$ne': None},
-    'activeEndDate': {'$ne': None}
-}
-cursor = coll.find(sql)
-cursor.sort('activeEndDate', -1)
+        # 将回测参数保存到数据库
+        host = self.config.get('mongo', 'host')
+        port = self.config.getint('mongo', 'port')
+        username = self.config.get('mongo', 'username')
+        password = self.config.get('mongo', 'password')
+        dbn = self.config.get('mongo', 'dbn')
+        collName = self.config.get('mongo', 'argCol')
 
-# 每个品种的回测参数
-documents = []
-for c in cursor:
-    # # TODO 测试代码，先只测试螺纹
-    if c['underlyingSymbol'] != 'hc':
-        # if c['vtSymbol'] != 'hc1710':
-        continue
+        client = MongoClient(
+            host,
+            port,
+        )
+        db = client[dbn]
+        db.authenticate(username, password)
+        self.argCol = db[collName].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
-    for a in strategyArgs:
-        d = a.copy()
-        d['optsv'] = '{},{}'.format(c['underlyingSymbol'], d['optsv'])
-        d['vtSymbol'] = c['vtSymbol']
-        d['activeStartDate'] = c['activeStartDate']
-        d['activeEndDate'] = c['activeEndDate']
-        d['priceTick'] = c['priceTick']
-        d['size'] = c['size']
-        d['underlyingSymbol'] = c['underlyingSymbol']
-        documents.append(d)
+    def start(self):
+        """
+        
+        :return: 
+        """
+        self.dbConnect()
 
-count = len(documents)
-if count > 1000:
-    countStr = u'{}万'.format(count/ 10000.)
-else:
-    countStr = count
-print(u'生成 {} 组参数'.format(countStr))
+        # 生成优化参数组合
+        strategyArgs = self.createStrategyArgsGroup()
 
-# 将回测参数保存到数据库
-host = config.get('mongo', 'host')
-port = config.getint('mongo', 'port')
-username = config.get('mongo', 'username')
-password = config.get('mongo', 'password')
-dbn = config.get('mongo', 'dbn')
+        # 取出需要回测的合约
+        contracts = self.getContractAvaible()
 
-print(u'参数存入 {}:{}/{}'.format(host, port, dbn))
+        # 生成最终用于回测的参数组合, 稍后保存到数据库
+        documents = self.createBacktestingArgs(contracts, strategyArgs)
 
-client = MongoClient(
-    host,
-    port,
-)
+        # 保存
+        self.saveArgs(documents)
 
-collName = 'btarg'  # 回测参数
-db = client[dbn]
-db.authenticate(username, password)
-coll = db[collName].with_options(
-    codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+    def createStrategyArgsGroup(self):
+        # 参数名的列表
+        nameList = self.opts.keys()
+        paramList = self.opts.values()
 
-# 删掉同名的参数组
-coll.delete_many({'group': d['group'], 'className': d['className']})
-coll.insert_many(documents)
+        # 使用迭代工具生产参数对组合
+        productList = list(product(*paramList))
+
+        # 把参数对组合打包到一个个字典组成的列表中
+        settingList = []
+        for p in productList:
+            d = dict(zip(nameList, p))
+            settingList.append(d)
+
+        # 策略参数组合
+        keyList = list(self.opts.keys())
+        keyList.sort()
+        strategyArgs = []
+        for s in settingList:
+            d = self.param.copy()
+            d.update(s)
+            # 将待优化的参数组合成唯一索引
+            d['optsv'] = ','.join(['"{}":{}'.format(n, d[n]) for n in keyList])
+            strategyArgs.append(d)
+            d['createTime'] = arrow.now().datetime
+
+        return strategyArgs
+
+    def getContractAvaible(self):
+        """
+        取出需要回测的合约
+        :return:
+        """
+        # 取主力合约
+        sql = {
+            'activeStartDate': {'$ne': None},
+            'activeEndDate': {'$ne': None}
+        }
+
+        cursor = self.contractCol.find(sql)
+        cursor = cursor.sort('activeEndDate', -1)
+
+        contracts = [c for c in cursor]
+
+        # 依然还在上市的品种
+        onMarketUS = set()
+        for c in contracts:
+            if arrow.now() - c['activeEndDate'] < datetime.timedelta(days=30):
+                # 一个月之内依然还活跃的品种
+                onMarketUS.add(c['underlyingSymbol'])
+            else:
+                pass
+        self.log.info(u'共 {} 上市品种'.format(len(onMarketUS)))
+
+        # 只取依然在上市的合约品种
+        contracts = [c for c in contracts if c['underlyingSymbol'] in onMarketUS]
+        return contracts
+
+    def createBacktestingArgs(self, contracts, strategyArgs):
+        """
+        生成最终用于回测的参数组合,稍后保存到数据库
+        :param contracts:
+        :param strategyArgs:
+        :return:
+        """
+        # 每个品种的回测参数
+        documents = []
+        for c in contracts:
+            # # TODO 测试代码，先只测试螺纹
+            if c['underlyingSymbol'] != 'hc':
+                # if c['vtSymbol'] != 'hc1710':
+                continue
+
+            for a in strategyArgs:
+                d = a.copy()
+                d['optsv'] = '{},{}'.format(c['underlyingSymbol'], d['optsv'])
+                d['vtSymbol'] = c['vtSymbol']
+                d['activeStartDate'] = c['activeStartDate']
+                d['activeEndDate'] = c['activeEndDate']
+                d['priceTick'] = c['priceTick']
+                d['size'] = c['size']
+                d['underlyingSymbol'] = c['underlyingSymbol']
+                documents.append(d)
+
+        return documents
+
+    def saveArgs(self, documents):
+        """
+        保存到数据库
+        :return:
+        """
+
+        count = len(documents)
+        if count > 1000:
+            countStr = u'{}万'.format(count / 10000.)
+        else:
+            countStr = count
+        self.log.info(u'生成 {} 组参数'.format(countStr))
+
+        # 删掉同名的参数组
+        # self.argCol.delete_many({'group': self.group, 'className': self.className})
+        # self.argCol.insert_many(documents)
+
+
+if __name__ == '__main__':
+    argFileName = 'opt_CCI_SvtBollChannel.json'
+    optfile = 'optimize.ini'
+    b = BacktestingArg(argFileName, optfile)
+    b.start()
