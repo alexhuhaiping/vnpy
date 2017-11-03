@@ -1,5 +1,27 @@
 {
   "param": {
+    "group": "布林带密集步长",
+    "name": "CCI_布林带",
+    "className": "SvtBollChannelStrategy",
+    "capital": 100000,
+    "barXmin": 15,
+    "bollWindow": 18,
+    "bollDev": 3.4,
+    "cciWindow": 10,
+    "atrWindow": 30,
+    "slMultiplier": 5.2
+  },
+  "opts": {
+    "barXmin":[5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59],
+    "bollWindow": [10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0],
+    "cciWindow": [10],
+    "atrWindow": [30],
+    "slMultiplier": [2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0, 5.2],
+    "bollDev": [3.2]
+  },
+
+  "布林带粗步长":{
+  "param": {
     "group": "布林带粗步长",
     "name": "CCI_布林带",
     "className": "SvtBollChannelStrategy",
@@ -12,35 +34,13 @@
     "slMultiplier": 5.2
   },
   "opts": {
-    "barXmin":[5, 14, 24, 49],
-    "bollWindow": [14, 19, 26, 39],
+    "barXmin":[6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0, 42.0, 44.0, 46.0, 48.0, 50.0, 52.0, 54.0, 56.0, 58.0],
+    "bollWindow": [10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0],
     "cciWindow": [10],
     "atrWindow": [30],
-    "slMultiplier": [2.3, 3.2, 4.1, 5.0],
+    "slMultiplier": [2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0, 5.2],
     "bollDev": [3.2]
-  },
-
-  "粗步长参数组合":{
-    "param": {
-      "group": "粗步长参数组合",
-      "name": "CCI_布林带",
-      "barXmin": 15,
-      "className": "SvtBollChannelStrategy",
-      "capital": 100000,
-      "bollWindow": 18,
-      "bollDev": 3.4,
-      "cciWindow": 10,
-      "atrWindow": 30,
-      "slMultiplier": 5.2
-    },
-    "opts": {
-      "barXmin":[4, 9, 14, 24, 39, 59],
-      "bollWindow":[9, 14, 24],
-      "bollDev":[2.1, 2.6, 3.1, 3.6],
-      "cciWindow":[9, 14, 24],
-      "atrWindow":[14, 24, 39],
-      "slMultiplier":[2.1, 2.6, 3.6, 5.1]
-    }
+  }
   }
 }
 

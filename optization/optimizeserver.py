@@ -152,8 +152,12 @@ class OptimizeService(object):
 
         for w in self.wokers:
             w.start()
-
-        self.run()
+        try:
+            self.run()
+        except:
+            err = traceback.format_exc()
+            self.log.info('error', err)
+            self.stopQueue.put(self.SIG_STOP)
 
     def run(self):
         while self.active:

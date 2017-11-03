@@ -1,6 +1,7 @@
 # coding:utf-8
 
 import sys
+import time
 import logging
 import json
 from collections import OrderedDict
@@ -91,7 +92,14 @@ class BacktestingArg(object):
         username = self.config.get('mongo', 'username')
         password = self.config.get('mongo', 'password')
         dbn = self.config.get('mongo', 'dbn')
-        collName = self.config.get('mongo', 'argCol')
+        colName = self.config.get('mongo', 'argCol')
+
+        self.log.info(u'即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
+        seconds = 3
+        while seconds > 0:
+            self.log.info('{}'.format(seconds))
+            seconds -= 1
+            time.sleep(1)
 
         client = MongoClient(
             host,
@@ -99,7 +107,7 @@ class BacktestingArg(object):
         )
         db = client[dbn]
         db.authenticate(username, password)
-        self.argCol = db[collName].with_options(
+        self.argCol = db[colName].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
     def start(self):
@@ -221,12 +229,17 @@ class BacktestingArg(object):
         self.log.info(u'生成 {} 组参数'.format(countStr))
 
         # 删掉同名的参数组
-        # self.argCol.delete_many({'group': self.group, 'className': self.className})
-        # self.argCol.insert_many(documents)
+        self.argCol.delete_many({'group': self.group, 'className': self.className})
+        self.argCol.insert_many(documents)
 
 
 if __name__ == '__main__':
     argFileName = 'opt_CCI_SvtBollChannel.json'
+    # 本机配置
     optfile = 'optimize.ini'
+
+    # # home 配置
+    # optfile = 'optimizeHome.ini'
+
     b = BacktestingArg(argFileName, optfile)
     b.start()

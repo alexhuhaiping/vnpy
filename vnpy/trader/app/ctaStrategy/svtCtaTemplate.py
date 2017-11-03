@@ -71,6 +71,9 @@ class CtaTemplate(vtCtaTemplate):
 
         # 复制成和原来的 Logger 配置一样
 
+        if not isinstance(self.barXmin, int):
+            raise ValueError(u'barXmin should be int.')
+
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位

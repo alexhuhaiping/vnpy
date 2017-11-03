@@ -248,7 +248,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                     # 回测中爆仓了
                     self.capital = 0
 
-            self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
+            # self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
 
         if self.pos == 0:
             # 重置成本价
