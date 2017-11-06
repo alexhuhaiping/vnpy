@@ -1093,6 +1093,9 @@ class BacktestingEngine(VTBacktestingEngine):
         if __debug__:
             self.d = d
         # 输出
+        if not d:
+            self.log.info(u'没有回测结果')
+            return
 
         self.tradeResult[u'第一笔交易'] = d['timeList'][0]
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]

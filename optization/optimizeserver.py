@@ -21,7 +21,6 @@ from pymongo import IndexModel, ASCENDING, DESCENDING
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from runBacktesting import runBacktesting
 
-
 # 读取日志配置文件
 loggingConFile = 'logging.conf'
 loggingConFile = getJsonPath(loggingConFile, __file__)
@@ -66,7 +65,8 @@ class OptimizeService(object):
             name = 'wodker_{}'.format(i)
             self.logs[name] = logging.getLogger(name)
 
-            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, self.finishSettingIDQueue, name=name)
+            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, self.finishSettingIDQueue,
+                             name=name)
             self.wokers.append(w)
             self.log.info('woker {}'.format(name))
 
@@ -255,7 +255,6 @@ class Optimization(multiprocessing.Process):
 
         self.active = False
 
-
     def initDB(self):
         # 数据库链接
         self.client = pymongo.MongoClient(
@@ -323,8 +322,8 @@ class Optimization(multiprocessing.Process):
         self.lastTime = arrow.now().datetime
 
         # 输出回测结果
-        engine.showDailyResult()
         try:
+            engine.showDailyResult()
             engine.showBacktestingResult()
         except:
             print(vtSymbol, setting['optsv'])
@@ -347,9 +346,11 @@ class Optimization(multiprocessing.Process):
                 v = self.localzone.localize(v)
                 setting[k] = v
 
-        self.resultCol.insert_one(setting)
-
-        # 删除掉任务
+        # 是否有至少一笔成交
+        if engine.tradeResult:
+            # 有成交才保存这个，否则不保存回测结果
+            self.resultCol.insert_one(setting)
+        # 无论是否有成交结果，删除掉任务
         self.finishSettingIDQueue.put(_id)
         self.argCol.delete_one({'_id': _id})
 
