@@ -990,7 +990,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
             # 检查是否有交易
         if not resultList:
-            self.output(u'无交易结果')
+            self.log.info(u'无交易结果')
             return {}
 
         # resultList.sort(key=lambda r: r.datetime)

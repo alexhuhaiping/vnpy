@@ -13,6 +13,7 @@ import datetime
 
 from pymongo import MongoClient
 import arrow
+import hisfursum.summarize
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 
@@ -55,6 +56,8 @@ class BacktestingArg(object):
 
         # 合约详情的 collection
         self.contractCol = None
+        self.bar1dayCol = None
+
         # 生成的参数保存s
         self.argCol = None
 
@@ -74,6 +77,7 @@ class BacktestingArg(object):
         password = self.config.get('contractMongo', 'password')
         dbn = self.config.get('contractMongo', 'dbn')
         colName = self.config.get('contractMongo', 'collection')
+        bar1dayColName = self.config.get('contractMongo', 'bar1dayCollection')
 
         client = MongoClient(
             host,
@@ -86,6 +90,9 @@ class BacktestingArg(object):
         self.contractCol = db[colName].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
+        self.bar1dayCol = db[bar1dayColName].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+
         # 将回测参数保存到数据库
         host = self.config.get('mongo', 'host')
         port = self.config.getint('mongo', 'port')
@@ -95,11 +102,11 @@ class BacktestingArg(object):
         colName = self.config.get('mongo', 'argCol')
 
         self.log.info(u'即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
-        seconds = 3
-        while seconds > 0:
-            self.log.info('{}'.format(seconds))
-            seconds -= 1
-            time.sleep(1)
+        # seconds = 3
+        # while seconds > 0:
+        #     self.log.info('{}'.format(seconds))
+        #     seconds -= 1
+        #     time.sleep(1)
 
         client = MongoClient(
             host,
@@ -183,9 +190,38 @@ class BacktestingArg(object):
                 pass
         self.log.info(u'共 {} 上市品种'.format(len(onMarketUS)))
 
-        # 只取依然在上市的合约品种
-        contracts = [c for c in contracts if c['underlyingSymbol'] in onMarketUS]
-        return contracts
+        sumarization = hisfursum.summarize.Summarization(self.bar1dayCol, self.contractCol)
+        # 日成交量在10亿以上的品种
+        amountDF = sumarization.dailyAmountByActive()
+        amountSeries = amountDF['amount']
+        amountSeries = amountSeries[amountSeries > 10 ** 9]
+
+        # 一手保证金在 1万以下
+        contractDF = sumarization.marginByActive()
+
+        marginSeries = contractDF['margin']
+
+        marginSeries = marginSeries[marginSeries < 10 ** 4]
+
+        availbeContracts = []
+        usSet = set()
+        for c in contracts[:]:
+            us = c['underlyingSymbol']
+            if us not in onMarketUS:
+                # 只取依然在上市的合约品种
+                continue
+            if us not in amountSeries.index:
+                # 日成交额在10亿以上的
+                continue
+            if us not in marginSeries.index:
+                # 一手保证金在 1万以下
+                continue
+            usSet.add(us)
+            availbeContracts.append(c)
+
+        self.log.info(u'共 {} 个品种'.format(len(usSet)))
+
+        return availbeContracts
 
     def createBacktestingArgs(self, contracts, strategyArgs):
         """
@@ -197,9 +233,9 @@ class BacktestingArg(object):
         # 每个品种的回测参数
         documents = []
         for c in contracts:
-            # # TODO 测试代码，先只测试螺纹
+            # TODO 测试代码，先只测试螺纹
             if c['underlyingSymbol'] != 'hc':
-                # if c['vtSymbol'] != 'hc1710':
+                self.log.debug(u'只生成 hc 的参数')
                 continue
 
             for a in strategyArgs:
@@ -228,10 +264,21 @@ class BacktestingArg(object):
             countStr = count
         self.log.info(u'生成 {} 组参数'.format(countStr))
 
-        # 删掉同名的参数组
-        self.argCol.delete_many({'group': self.group, 'className': self.className})
-        self.argCol.insert_many(documents)
-
+        # # 删掉同名的参数组
+        # self.argCol.delete_many({'group': self.group, 'className': self.className})
+        #
+        # over = len(documents)
+        # once = 10000
+        # start, end = 0, once
+        # count = 0
+        # while end < over:
+        #     self.argCol.insert_many(documents[start:end])
+        #     count += once
+        #     start, end = end, end + once
+        #
+        #     self.log.info(u'{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
+        # self.argCol.insert_many(documents[start:])
+        #
 
 if __name__ == '__main__':
     argFileName = 'opt_CCI_SvtBollChannel.json'

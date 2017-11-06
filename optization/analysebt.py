@@ -261,6 +261,16 @@ class AnalyseBacktesting(object):
         :return:
         """
 
+    def getMaxNav(self, underlyingSymbol):
+        """
+        根据品种获得净值最大值
+        :param underlyingSymbol:
+        :return:
+        """
+
+        self.summarizeDialyDF
+
+
 
 if __name__ == '__main__':
     configPath = 'optimize.ini'
