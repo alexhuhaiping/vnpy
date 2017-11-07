@@ -11,7 +11,6 @@ import os
 import json
 from copy import copy
 from datetime import datetime, timedelta
-
 import arrow
 
 from vnpy.api.ctp import MdApi, TdApi, defineDict
@@ -232,21 +231,21 @@ class CtpMdApi(MdApi):
         self.gateway = gateway  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
         self.reqID = EMPTY_INT              # 操作请求编号
-        
+
         self.connectionStatus = False       # 连接状态
         self.loginStatus = False            # 登录状态
-        
-        self.subscribedSymbols = set()      # 已订阅合约代码        
-        
+
+        self.subscribedSymbols = set()      # 已订阅合约代码
+
         self.userID = EMPTY_STRING          # 账号
         self.password = EMPTY_STRING        # 密码
         self.brokerID = EMPTY_STRING        # 经纪商代码
         self.address = EMPTY_STRING         # 服务器地址
-        
+
         self.tradingDt = None               # 交易日datetime对象
         self.tradingDate = EMPTY_STRING     # 交易日期字符串
         self.tickTime = None                # 最新行情time对象
-        
+
     #----------------------------------------------------------------------
     def onFrontConnected(self):
         """服务器连接"""
@@ -297,7 +296,7 @@ class CtpMdApi(MdApi):
             # 获取交易日
             self.tradingDate = data['TradingDay']
             self.tradingDt = datetime.strptime(self.tradingDate, '%Y%m%d')
-                
+
         # 否则，推送错误信息
         else:
             err = VtErrorData()
@@ -347,15 +346,15 @@ class CtpMdApi(MdApi):
         tick.symbol = data['InstrumentID']
         tick.exchange = symbolExchangeDict.get(tick.symbol, EXCHANGE_UNKNOWN)
         tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, tick.exchange])
-        
+
         tick.lastPrice = data['LastPrice']
         tick.volume = data['Volume']
         tick.openInterest = data['OpenInterest']
         tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec']/100)])
-        
+
         # 上期所和郑商所可以直接使用，大商所需要转换
         tick.date = data['ActionDay']
-        
+
         tick.openPrice = data['OpenPrice']
         tick.highPrice = data['HighestPrice']
         tick.lowPrice = data['LowestPrice']
@@ -373,20 +372,18 @@ class CtpMdApi(MdApi):
         # 大商所日期转换
         if tick.exchange is EXCHANGE_DCE:
             newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()    # 最新tick时间戳
-            
+
             # 如果新tick的时间小于夜盘分隔，且上一个tick的时间大于夜盘分隔，则意味着越过了12点
-            if (self.tickTime and 
+            if (self.tickTime and
                 newTime < NIGHT_TRADING and
                 self.tickTime > NIGHT_TRADING):
                 self.tradingDt += timedelta(1)                          # 日期加1
                 self.tradingDate = self.tradingDt.strftime('%Y%m%d')    # 生成新的日期字符串
-                
+
             tick.date = self.tradingDate    # 使用本地维护的日期
 
             self.tickTime = newTime         # 更新上一个tick时间
-
-        tick.datetime = arrow.get('{} {}+08:00'.format(tick.date, tick.time)).datetime
-
+        tick.datetime = arrow.get('{} {}+08:00'.format(str(tick.date), str(tick.time))).datetime
         self.gateway.onTick(tick)
 
     # ----------------------------------------------------------------------
@@ -483,20 +480,20 @@ class svtCtpTdApi(TdApi):
 
         self.reqID = EMPTY_INT              # 操作请求编号
         self.orderRef = EMPTY_INT           # 订单编号
-        
+
         self.connectionStatus = False       # 连接状态
         self.loginStatus = False            # 登录状态
         self.authStatus = False             # 验证状态
         self.loginFailed = False            # 登录失败（账号密码错误）
-        
+
         self.userID = EMPTY_STRING          # 账号
         self.password = EMPTY_STRING        # 密码
         self.brokerID = EMPTY_STRING        # 经纪商代码
         self.address = EMPTY_STRING         # 服务器地址
-        
+
         self.frontID = EMPTY_INT            # 前置机编号
         self.sessionID = EMPTY_INT          # 会话编号
-        
+
         self.posDict = {}
         self.symbolExchangeDict = {}  # 保存合约代码和交易所的印射关系
         self.symbolSizeDict = {}  # 保存合约代码和合约大小的印射关系
@@ -568,7 +565,7 @@ class svtCtpTdApi(TdApi):
 
             # 标识登录失败，防止用错误信息连续重复登录
             self.loginFailed =  True
-        
+
     #----------------------------------------------------------------------
     def onRspUserLogout(self, data, error, n, last):
         """登出回报"""
@@ -738,13 +735,13 @@ class svtCtpTdApi(TdApi):
         # 计算成本
         size = self.symbolSizeDict[pos.symbol]
         cost = pos.price * pos.position * size
-        
+
         # 汇总总仓
         pos.position += data['Position']
         pos.positionProfit += data['PositionProfit']
 
         # 计算持仓均价
-        if pos.position and pos.symbol in self.symbolSizeDict:    
+        if pos.position and pos.symbol in self.symbolSizeDict:
             pos.price = (cost + data['PositionCost']) / (pos.position * size)
 
         # 读取冻结
@@ -837,7 +834,7 @@ class svtCtpTdApi(TdApi):
         contract.underlyingSymbol = data['UnderlyingInstrID']
 
         contract.productClass = productClassMapReverse.get(data['ProductClass'], PRODUCT_UNKNOWN)
-        
+
         # 期权类型
         if contract.productClass is PRODUCT_OPTION:
             if data['OptionsType'] == '1':
@@ -851,7 +848,7 @@ class svtCtpTdApi(TdApi):
 
         # 推送
         self.gateway.onContract(contract)
-        
+
         # 缓存合约代码和交易所映射
         symbolExchangeDict[contract.symbol] = contract.exchange
 
@@ -1384,7 +1381,7 @@ class svtCtpTdApi(TdApi):
         # 如果之前有过登录失败，则不再进行尝试
         if self.loginFailed:
             return
-        
+
         # 如果填入了用户名密码等，则登录
         if self.userID and self.password and self.brokerID:
             req = {}
