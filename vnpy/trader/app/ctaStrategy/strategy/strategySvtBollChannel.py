@@ -287,7 +287,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
         if self.slMultiplier == 0:
             return
-        if self.self.atrValue == 0:
+        if self.atrValue == 0:
             return
 
         try:
