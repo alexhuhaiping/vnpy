@@ -116,9 +116,11 @@ class CtaTemplate(vtCtaTemplate):
             except TypeError:
                 if self.marginRate is None:
                     pass
+
     @property
     def bar(self):
         return self.bm.bar
+
     @property
     def xminBar(self):
         return self.bm.xminBar
@@ -193,14 +195,18 @@ class CtaTemplate(vtCtaTemplate):
         bar.close = bar1min.close
 
     def paramList2Html(self):
-        return OrderedDict(
-            (k, getattr(self, k)) for k in self.paramList
-        )
+        orDic = OrderedDict()
+        for k in self.paramList:
+            orDic[k] = getattr(self, k)
+            self.log.info(u'2html {} {}'.format(k, orDic[k]))
+        return orDic
 
     def varList2Html(self):
-        return OrderedDict(
-            (k, getattr(self, k)) for k in self.varList
-        )
+        orDic = OrderedDict()
+        for k in self.varList:
+            orDic[k] = getattr(self, k)
+            self.log.info(u'2html {} {}'.format(k, orDic[k]))
+        return orDic
 
     def toHtml(self):
         self.log.info(u'生成网页')
@@ -234,7 +240,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def loadBar(self, barNum):
         """加载用于初始化策略的数据"""
-        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum+1, self.barXmin)
+        return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum + 1, self.barXmin)
 
     @property
     def mainEngine(self):
@@ -555,7 +561,7 @@ class BarManager(VtBarManager):
         oldBar = None
 
         # 剔除错误数据
-        if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60*10):
+        if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60 * 10):
             # 如果当前 tick 比上一个 tick 差距达到 10分钟没成交的合约，则认为是错误数据
             # CTA 策略默认使用比较活跃的合约
             return
@@ -667,8 +673,7 @@ class ArrayManager(VtArrayManager):
         size += 1
         super(ArrayManager, self).__init__(size)
 
-
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def atr(self, n, array=False):
         """ATR指标"""
         result = talib.ATR(self.high, self.low, self.close, n)
