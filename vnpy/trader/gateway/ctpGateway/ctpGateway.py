@@ -383,7 +383,8 @@ class CtpMdApi(MdApi):
             tick.date = self.tradingDate    # 使用本地维护的日期
 
             self.tickTime = newTime         # 更新上一个tick时间
-        tick.datetime = arrow.get('{} {}+08:00'.format(str(tick.date), str(tick.time))).datetime
+        dt = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+        tick.datetime = arrow.get('{}+08:00'.format(dt)).datetime
         self.gateway.onTick(tick)
 
     # ----------------------------------------------------------------------
