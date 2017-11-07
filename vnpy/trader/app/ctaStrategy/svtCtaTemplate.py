@@ -680,8 +680,4 @@ class ArrayManager(VtArrayManager):
 
         if array:
             return result
-        if result[-1] == 0:
-            print(self.high)
-            print(self.low)
-            print(self.close)
         return result[-1]
