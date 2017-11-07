@@ -248,7 +248,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                     # 回测中爆仓了
                     self.capital = 0
 
-            # self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
+                    # self.log.warning(u'{} -> {} {}'.format(preCapital, self.capital, profile))
 
         if self.pos == 0:
             # 重置成本价
@@ -279,15 +279,17 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
 
-        # TODO 测试代码 >>>>>>>
-        if self.bar.datetime < arrow.get('2014-05-25 00:00:00+08:00').datetime:
-            self.hands = 0
-            return
-        # <<<<<<<<<<<<<<<<<<<
-
         if self.capital <= 0:
             self.hands = 0
             return
+
+        # 以下技术指标为0时，不更新手数
+        # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
+        if self.slMultiplier == 0:
+            return
+        if self.self.atrValue == 0:
+            return
+
         try:
             minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
             # minHands = int(self.capital / 10000)
