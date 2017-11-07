@@ -12,6 +12,8 @@ import json
 from copy import copy
 from datetime import datetime, timedelta
 
+import arrow
+
 from vnpy.api.ctp import MdApi, TdApi, defineDict
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtFunction import getJsonPath, getTempPath
@@ -380,9 +382,11 @@ class CtpMdApi(MdApi):
                 self.tradingDate = self.tradingDt.strftime('%Y%m%d')    # 生成新的日期字符串
                 
             tick.date = self.tradingDate    # 使用本地维护的日期
-            
+
             self.tickTime = newTime         # 更新上一个tick时间
-        
+
+        tick.datetime = arrow.get('{} {}+08:00'.format(tick.date, tick.time)).datetime
+
         self.gateway.onTick(tick)
 
     # ----------------------------------------------------------------------
