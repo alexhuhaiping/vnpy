@@ -4,6 +4,7 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
+import traceback
 import time
 import talib
 import logging
@@ -210,25 +211,32 @@ class CtaTemplate(vtCtaTemplate):
 
     def toHtml(self):
         self.log.info(u'生成网页')
-        items = (
-            ('param', self.paramList2Html()),
-            ('var', self.varList2Html()),
-        )
-        self.log.info(u'1111111111')
-        orderDic = OrderedDict(items)
-        orderDic['bar'] = self.barToHtml()
-        orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
-        self.log.info(u'2222222222')
+        try:
+            items = (
+                ('param', self.paramList2Html()),
+                ('var', self.varList2Html()),
+            )
 
-        # 本地停止单
-        stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
-        units = [so.toHtml() for so in stopOrders]
-        orderDic['stopOrder'] = pd.DataFrame(units).to_html()
-        self.log.info(u'333333333333')
+            self.log.info(u'1111111111')
+            orderDic = OrderedDict(items)
+            orderDic['bar'] = self.barToHtml()
+            orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
+            self.log.info(u'2222222222')
 
-        # 持仓详情
-        orderDic['posdetail'] = self.positionDetail.toHtml()
-        self.log.info(u'4444444444')
+            # 本地停止单
+            stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
+            units = [so.toHtml() for so in stopOrders]
+            orderDic['stopOrder'] = pd.DataFrame(units).to_html()
+            self.log.info(u'333333333333')
+
+            # 持仓详情
+            orderDic['posdetail'] = self.positionDetail.toHtml()
+            self.log.info(u'4444444444')
+
+        except:
+            err = traceback.format_exc()
+            self.log.error(err)
+            raise
 
         return orderDic
 
