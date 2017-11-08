@@ -294,8 +294,6 @@ class SvtBollChannelStrategy(CtaTemplate):
             minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
             # minHands = int(self.capital / 10000)
         except:
-            print(self.vtSymbol, self.bar.datetime)
-            print(self.capital, self.risk, self.size, self.atrValue, self.slMultiplier)
             raise
 
         maxHands = max(0, int(
