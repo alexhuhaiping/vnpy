@@ -199,16 +199,18 @@ class CtaTemplate(vtCtaTemplate):
         orDic = OrderedDict()
         self.log.info(u'{}'.format(str(self.paramList)))
         for k in self.paramList:
-            self.log.info(u'2html {} {}'.format(k, orDic[k]))
-            orDic[k] = getattr(self, k)
+            v = getattr(self, k)
+            self.log.info(u'2html {} {}'.format(k, v))
+            orDic[k] = v
         return orDic
 
     def varList2Html(self):
         orDic = OrderedDict()
         self.log.info(u'{}'.format(str(self.varList)))
         for k in self.varList:
-            orDic[k] = getattr(self, k)
-            self.log.info(u'2html {} {}'.format(k, orDic[k]))
+            v = getattr(self, k)
+            self.log.info(u'2html {} {}'.format(k, v))
+            orDic[k] = v
         return orDic
 
     def toHtml(self):
