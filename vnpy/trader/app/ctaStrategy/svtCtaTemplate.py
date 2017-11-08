@@ -197,13 +197,15 @@ class CtaTemplate(vtCtaTemplate):
 
     def paramList2Html(self):
         orDic = OrderedDict()
+        self.log.info(u'{}'.format(str(self.paramList)))
         for k in self.paramList:
-            orDic[k] = getattr(self, k)
             self.log.info(u'2html {} {}'.format(k, orDic[k]))
+            orDic[k] = getattr(self, k)
         return orDic
 
     def varList2Html(self):
         orDic = OrderedDict()
+        self.log.info(u'{}'.format(str(self.varList)))
         for k in self.varList:
             orDic[k] = getattr(self, k)
             self.log.info(u'2html {} {}'.format(k, orDic[k]))
@@ -232,13 +234,13 @@ class CtaTemplate(vtCtaTemplate):
             # 持仓详情
             orderDic['posdetail'] = self.positionDetail.toHtml()
             self.log.info(u'4444444444')
-
+            return orderDic
         except:
             err = traceback.format_exc()
             self.log.error(err)
-            raise
 
-        return orderDic
+        return {}
+
 
     @property
     def positionDetail(self):
