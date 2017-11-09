@@ -214,7 +214,8 @@ class CtaTemplate(vtCtaTemplate):
         return orDic
 
     def toHtml(self):
-        self.log.info(u'生成网页1')
+        self.log.warning(u'生成网页1')
+        self.log.info(u'生成网页2')
         try:
             self.log.info(u'11111111111111')
             param = self.paramList2Html()
