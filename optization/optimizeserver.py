@@ -13,6 +13,7 @@ import signal
 import datetime
 import traceback
 
+from slavem import Reporter
 import arrow
 import pymongo
 from pymongo.errors import OperationFailure
@@ -48,6 +49,18 @@ class OptimizeService(object):
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
+
+        # slavem监控
+        self.slavemReport = Reporter(
+            self.config.get('slavem', 'name'),
+            self.config.get('slavem', 'type'),
+            self.config.get('slavem', 'host'),
+            self.config.getint('slavem', 'port'),
+            self.config.get('slavem', 'dbn'),
+            self.config.get('slavem', 'username'),
+            self.config.get('slavem', 'password'),
+            self.config.get('slavem', 'localhost'),
+        )
 
         # 任务队列
         self.settingQueue = multiprocessing.Queue(self.cpuCount)
@@ -160,11 +173,17 @@ class OptimizeService(object):
             self.stopQueue.put(self.SIG_STOP)
 
     def run(self):
-        while self.active:
-            try:
-                self._run()
-            except Empty:
-                continue
+        try:
+            self.slavemReport.heartBeat()
+            while self.active:
+                try:
+                    self._run()
+                except Empty:
+                    continue
+        except:
+            err = traceback.format_exc()
+            self.log.critical(err)
+            raise
 
         self.exit()
 
@@ -190,6 +209,8 @@ class OptimizeService(object):
         if self.threadLog.isAlive():
             self.logActive = False
             self.threadLog.join()
+
+        self.slavemReport.endHeartBeat()
 
     def _run(self):
 
@@ -346,13 +367,13 @@ class Optimization(multiprocessing.Process):
                 v = self.localzone.localize(v)
                 setting[k] = v
 
-        # 是否有至少一笔成交
-        if engine.tradeResult:
-            # 有成交才保存这个，否则不保存回测结果
-            self.resultCol.insert_one(setting)
-        # 无论是否有成交结果，删除掉任务
-        self.finishSettingIDQueue.put(_id)
-        self.argCol.delete_one({'_id': _id})
+        # # 是否有至少一笔成交
+        # if engine.tradeResult:
+        #     # 有成交才保存这个，否则不保存回测结果
+        #     self.resultCol.insert_one(setting)
+        # # 无论是否有成交结果，删除掉任务
+        # self.finishSettingIDQueue.put(_id)
+        # self.argCol.delete_one({'_id': _id})
 
     def log(self, level, msg):
         """
