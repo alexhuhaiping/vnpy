@@ -196,32 +196,19 @@ class CtaTemplate(vtCtaTemplate):
         bar.close = bar1min.close
 
     def paramList2Html(self):
-        orDic = OrderedDict()
-        self.log.info(u'{}'.format(str(self.paramList)))
-        for k in self.paramList:
-            v = getattr(self, k)
-            self.log.info(u'2html {} {}'.format(k, v))
-            orDic[k] = v
-        return orDic
+        return OrderedDict(
+            ((k, getattr(self, k)) for k in self.paramList)
+        )
 
     def varList2Html(self):
-        orDic = OrderedDict()
-        self.log.info(u'{}'.format(str(self.varList)))
-        for k in self.varList:
-            v = getattr(self, k)
-            self.log.info(u'2html {} {}'.format(k, v))
-            orDic[k] = v
-        return orDic
+        return OrderedDict(
+            ((k, getattr(self, k)) for k in self.varList)
+        )
 
     def toHtml(self):
-        self.log.warning(u'生成网页1')
-        self.log.info(u'生成网页2')
         try:
-            self.log.info(u'11111111111111')
             param = self.paramList2Html()
-            self.log.info(u'22222222')
             var = self.varList2Html()
-            self.log.info(u'3333333333')
 
             items = (
                 ('param', param),

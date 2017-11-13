@@ -1,5 +1,6 @@
 #!/bin/bash
 
+docker rm -f vnpyshell
 cd ..
 docker run --rm -it --name vnpyshell \
     -v $PWD:/srv/vnpy \
