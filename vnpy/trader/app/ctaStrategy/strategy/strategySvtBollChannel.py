@@ -129,6 +129,12 @@ class SvtBollChannelStrategy(CtaTemplate):
         """启动策略（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略启动' % self.name)
 
+        if self.xminBar and self.am and self.inited and self.trading:
+            self.cancelAll()
+            self.orderOnXminBar(self.am, self.xminBar)
+
+        self.log.info(u'capital {}'.format(self.capital))
+
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -147,6 +153,8 @@ class SvtBollChannelStrategy(CtaTemplate):
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
         self.bm.updateBar(bar)
+        if self.trading:
+            self.log.info(u'更新 bar {}'.format(bar.datetime))
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
@@ -164,6 +172,20 @@ class SvtBollChannelStrategy(CtaTemplate):
         if not am.inited:
             return
 
+        self.orderOnXminBar(am, bar)
+
+        # 发出状态更新事件
+        self.saveDB()
+        self.putEvent()
+        self.log.info(u'更新 XminBar {}'.format(self.xminBar.datetime))
+
+    def orderOnXminBar(self, am, bar):
+        """
+        在 onXminBar 中的的指标计算和下单逻辑
+        :param am:
+        :param bar:
+        :return:
+        """
         # 计算指标数值
         self.bollUp, self.bollDown = am.boll(self.bollWindow, self.bollDev)
         self.cciValue = am.cci(self.cciWindow)
@@ -199,10 +221,6 @@ class SvtBollChannelStrategy(CtaTemplate):
 
             self.cover(self.shortStop, abs(self.pos), True)
 
-        # 发出状态更新事件
-        self.saveDB()
-        self.putEvent()
-
         # ----------------------------------------------------------------------
 
     def onOrder(self, order):
@@ -234,7 +252,6 @@ class SvtBollChannelStrategy(CtaTemplate):
             else:
                 raise ValueError(u'未知的开仓方向')
 
-            preCapital = self.capital
             self.capital += profile
 
             # 手续费

@@ -209,7 +209,6 @@ class CtaTemplate(vtCtaTemplate):
         try:
             param = self.paramList2Html()
             var = self.varList2Html()
-
             items = (
                 ('param', param),
                 ('var', var),
@@ -397,9 +396,18 @@ class CtaTemplate(vtCtaTemplate):
         将策略的数据保存到 mongodb 数据库
         :return:
         """
+
         if self.isBackTesting():
             # 回测中，不存库
             return
+
+        if self.inited:
+            return
+
+        if self.trading:
+            return
+
+        self.log.info(u'保存策略数据')
 
         # 保存
         document = self.toSave()

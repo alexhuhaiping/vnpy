@@ -26,7 +26,7 @@ class MainEngine(VtMaingEngine):
     def __init__(self, eventEngine):
         super(MainEngine, self).__init__(eventEngine)
         self.ctpdb = None  # ctp 历史行情数据库
-        self.strategyDB = None  # cta 策略相关的数据
+        # self.strategyDB = None  # cta 策略相关的数据
 
         if __debug__:
             self.log.info(u'DEBUG 模式')
@@ -40,14 +40,19 @@ class MainEngine(VtMaingEngine):
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
-
                 ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
                 ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
                 self.ctpdb = ctpdb
 
-                strategyDB = self.dbClient[globalSetting['mongoCtaDbn']]
-                strategyDB.authenticate(globalSetting['mongoCtaUsername'], globalSetting['mongoCtaPassword'])
-                self.strategyDB = strategyDB
+                ctaConfig = globalSetting['mongoCTA']
+                globals().update(ctaConfig)
+                client = MongoClient(
+                    ctaConfig['host'],
+                    ctaConfig['port']
+                )
+                db = client[ctaConfig['dbn']]
+                db.authenticate(ctaConfig['username'], ctaConfig['password'])
+                self.strategyDB = db
 
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
@@ -60,6 +65,9 @@ class MainEngine(VtMaingEngine):
 
             except ConnectionFailure:
                 self.writeLog(text.DATABASE_CONNECTING_FAILED)
+            except :
+                self.log.critical(traceback.format_exc())
+                raise
 
     # ----------------------------------------------------------------------
     def dbLogging(self, event):

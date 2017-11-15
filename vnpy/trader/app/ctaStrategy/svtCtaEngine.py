@@ -32,6 +32,8 @@ from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
 from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
+from vnpy.trader.vtGlobal import globalSetting
+from vnpy.trader.svtEngine import MainEngine
 
 from .ctaBase import *
 from .strategy import STRATEGY_CLASS
@@ -47,6 +49,7 @@ class CtaEngine(VtCtaEngine):
 
     def __init__(self, mainEngine, eventEngine):
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
+        assert isinstance(self.mainEngine, MainEngine)
 
         # 历史行情的 collection
         self.mainEngine.dbConnect()
@@ -59,11 +62,16 @@ class CtaEngine(VtCtaEngine):
         self.ctpCol1dayBar = self.mainEngine.ctpdb[DAY_COL_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
+        self.strategyDB = self.mainEngine.strategyDB
         # 尝试创建 ctaCollection
-        self.createCtaCollection()
+        self.initCollection()
 
         # cta 策略存库
         self.ctaCol = self.mainEngine.strategyDB[CTA_COL_NAME].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        # 持仓存库
+        self.posCol = self.mainEngine.strategyDB[POSITION_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
         if __debug__:
@@ -190,7 +198,6 @@ class CtaEngine(VtCtaEngine):
                         so.status = STOPORDER_TRIGGERED
                         so.strategy.onStopOrder(so)
 
-
     def getAllStopOrdersSorted(self, vtTick):
         """
         对全部停止单排序后
@@ -263,12 +270,12 @@ class CtaEngine(VtCtaEngine):
 
         self.ctaCol.find_one_and_update(sql, document, upsert=True)
 
-    def createCtaCollection(self):
-        """
+    def initCollection(self):
+        self.createCtaCollection()
+        self.createPosCollecdtion()
 
-        :return:
-        """
-        db = self.mainEngine.strategyDB
+    def createCtaCollection(self):
+        db = self.strategyDB
 
         if __debug__:
             import pymongo.database
@@ -288,6 +295,25 @@ class CtaEngine(VtCtaEngine):
 
         indexes = [indexSymbol, indexClass, indexDatetime]
         self.mainEngine.createCollectionIndex(ctaCol, indexes)
+
+    def createPosCollecdtion(self):
+        db = self.strategyDB
+
+        if __debug__:
+            import pymongo.database
+            assert isinstance(db, pymongo.database.Database)
+
+        colNames = db.collection_names()
+        if CTA_COL_NAME not in colNames:
+            # 还没创建 cta collection
+            col = db.create_collection(POSITION_COLLECTION_NAME)
+        else:
+            col = db[POSITION_COLLECTION_NAME]
+
+        posMulIndex = [('vtSymbol', DESCENDING), ('name', DESCENDING), ('className', DESCENDING)]
+
+        posIndex = IndexModel(posMulIndex, name='posIndex', background=True, unique=True)
+        self.mainEngine.createCollectionIndex(col, [posIndex])
 
     def initAll(self):
         try:
@@ -310,7 +336,7 @@ class CtaEngine(VtCtaEngine):
             while s._marginRate is None:
                 if count % 3000 == 0:
                     # 30秒超时
-                    err= u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
+                    err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
                     self.log.warning(err)
                     # ctpGateway = self.mainEngine.getGateway('CTP')
                     # ctpGateway.close()
@@ -377,10 +403,13 @@ class CtaEngine(VtCtaEngine):
              'className': strategy.className,
              'pos': strategy.pos}
 
-        self.mainEngine.dbUpdate(POSITION_DB_NAME, POSITION_COLLECTION_NAME,
-                                 d, flt, True)
+        # self.mainEngine.dbUpdate(POSITION_DB_NAME, POSITION_COLLECTION_NAME,
+        #                          d, flt, True)
+
+        self.posCol.replace_one(flt, d, upsert=True)
 
         content = u'策略%s持仓保存成功，当前持仓%s' % (strategy.name, strategy.pos)
+        self.log.info(content)
         self.writeCtaLog(content)
 
     # ----------------------------------------------------------------------
@@ -390,7 +419,11 @@ class CtaEngine(VtCtaEngine):
             flt = {'name': strategy.name,
                    'className': strategy.className,
                    'vtSymbol': strategy.vtSymbol}
-            posData = self.mainEngine.dbQuery(POSITION_DB_NAME, POSITION_COLLECTION_NAME, flt)
 
-            for d in posData:
-                strategy.pos = d['pos']
+            # posData = self.mainEngine.dbQuery(POSITION_DB_NAME, POSITION_COLLECTION_NAME, flt)
+            # for d in posData:
+            #     strategy.pos = d['pos']
+            try:
+                strategy.pos = self.posCol.find_one(flt)['pos']
+            except TypeError:
+                self.log.info(u'{name} 该策略没有持仓'.format(**flt))
