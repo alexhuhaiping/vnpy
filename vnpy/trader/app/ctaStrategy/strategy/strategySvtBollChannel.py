@@ -126,7 +126,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略启动' % self.name)
+        self.log.info(u'%s策略启动' % self.name)
 
         if self.xminBar and self.am and self.inited and self.trading:
             self.cancelAll()
@@ -139,7 +139,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略停止' % self.name)
+        self.log.info(u'%s策略停止' % self.name)
         self.saveDB()
         self.putEvent()
 
