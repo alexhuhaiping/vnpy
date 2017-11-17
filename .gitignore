@@ -70,4 +70,5 @@ logging.conf
 temp/
 slave.turtle/vtserverdocker.sh
 slave.turtle/kill_turtle.sh
+slave.turtle/shell.sh
 log.sh
