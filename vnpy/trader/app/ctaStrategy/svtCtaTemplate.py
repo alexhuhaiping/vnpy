@@ -53,6 +53,14 @@ class CtaTemplate(vtCtaTemplate):
 
     ])
 
+    # 权益情况
+    BALANCE = [
+        'capital',
+        'turnover',
+        'averagePrice',
+
+    ]
+
     # 成交状态
     TRADE_STATUS_OPEN_LONG = u'开多'  # 开多
     TRADE_STATUS_CLOSE_LONG = u'平多'  # 平多
@@ -114,6 +122,13 @@ class CtaTemplate(vtCtaTemplate):
         # self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
 
         self.registerEvent()
+
+    @property
+    def averagePrice(self):
+        try:
+            return self.turnover / self.pos
+        except ZeroDivisionError:
+            return 0
 
     @property
     def pos(self):
@@ -267,14 +282,20 @@ class CtaTemplate(vtCtaTemplate):
         return OrderedDict(
             ((k, getattr(self, k)) for k in self.varList)
         )
+    def balance2Html(self):
+        return OrderedDict(
+            ((k, getattr(self, k)) for k in self.BALANCE)
+        )
 
     def toHtml(self):
         try:
             param = self.paramList2Html()
             var = self.varList2Html()
+            balance = self.balance2Html()
             items = (
                 ('param', param),
                 ('var', var),
+                ('balance', balance),
             )
 
             orderDic = OrderedDict(items)

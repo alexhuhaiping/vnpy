@@ -130,7 +130,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if self.xminBar and self.am and self.inited and self.trading:
             self.cancelAll()
-            self.orderOnXminBar(self.am, self.xminBar)
+            self.orderOnXminBar(self.xminBar)
 
         self.log.info(u'capital {}'.format(self.capital))
 
@@ -171,24 +171,25 @@ class SvtBollChannelStrategy(CtaTemplate):
         if not am.inited:
             return
 
-        self.orderOnXminBar(am, bar)
+        # 计算指标数值
+        self.bollUp, self.bollDown = am.boll(self.bollWindow, self.bollDev)
+        self.cciValue = am.cci(self.cciWindow)
+        self.atrValue = am.atr(self.atrWindow)
+
+        self.orderOnXminBar(bar)
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(self.xminBar.datetime))
 
-    def orderOnXminBar(self, am, bar):
+    def orderOnXminBar(self, bar):
         """
         在 onXminBar 中的的指标计算和下单逻辑
         :param am:
         :param bar:
         :return:
         """
-        # 计算指标数值
-        self.bollUp, self.bollDown = am.boll(self.bollWindow, self.bollDev)
-        self.cciValue = am.cci(self.cciWindow)
-        self.atrValue = am.atr(self.atrWindow)
 
         # 判断是否要进行交易
         self.updateHands()
@@ -220,7 +221,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
             self.cover(self.shortStop, abs(self.pos), True)
 
-            # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
@@ -255,6 +256,9 @@ class SvtBollChannelStrategy(CtaTemplate):
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
+
+        # 下止损单
+        self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
         self.saveDB()
