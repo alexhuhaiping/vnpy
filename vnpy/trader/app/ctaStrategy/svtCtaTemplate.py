@@ -53,6 +53,19 @@ class CtaTemplate(vtCtaTemplate):
 
     ])
 
+    # 成交状态
+    TRADE_STATUS_OPEN_LONG = u'开多'  # 开多
+    TRADE_STATUS_CLOSE_LONG = u'平多'  # 平多
+    TRADE_STATUS_DEC_LONG = u'减多'  # 减多
+    TRADE_STATUS_INC_LONG = u'加多'  # # 加多
+    TRADE_STATUS_REV_LONG = u'反多'  # 反多
+
+    TRADE_STATUS_OPEN_SHORT = u'开空'  # 开空
+    TRADE_STATUS_CLOSE_SHORT = u'平空'  # 平空
+    TRADE_STATUS_DEC_SHORT = u'减空'  # 减空
+    TRADE_STATUS_INC_SHORT = u'加空'  # # 加空
+    TRADE_STATUS_REV_SHORT = u'反空'  # 反空
+
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
@@ -96,6 +109,10 @@ class CtaTemplate(vtCtaTemplate):
         # 技术指标生成器
         self.am = ArrayManager(self.maxBarNum)
 
+        # 计算持仓成本
+        self.turnover = EMPTY_FLOAT  # 持仓总值，多空正负
+        # self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
+
         self.registerEvent()
 
     @property
@@ -137,14 +154,60 @@ class CtaTemplate(vtCtaTemplate):
         """
         raise NotImplementedError
 
-    def getCharge(self, offset, price):
-        # 手续费
-        if self.isBackTesting():
-            # 回测时使用的是比例手续费
-            return self.ctaEngine.rate * self.size * price
+    def capitalBalance(self, trade):
+        """
+        计算持仓成本和利润
+        支持锁仓模式
+        :param trade:
+        :return:
+        """
+        # 计算之前的持仓，多头为正，空头为负
+        volume = trade.volume if trade.direction == DIRECTION_LONG else -trade.volume
+        prePos = self.pos - volume
+
+        status = self.tradeStatsu(prePos, self.pos)
+
+        profile = 0
+        if status in (self.TRADE_STATUS_OPEN_LONG, self.TRADE_STATUS_OPEN_SHORT):
+            # 开多,开空
+            self.turnover = volume * trade.price
+        elif status in (self.TRADE_STATUS_INC_LONG, self.TRADE_STATUS_INC_SHORT):
+            # 加多, 加空
+            self.turnover += volume * trade.price
+        elif status == self.TRADE_STATUS_CLOSE_LONG:
+            # 平多
+            profile = abs(trade.price * volume) - abs(self.turnover)
+        elif status == self.TRADE_STATUS_CLOSE_SHORT:
+            # 平空
+            profile = abs(self.turnover) - abs(trade.price * volume)
+
+        elif status == self.TRADE_STATUS_DEC_LONG:
+            # 减多
+            price = self.turnover / prePos
+            turnover = price * volume
+            profile = abs(trade.price * volume) - abs(turnover)
+            self.turnover = price * self.pos
+        elif status == self.TRADE_STATUS_DEC_SHORT:
+            # 减空
+            price = self.turnover / prePos
+            turnover = price * volume
+            profile = abs(turnover) - abs(trade.price * volume)
+            self.turnover = price * self.pos
+        elif status == self.TRADE_STATUS_REV_LONG:
+            # 反多
+            profile = abs(self.turnover) - abs(trade.price * prePos)
+            # 开多
+            self.turnover = self.pos * trade.price
+        elif status == self.TRADE_STATUS_REV_SHORT:
+            # 反空
+            profile = abs(trade.price * prePos) - abs(self.turnover)
+            self.turnover = 0
+            # 开空
+            self.turnover += self.pos * trade.price
         else:
-            # TODO 实盘手续费
-            return 0
+            raise ValueError(u'未知的状态 {}'.format(status))
+
+        self.capital += profile * self.size
 
     def charge(self, offset, price, volume):
         """
@@ -231,7 +294,6 @@ class CtaTemplate(vtCtaTemplate):
             self.log.error(err)
 
         return {}
-
 
     @property
     def positionDetail(self):
@@ -547,6 +609,46 @@ class CtaTemplate(vtCtaTemplate):
         """
         self.maxBarNum = 0
         raise NotImplementedError(u'')
+
+    def tradeStatsu(self, prePos, pos):
+        """
+
+        :param prePos:
+        :param pos:
+        :return:
+        """
+
+        if prePos == 0 and pos > 0:
+            # 开多
+            return self.TRADE_STATUS_OPEN_LONG
+        if pos == 0 and prePos > 0:
+            # 平多
+            return self.TRADE_STATUS_CLOSE_LONG
+        if prePos > 0 and pos > 0 and prePos > pos:
+            # 减多
+            return self.TRADE_STATUS_DEC_LONG
+        if prePos > 0 and pos > 0 and prePos < pos:
+            # 加多
+            return self.TRADE_STATUS_INC_LONG
+        if prePos > 0 and pos > 0 and prePos < pos:
+            # 反多
+            return self.TRADE_STATUS_REV_LONG
+
+        if prePos == 0 and pos < 0:
+            # 开空
+            return self.TRADE_STATUS_OPEN_SHORT
+        if pos == 0 and prePos < 0:
+            # 平空
+            return self.TRADE_STATUS_CLOSE_SHORT
+        if prePos < 0 and pos < 0 and abs(pos) < abs(prePos):
+            # 减空
+            return self.TRADE_STATUS_DEC_SHORT
+        if prePos < 0 and pos < 0 and abs(pos) > abs(prePos):
+            # 加空
+            return self.TRADE_STATUS_INC_SHORT
+        if prePos < 0 and pos == 0:
+            # 反空
+            return self.TRADE_STATUS_REV_SHORT
 
 
 ########################################################################
