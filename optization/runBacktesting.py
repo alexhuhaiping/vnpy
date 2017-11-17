@@ -39,7 +39,7 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'hc1608'
+    vtSymbol = 'rb1805'
 
     setting = {
         'capital': 100000,

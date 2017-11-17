@@ -12,6 +12,7 @@ import ConfigParser
 import datetime
 
 from pymongo import MongoClient
+from pymongo.collection import Collection
 import arrow
 import hisfursum.summarize
 
@@ -43,10 +44,17 @@ class BacktestingArg(object):
         self.param = dic['param']
         self.opts = OrderedDict(dic['opts'])
 
+        # 保存这一批回测参数的参数
+        self.btinfo = dic.copy()
+        self.btinfo['datetime'] = arrow.now().datetime
+
         self.log.info(u'group: {}'.format(self.param['group']))
 
-        # 回测模块的参数
+        # 该组回测参数的参数
+        self.setting = self.param.copy()
+        self.setting['opts'] = self.opts
 
+        # 回测模块的参数
         if not self.opts:
             err = u'未设置需要优化的参数'
             self.log.critical(err)
@@ -58,8 +66,10 @@ class BacktestingArg(object):
         self.contractCol = None
         self.bar1dayCol = None
 
-        # 生成的参数保存s
+        # 生成的参数保存
         self.argCol = None
+        # 该批参数的信息
+        self.btinfoCol = None
 
     @property
     def group(self):
@@ -76,6 +86,7 @@ class BacktestingArg(object):
         username = self.config.get('contractMongo', 'username')
         password = self.config.get('contractMongo', 'password')
         dbn = self.config.get('contractMongo', 'dbn')
+        colName = self.config.get('contractMongo', 'collection')
         colName = self.config.get('contractMongo', 'collection')
         bar1dayColName = self.config.get('contractMongo', 'bar1dayCollection')
 
@@ -100,6 +111,7 @@ class BacktestingArg(object):
         password = self.config.get('mongo', 'password')
         dbn = self.config.get('mongo', 'dbn')
         colName = self.config.get('mongo', 'argCol')
+        btinfoColName = self.config.get('mongo', 'btinfoCol')
 
         self.log.info(u'即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
         # seconds = 3
@@ -115,6 +127,8 @@ class BacktestingArg(object):
         db = client[dbn]
         db.authenticate(username, password)
         self.argCol = db[colName].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+        self.btinfoCol = db[btinfoColName].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
     def start(self):
@@ -221,6 +235,9 @@ class BacktestingArg(object):
 
         self.log.info(u'共 {} 个品种'.format(len(usSet)))
 
+        self.btinfo['underlyingSymbols'] = list(usSet)
+        self.btinfo['symbols'] = [c['symbol'] for c in availbeContracts]
+
         return availbeContracts
 
     def createBacktestingArgs(self, contracts, strategyArgs):
@@ -251,11 +268,34 @@ class BacktestingArg(object):
 
         return documents
 
+    def getFlt(self):
+        return {'group': self.group, 'className': self.className}
+
+    def saveBtinfo(self):
+        """
+        保存该批回测参数的信息
+        :return:
+        """
+        assert isinstance(self.btinfoCol, Collection)
+        flt = self.getFlt()
+        self.btinfo.update(flt)
+
+        # 替换
+        self.btinfoCol.find_one_and_replace(flt, self.btinfo, upsert=True)
+
     def saveArgs(self, documents):
         """
         保存到数据库
         :return:
         """
+
+        # 保存回测详情
+        self.saveBtinfo()
+
+        # # 保存回测参数
+        # self.saveBtargs(documents)
+
+    def saveBtargs(self, documents):
 
         count = len(documents)
         if count > 1000:
@@ -264,21 +304,21 @@ class BacktestingArg(object):
             countStr = count
         self.log.info(u'生成 {} 组参数'.format(countStr))
 
-        # # 删掉同名的参数组
-        # self.argCol.delete_many({'group': self.group, 'className': self.className})
-        #
-        # over = len(documents)
-        # once = 10000
-        # start, end = 0, once
-        # count = 0
-        # while end < over:
-        #     self.argCol.insert_many(documents[start:end])
-        #     count += once
-        #     start, end = end, end + once
-        #
-        #     self.log.info(u'{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
-        # self.argCol.insert_many(documents[start:])
-        #
+        # 删掉同名的参数组
+        self.argCol.delete_many(self.getFlt())
+
+        over = len(documents)
+        once = 10000
+        start, end = 0, once
+        count = 0
+        while end < over:
+            self.argCol.insert_many(documents[start:end])
+            count += once
+            start, end = end, end + once
+
+            self.log.info(u'{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
+        self.argCol.insert_many(documents[start:])
+
 
 if __name__ == '__main__':
     argFileName = 'opt_CCI_SvtBollChannel.json'
