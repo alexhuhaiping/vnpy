@@ -88,7 +88,8 @@ class SvtBollChannelStrategy(CtaTemplate):
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
 
         self.hands = self.fixedSize
-        self.turnover = EMPTY_FLOAT  # 持仓成本
+        self.turnover = EMPTY_FLOAT  # 持仓总值，多空正负
+        self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
 
     def initMaxBarNum(self):
         self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)
@@ -221,7 +222,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
             self.cover(self.shortStop, abs(self.pos), True)
 
-        # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
 
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
@@ -233,13 +234,81 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         # self.log.warning(u'{} {} {}@{}'.format(trade.direction, trade.offset, trade.price, trade.volume))
 
+        self.charge(trade.offset, trade.price, trade.volume)
+        # 回测时滑点
+        if self.isBackTesting():
+            self.chargeSplipage(trade.volume)
+
+        # 计算之前的持仓，多头为正，空头为负
+        volume = trade.volume if trade.direction == DIRECTION_LONG else -trade.volume
+        prePos = self.pos + volume
+
+        if prePos == 0:
+            # 开仓，多空正负
+            # 计算市值
+            self.turnover += volume * trade.price
+        elif prePos > 0 and trade.direction == DIRECTION_LONG:
+            # 加多
+            self.turnover += volume * trade.price
+        elif prePos < 0 and trade.direction == DIRECTION_SHORT:
+            # 加空
+            self.turnover += volume * trade.price
+        elif self.pos == 0:
+            # 平仓
+            if prePos > 0:
+                # 平多
+                profile = abs(trade.price * volume) - abs(self.turnover)
+            else:  # prePos < 0
+                # 平空
+                profile = abs(self.turnover) - abs(trade.price * volume)
+
+            # 置0
+            self.turnover = 0
+            # 计算利润
+            self.capital += profile
+
+        elif prePos > 0 and trade.direction == DIRECTION_SHORT:
+            # 多头减仓
+            if self.pos > 0:
+                # 单纯减仓
+                # 开仓价
+                price = self.turnover / prePos
+                turnover = price * volume
+                profile = abs(trade.price * volume) - abs(turnover)
+                # self.turnover > 0
+                self.turnover = price * self.pos
+            else:
+                # 平仓再翻空
+                # 平仓
+                profile = abs(trade.price * prePos) - abs(self.turnover)
+                self.turnover = 0
+                # 开空
+                self.turnover += self.pos * trade.price
+
+            # 计算利润
+            self.capital += profile
+
+        elif prePos < 0 and trade.direction == DIRECTION_LONG:
+            # 空头减仓
+            if self.pos > 0:
+                # TODO 平仓再翻多
+                pass
+
+
+
+        elif abs(self.pos) > abs(prePos):
+            # 加仓，计算方式和加仓一致
+            self.turnover += volume * trade.price
+        else:
+
+            # 减仓/平仓
+            if self.turnover < 0:
+                self.turnover += volume * trade.price
+            else:
+
         if trade.offset == OFFSET_OPEN:
             self.avrPrice = trade.price
             # 手续费
-            self.charge(trade.offset, trade.price, trade.volume)
-            # 回测时滑点
-            if self.isBackTesting():
-                self.chargeSplipage(trade.volume)
 
         elif trade.offset in OFFSET_CLOSE_LIST:
             # 累积盈利
@@ -253,12 +322,6 @@ class SvtBollChannelStrategy(CtaTemplate):
                 raise ValueError(u'未知的开仓方向')
 
             self.capital += profile
-
-            # 手续费
-            self.charge(trade.offset, trade.price, trade.volume)
-            # 回测时滑点
-            if self.isBackTesting():
-                self.chargeSplipage(trade.volume)
 
             if self.isBackTesting():
                 if self.capital <= 0:

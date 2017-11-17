@@ -6,6 +6,7 @@
 '''
 from __future__ import division
 
+from itertools import imap
 from collections import OrderedDict
 import time
 import logging
@@ -14,6 +15,7 @@ from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
 import copy
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -71,8 +73,8 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
         self.isOutputResult = True  # 回测后输出结果时是否展示图片
-        self.dailyResult = OrderedDict() # 按日汇总的回测结果
-        self.tradeResult = OrderedDict() # 按笔汇总回测结果
+        self.dailyResult = OrderedDict()  # 按日汇总的回测结果
+        self.tradeResult = OrderedDict()  # 按笔汇总回测结果
 
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
@@ -236,6 +238,7 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         self.isShowFig = isShow
+
     def setOutputResult(self, isOutputResult):
         """
         回测后是否展示图片
@@ -243,7 +246,6 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         self.isOutputResult = isOutputResult
-
 
     def setStartDate(self, startDate=None, initDays=None):
         """
@@ -798,9 +800,16 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
+        print(121212)
+        print(df.index[0].timestamp())
+        keys = imap(lambda dt: dt.timestamp(), df.index)
+        def values():
+            for i in balanceList.values[1:]:
+                yield i
         dailyReturnRateSereis = pd.Series(list(balanceList.values[1:]), index=df.index)
-        self.dailyResult[u'日收益率曲线'] = pickle.dumps(dailyReturnRateSereis.to_dict())
-
+        self.dailyResult[u'日收益率曲线'] = dict(zip(keys, values()))
+        print(self.dailyResult[u'日收益率曲线'])
+        return
         if not self.isShowFig:
             return
 
@@ -857,7 +866,6 @@ class BacktestingEngine(VTBacktestingEngine):
             if isinstance(v, float) or isinstance(v, int):
                 v = formatNumber(v)
             print(u'%s：\t%s' % (k, v))
-
 
     def calculateBacktestingResult(self):
         """
@@ -1047,7 +1055,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 totalLosing += result.pnl
 
         # 计算盈亏相关数据
-        winningRate = winningResult / totalResult # 胜率
+        winningRate = winningResult / totalResult  # 胜率
 
         averageWinning = 0  # 这里把数据都初始化为0
         averageLosing = 0
