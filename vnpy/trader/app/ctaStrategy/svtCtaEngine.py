@@ -382,6 +382,7 @@ class CtaEngine(VtCtaEngine):
         程序停止时退出前的调用
         :return:
         """
+        self.log.info(u'CTA engine 即将关闭……')
         self.stopAll()
 
     def stopStrategy(self, name):
