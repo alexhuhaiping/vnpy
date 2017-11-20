@@ -97,6 +97,7 @@ class CtaTemplate(vtCtaTemplate):
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
 
+        self.saving = False  # 是否可以存库了
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
@@ -110,6 +111,7 @@ class CtaTemplate(vtCtaTemplate):
         self.commissionRate = None  # 手续费率 vtObject.VtCommissionRate
         self.marginList = []
         self._positionDetail = None  # 仓位详情
+
 
         # K线管理器
         self.maxBarNum = 0
@@ -473,6 +475,7 @@ class CtaTemplate(vtCtaTemplate):
         if not document:
             return
         self.capital = document['capital']
+        self.turnover = document['turnover']
 
     def toSave(self):
         """
@@ -493,21 +496,12 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
 
-        if self.isBackTesting():
-            # 回测中，不存库
-            return
+        if self.saving:
+            self.log.info(u'保存策略数据')
 
-        if not self.inited:
-            return
-
-        if not self.trading:
-            return
-
-        self.log.info(u'保存策略数据')
-
-        # 保存
-        document = self.toSave()
-        self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
+            # 保存
+            document = self.toSave()
+            self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
 
     def filterSql(self):
         gateWay = self.mainEngine.getGateway('CTP')

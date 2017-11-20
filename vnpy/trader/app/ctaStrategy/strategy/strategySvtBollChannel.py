@@ -134,7 +134,9 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.cancelAll()
             self.orderOnXminBar(self.xminBar)
 
-        self.log.info(u'capital {}'.format(self.capital))
+        if not self.isBackTesting():
+            # 实盘，可以存库。
+            self.saving = True
 
         self.putEvent()
 
