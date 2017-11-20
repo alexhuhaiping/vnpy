@@ -105,7 +105,8 @@ class CtaEngine(VtCtaEngine):
         # 总的需要载入的 bar 数量，保证数量的同时，每根bar的周期不会乱掉
         barAmount = barNum * barPeriod + rest
 
-        isTraingTime, loadDate = tt.get_tradingday(arrow.now())
+        isTraingTime, loadDate = tt.get_tradingday(arrow.now().datetime)
+        self.log.info(u'{}'.format(loadDate))
         loadBarNum = 0
         noDataDays = 0
 
@@ -119,7 +120,6 @@ class CtaEngine(VtCtaEngine):
             # 获取一天的 1min bar
             cursor = collection.find(sql, {'_id': 0})
             count = cursor.count()
-
             if count != 0:
                 # 有数据，加载数据
                 noDataDays = 0
