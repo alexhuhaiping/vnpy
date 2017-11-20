@@ -196,44 +196,44 @@ class CtaTemplate(vtCtaTemplate):
         profile = 0
         if status in (self.TRADE_STATUS_OPEN_LONG, self.TRADE_STATUS_OPEN_SHORT):
             # 开多,开空
-            self.turnover = volume * trade.price
+            self.turnover = volume * trade.price * self.size
         elif status in (self.TRADE_STATUS_INC_LONG, self.TRADE_STATUS_INC_SHORT):
             # 加多, 加空
-            self.turnover += volume * trade.price
+            self.turnover += volume * trade.price * self.size
         elif status == self.TRADE_STATUS_CLOSE_LONG:
             # 平多
-            profile = abs(trade.price * volume) - abs(self.turnover)
+            profile = abs(trade.price * volume * self.size) - abs(self.turnover)
         elif status == self.TRADE_STATUS_CLOSE_SHORT:
             # 平空
-            profile = abs(self.turnover) - abs(trade.price * volume)
+            profile = abs(self.turnover) - abs(trade.price * volume * self.size)
 
         elif status == self.TRADE_STATUS_DEC_LONG:
             # 减多
-            price = self.turnover / prePos
-            turnover = price * volume
-            profile = abs(trade.price * volume) - abs(turnover)
-            self.turnover = price * self.pos
+            price = self.turnover / (prePos * self.size)
+            turnover = price * volume * self.size
+            profile = abs(trade.price * volume * self.size) - abs(turnover)
+            self.turnover = price * self.pos * self.size
         elif status == self.TRADE_STATUS_DEC_SHORT:
             # 减空
-            price = self.turnover / prePos
-            turnover = price * volume
-            profile = abs(turnover) - abs(trade.price * volume)
-            self.turnover = price * self.pos
+            price = self.turnover / (prePos * self.size)
+            turnover = price * volume * self.size
+            profile = abs(turnover) - abs(trade.price * volume * self.size)
+            self.turnover = price * self.pos * self.size
         elif status == self.TRADE_STATUS_REV_LONG:
             # 反多
-            profile = abs(self.turnover) - abs(trade.price * prePos)
+            profile = abs(self.turnover) - abs(trade.price * prePos * self.size)
             # 开多
-            self.turnover = self.pos * trade.price
+            self.turnover = self.pos * trade.price * self.size
         elif status == self.TRADE_STATUS_REV_SHORT:
             # 反空
-            profile = abs(trade.price * prePos) - abs(self.turnover)
+            profile = abs(trade.price * prePos * self.size) - abs(self.turnover)
             self.turnover = 0
             # 开空
-            self.turnover += self.pos * trade.price
+            self.turnover += self.pos * trade.price * self.size
         else:
             raise ValueError(u'未知的状态 {}'.format(status))
 
-        self.capital += profile * self.size
+        self.capital += profile
 
     def charge(self, offset, price, volume):
         """
