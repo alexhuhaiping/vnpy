@@ -105,9 +105,7 @@ class CtaEngine(VtCtaEngine):
         # 总的需要载入的 bar 数量，保证数量的同时，每根bar的周期不会乱掉
         barAmount = barNum * barPeriod + rest
 
-        loadDate = self.today
-        # self.log.debug(u'{}'.format(loadDate))
-        # time.sleep(1)
+        isTraingTime, loadDate = tt.get_tradingday(arrow.now())
         loadBarNum = 0
         noDataDays = 0
 
