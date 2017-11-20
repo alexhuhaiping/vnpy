@@ -139,7 +139,7 @@ class CtaTemplate(vtCtaTemplate):
     @property
     def averagePrice(self):
         try:
-            return self.turnover / self.pos
+            return self.turnover / self.pos / self.size
         except ZeroDivisionError:
             return 0
 
