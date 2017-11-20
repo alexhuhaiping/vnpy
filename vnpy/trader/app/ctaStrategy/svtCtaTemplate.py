@@ -58,7 +58,8 @@ class CtaTemplate(vtCtaTemplate):
         'capital',
         'turnover',
         'averagePrice',
-
+        'floatProfile',
+        'rtBalance',
     ]
 
     # 成交状态
@@ -122,6 +123,16 @@ class CtaTemplate(vtCtaTemplate):
         # self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
 
         self.registerEvent()
+
+    @property
+    def floatProfile(self):
+        if not self.bar:
+            return 0
+        return (self.bar.close - self.averagePrice) * self.pos * self.size
+
+    @property
+    def rtBalance(self):
+        return self.capital + self.floatProfile
 
     @property
     def averagePrice(self):
@@ -282,6 +293,7 @@ class CtaTemplate(vtCtaTemplate):
         return OrderedDict(
             ((k, getattr(self, k)) for k in self.varList)
         )
+
     def balance2Html(self):
         return OrderedDict(
             ((k, getattr(self, k)) for k in self.BALANCE)
