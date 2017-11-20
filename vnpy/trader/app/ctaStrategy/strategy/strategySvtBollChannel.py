@@ -110,6 +110,8 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.bm.bar = bar
             self.onBar(bar)
 
+        self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
+
         if len(initData) >= self.maxBarNum:
             self.log.info(u'初始化完成')
         else:

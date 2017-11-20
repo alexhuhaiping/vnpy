@@ -485,10 +485,10 @@ class CtaTemplate(vtCtaTemplate):
             # 回测中，不存库
             return
 
-        if self.inited:
+        if not self.inited:
             return
 
-        if self.trading:
+        if not self.trading:
             return
 
         self.log.info(u'保存策略数据')

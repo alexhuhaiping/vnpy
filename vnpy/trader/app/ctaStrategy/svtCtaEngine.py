@@ -24,7 +24,10 @@ import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
 
+import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
+import tradingtime as tt
+
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
@@ -103,6 +106,8 @@ class CtaEngine(VtCtaEngine):
         barAmount = barNum * barPeriod + rest
 
         loadDate = self.today
+        # self.log.debug(u'{}'.format(loadDate))
+        # time.sleep(1)
         loadBarNum = 0
         noDataDays = 0
 
