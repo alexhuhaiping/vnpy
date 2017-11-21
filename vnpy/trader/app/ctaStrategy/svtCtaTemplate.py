@@ -205,9 +205,11 @@ class CtaTemplate(vtCtaTemplate):
         elif status == self.TRADE_STATUS_CLOSE_LONG:
             # 平多
             profile = abs(trade.price * volume * self.size) - abs(self.turnover)
+            self.turnover = 0
         elif status == self.TRADE_STATUS_CLOSE_SHORT:
             # 平空
             profile = abs(self.turnover) - abs(trade.price * volume * self.size)
+            self.turnover = 0
 
         elif status == self.TRADE_STATUS_DEC_LONG:
             # 减多
