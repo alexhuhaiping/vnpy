@@ -106,7 +106,7 @@ class CtaEngine(VtCtaEngine):
         barAmount = barNum * barPeriod + rest
 
         isTraingTime, loadDate = tt.get_tradingday(arrow.now().datetime)
-        self.log.info(u'{}'.format(loadDate))
+
         loadBarNum = 0
         noDataDays = 0
 

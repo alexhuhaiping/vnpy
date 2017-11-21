@@ -4,6 +4,7 @@ import traceback
 from threading import Thread
 from bson.codec_options import CodecOptions
 import pytz
+from time import sleep
 
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -15,6 +16,7 @@ from vnpy.trader.vtEngine import MainEngine as VtMaingEngine
 
 if __debug__:
     import vnpy.trader.debuginject as debuginject
+
 
 ########################################################################
 class MainEngine(VtMaingEngine):
@@ -30,6 +32,8 @@ class MainEngine(VtMaingEngine):
 
         if __debug__:
             self.log.info(u'DEBUG 模式')
+
+        self.active = False
 
     # ----------------------------------------------------------------------
     def dbConnect(self):
@@ -65,7 +69,7 @@ class MainEngine(VtMaingEngine):
 
             except ConnectionFailure:
                 self.writeLog(text.DATABASE_CONNECTING_FAILED)
-            except :
+            except:
                 self.log.critical(traceback.format_exc())
                 raise
 
@@ -118,7 +122,7 @@ class MainEngine(VtMaingEngine):
             reload(debuginject)
             debuginject.me = self
             debuginject.run()
-            time.sleep(2)
+            sleep(2)
         except Exception as e:
             traceback.print_exc()
 
@@ -127,3 +131,13 @@ class MainEngine(VtMaingEngine):
         if __debug__:
             self._testActive = False
 
+        self.active = False
+
+    def run_forever(self):
+        self.active = True
+        while self.active:
+            if __debug__:
+                self.testfunc()
+            sleep(1)
+
+        self.log.info(u'系统完全关闭')
