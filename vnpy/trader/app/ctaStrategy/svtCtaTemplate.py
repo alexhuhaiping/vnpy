@@ -307,9 +307,9 @@ class CtaTemplate(vtCtaTemplate):
             var = self.varList2Html()
             balance = self.balance2Html()
             items = (
+                ('balance', balance),
                 ('param', param),
                 ('var', var),
-                ('balance', balance),
             )
 
             orderDic = OrderedDict(items)
