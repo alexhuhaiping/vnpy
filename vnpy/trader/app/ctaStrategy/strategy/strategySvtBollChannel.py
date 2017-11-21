@@ -110,7 +110,7 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.bm.bar = bar
             self.onBar(bar)
 
-        self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
+        # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
             self.log.info(u'初始化完成')
@@ -144,7 +144,6 @@ class SvtBollChannelStrategy(CtaTemplate):
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
-        self.saveDB()
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -181,7 +180,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.orderOnXminBar(bar)
 
         # 发出状态更新事件
-        self.saveDB()
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(self.xminBar.datetime))
 
@@ -270,7 +268,6 @@ class SvtBollChannelStrategy(CtaTemplate):
     def onStopOrder(self, so):
         """停止单推送"""
 
-        self.saveDB()
         self.putEvent()
 
     def updateHands(self):
