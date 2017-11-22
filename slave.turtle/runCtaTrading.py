@@ -14,6 +14,7 @@ def runChildProcess():
     """子进程运行函数"""
 
     ee = EventEngine2()
+    ee.log.info(u'===================')
     ee.log.info(u'事件引擎创建成功')
 
     me = MainEngine(ee)
