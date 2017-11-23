@@ -55,6 +55,12 @@ def showBar():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bar.datetime))
 
+def showLastTick():
+    s = getStrategy(vtSymbol)
+    s.log.info(u'{}'.format(s.bm.lastTick.datetime))
+
+
+
 vtSymbol = 'hc1805'
 
 def run():

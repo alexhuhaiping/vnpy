@@ -32,7 +32,7 @@ class MainEngine(VtMaingEngine):
         # self.strategyDB = None  # cta 策略相关的数据
 
         if __debug__:
-            self.log.info(u'DEBUG 模式')
+            self.log.warning(u'DEBUG 模式')
 
         self.active = False
 
