@@ -435,8 +435,6 @@ class CtaEngine(VtCtaEngine):
 
     def startAll(self):
         super(CtaEngine, self).startAll()
-        # 启动汇报
-        self.mainEngine.slavemReport.lanuchReport()
 
     # ----------------------------------------------------------------------
     def registerEvent(self):

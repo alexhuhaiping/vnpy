@@ -130,7 +130,7 @@ class MainEngine(VtMaingEngine):
             debuginject.run()
             sleep(2)
         except Exception as e:
-            traceback.print_exc()
+            self.log.info(traceback.format_exc())
 
     def exit(self):
         super(MainEngine, self).exit()
@@ -142,8 +142,10 @@ class MainEngine(VtMaingEngine):
     def run_forever(self):
         self.active = True
 
-        self.log.info(u'开始运行')
+        # 启动汇报
+        self.slavemReport.lanuchReport()
 
+        self.log.info(u'开始运行')
         import time
         nextHeatBeatTime = time.time()
         heartBeatInterval = 30  # second
