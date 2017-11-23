@@ -69,19 +69,19 @@ class SvtBollChannelStrategy(CtaTemplate):
     ])
 
     # 变量列表，保存了变量的名称
-    varList = ['inited',
-               'trading',
-               'pos',
-               'bollUp',
-               'bollDown',
-               'cciValue',
-               'atrValue',
-               'intraTradeHigh',
-               'intraTradeLow',
-               'longStop',
-               'shortStop',
-               'hands'
-               ]
+    varList = CtaTemplate.varList[:]
+    _varList = [
+        'bollUp',
+        'bollDown',
+        'cciValue',
+        'atrValue',
+        'intraTradeHigh',
+        'intraTradeLow',
+        'longStop',
+        'shortStop',
+        'hands'
+    ]
+    varList.extend(_varList)
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
@@ -145,6 +145,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
+        self.saveDB()
 
     # ----------------------------------------------------------------------
     def onTick(self, tick):
@@ -300,3 +301,21 @@ class SvtBollChannelStrategy(CtaTemplate):
                 self.size * self.bar.close * self.marginRate)))
 
         self.hands = min(minHands, maxHands)
+
+    def toSave(self):
+        """
+        将策略新增的 varList 全部存库
+        :return:
+        """
+        dic = super(SvtBollChannelStrategy, self).toSave()
+        # 将新增的 varList 全部存库
+        dic.update({k: getattr(self, k) for k in self._varList})
+        return dic
+
+    def loadCtaDB(self, document):
+        super(SvtBollChannelStrategy, self).loadCtaDB(document)
+        for k in self._varList:
+            try:
+                setattr(self, k, document[k])
+            except KeyError:
+                self.log.warning(u'未保存的key {}'.format(k))
