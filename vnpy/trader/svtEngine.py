@@ -8,6 +8,7 @@ from time import sleep
 
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure, OperationFailure
+from slavem import Reporter
 
 from vnpy.trader.language import text
 from vnpy.trader.vtGateway import *
@@ -34,6 +35,11 @@ class MainEngine(VtMaingEngine):
             self.log.info(u'DEBUG 模式')
 
         self.active = False
+
+        # 汇报
+        self.slavemReport = Reporter(
+            **globalSetting['slavem']
+        )
 
     # ----------------------------------------------------------------------
     def dbConnect(self):
@@ -135,9 +141,26 @@ class MainEngine(VtMaingEngine):
 
     def run_forever(self):
         self.active = True
+
+        self.log.info(u'开始运行')
+
+        import time
+        nextHeatBeatTime = time.time()
+        heartBeatInterval = 30  # second
+        # self.slavemReport.heartBeat()
+
         while self.active:
             if __debug__:
                 self.testfunc()
             sleep(1)
+
+            # 心跳
+            if nextHeatBeatTime < time.time():
+                nextHeatBeatTime = time.time() + heartBeatInterval
+                # self.log.info(u'心跳 ……')
+                self.slavemReport.heartBeat()
+
+        # 停止心跳
+        self.slavemReport.endHeartBeat()
 
         self.log.info(u'系统完全关闭')

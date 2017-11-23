@@ -387,6 +387,7 @@ class CtaEngine(VtCtaEngine):
         """
         self.log.info(u'CTA engine 即将关闭……')
         self.stopAll()
+        self.mainEngine.slavemReport.endHeartBeat()
 
     def stopStrategy(self, name):
         super(CtaEngine, self).stopStrategy(name)
@@ -431,3 +432,24 @@ class CtaEngine(VtCtaEngine):
                 strategy.pos = self.posCol.find_one(flt)['pos']
             except TypeError:
                 self.log.info(u'{name} 该策略没有持仓'.format(**flt))
+
+    def startAll(self):
+        super(CtaEngine, self).startAll()
+        # 启动汇报
+        self.mainEngine.slavemReport.lanuchReport()
+
+    # ----------------------------------------------------------------------
+    def registerEvent(self):
+        super(CtaEngine, self).registerEvent()
+        self.eventEngine.register(EVENT_TICK, self._heartBeat)
+
+    def _heartBeat(self, event):
+        """
+        通过 tick 推送事件来触发心跳
+        :param event:
+        :return:
+        """
+        self.heartBeat()
+
+    def heartBeat(self):
+        self.mainEngine.slavemReport.heartBeat()

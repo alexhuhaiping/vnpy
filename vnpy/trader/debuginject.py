@@ -51,14 +51,19 @@ def showStopOrder():
     for os in ce.stopOrderDict.values():
         print(os.toHtml())
 
-vtSymbol = 'hc1801'
+def showBar():
+    s = getStrategy(vtSymbol)
+    s.log.info(u'{}'.format(s.bar.datetime))
+
+vtSymbol = 'hc1805'
 
 def run():
     return
     load()
     me.log.debug('====================================================')
 
-    showStopOrder()
+    showBar()
+    # showStopOrder()
     # sell()
     # short()
     # cover()
