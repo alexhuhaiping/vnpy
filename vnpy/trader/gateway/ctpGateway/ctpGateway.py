@@ -12,6 +12,8 @@ import json
 from copy import copy
 from datetime import datetime, timedelta
 import arrow
+import logging
+
 
 from vnpy.api.ctp import MdApi, TdApi, defineDict
 from vnpy.trader.vtGateway import *
@@ -228,6 +230,7 @@ class CtpMdApi(MdApi):
         """Constructor"""
         super(CtpMdApi, self).__init__()
 
+        self.log = logging.getLogger('root')
         self.gateway = gateway  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
         self.reqID = EMPTY_INT              # 操作请求编号
@@ -339,6 +342,14 @@ class CtpMdApi(MdApi):
 
     def onRtnDepthMarketData(self, data):
         """行情推送"""
+        try:
+            return self._onRtnDepthMarketData(data)
+        except Exception as e:
+            self.log.error(e.message)
+            time.sleep(0.1)
+            raise
+
+    def _onRtnDepthMarketData(self, data):
         # 创建对象
         tick = VtTickData()
         tick.gatewayName = self.gatewayName
