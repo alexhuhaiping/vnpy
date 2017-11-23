@@ -23,6 +23,7 @@ import traceback
 import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
+from threading import Thread
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -76,6 +77,8 @@ class CtaEngine(VtCtaEngine):
         # 持仓存库
         self.posCol = self.mainEngine.strategyDB[POSITION_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
+        self.reported = False
 
         if __debug__:
             import pymongo.collection
@@ -447,7 +450,22 @@ class CtaEngine(VtCtaEngine):
         :param event:
         :return:
         """
-        self.heartBeat()
+        tick = event.dict_['data']
+        now = time.time()
 
-    def heartBeat(self):
+        if not self.reported:
+            self.reported = True
+            self.log.info(u'启动汇报')
+
+            # 启动汇报
+            self.mainEngine.slavemReport.lanuchReport()
+            self.heartBeatInterval = 5  # second
+            self.nextHeatBeatTime = now - 1
+
+        if self.nextHeatBeatTime < now:
+            self.nextHeatBeatTime = now + self.heartBeatInterval
+            Thread(name='heartBeat', target=self.heartBeat, args=(tick,)).start()
+
+    def heartBeat(self, tick):
         self.mainEngine.slavemReport.heartBeat()
+        self.log.info(u'{} 心跳 ……'.format(tick.vtSymbol))

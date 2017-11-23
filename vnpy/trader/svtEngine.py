@@ -142,25 +142,12 @@ class MainEngine(VtMaingEngine):
     def run_forever(self):
         self.active = True
 
-        # 启动汇报
-        self.slavemReport.lanuchReport()
-
         self.log.info(u'开始运行')
-        import time
-        nextHeatBeatTime = time.time()
-        heartBeatInterval = 30  # second
-        # self.slavemReport.heartBeat()
 
         while self.active:
             if __debug__:
                 self.testfunc()
             sleep(1)
-
-            # 心跳
-            if nextHeatBeatTime < time.time():
-                nextHeatBeatTime = time.time() + heartBeatInterval
-                # self.log.info(u'心跳 ……')
-                self.slavemReport.heartBeat()
 
         # 停止心跳
         self.slavemReport.endHeartBeat()
