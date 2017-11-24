@@ -155,6 +155,7 @@ class CtaEngine(VtCtaEngine):
     def callStrategyFunc(self, strategy, func, params=None):
         """调用策略的函数，若触发异常则捕捉"""
         try:
+            # self.log.info(u'开盘 tick 没丢失')
             if params:
                 func(params)
             else:
@@ -470,7 +471,7 @@ class CtaEngine(VtCtaEngine):
                 self.log.info(u'{} {} {}'.format(strategy.name, tick.vtSymbol, tick.datetime))
                 self.callStrategyFunc(strategy, strategy.onTick, tick)
 
-        self._heartBeat(event)
+            Thread(name='heartBeat', target=self._heartBeat, args=(event,)).start()
 
     def _heartBeat(self, event):
         """

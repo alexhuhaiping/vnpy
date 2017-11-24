@@ -696,9 +696,14 @@ class BarManager(VtBarManager):
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
 
+    @property
+    def log(self):
+        return self.strategy.log
+
     # ----------------------------------------------------------------------
     def updateTick(self, tick):
         """TICK更新"""
+        self.log.info(u'开盘 tick 没丢失')
         newMinute = False  # 默认不是新的一分钟
         oldBar = None
 
@@ -706,6 +711,7 @@ class BarManager(VtBarManager):
         if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60 * 10):
             # 如果当前 tick 比上一个 tick 差距达到 10分钟没成交的合约，则认为是错误数据
             # CTA 策略默认使用比较活跃的合约
+            self.log.warning(u'剔除错误数据')
             return
 
         # 尚未创建对象
