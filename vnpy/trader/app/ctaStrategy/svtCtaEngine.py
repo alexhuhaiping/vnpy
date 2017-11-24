@@ -440,12 +440,6 @@ class CtaEngine(VtCtaEngine):
     def startAll(self):
         super(CtaEngine, self).startAll()
 
-    # # ----------------------------------------------------------------------
-    # def registerEvent(self):
-    #     super(CtaEngine, self).registerEvent()
-    #     self.eventEngine.register(EVENT_TICK, self._heartBeat)
-
-
     def processTickEvent(self, event):
         """处理行情推送"""
         tick = event.dict_['data']
@@ -470,7 +464,7 @@ class CtaEngine(VtCtaEngine):
             for strategy in l:
                 self.callStrategyFunc(strategy, strategy.onTick, tick)
 
-            Thread(name='heartBeat', target=self._heartBeat, args=(event,)).start()
+            self._heartBeat(event)
 
     def _heartBeat(self, event):
         """

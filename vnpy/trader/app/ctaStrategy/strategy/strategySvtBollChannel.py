@@ -182,7 +182,8 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.cciValue = am.cci(self.cciWindow)
         self.atrValue = am.atr(self.atrWindow)
 
-        self.orderOnXminBar(bar)
+        if self.trading:
+            self.orderOnXminBar(bar)
 
         # 发出状态更新事件
         self.putEvent()
