@@ -145,21 +145,22 @@ class SvtBollChannelStrategy(CtaTemplate):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
-        self.saveDB()
+        # self.saveDB()
 
     # ----------------------------------------------------------------------
     def onTick(self, tick):
         """收到行情TICK推送（必须由用户继承实现）"""
-        # self.log.info(u'开盘 tick 没丢失')
-        if self.trading:
-            self.bm.updateTick(tick)
+        # if self.trading:
+        self.bm.updateTick(tick)
+        self.log.info(u'开盘 tick 没丢失')
+
 
     # ----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
-        # if self.trading:
         self.bm.updateBar(bar)
-        self.log.info(u'更新 bar'.format(bar.datetime))
+        if self.trading:
+            self.log.info(u'更新 bar'.format(bar.datetime))
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
