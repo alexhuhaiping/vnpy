@@ -23,7 +23,7 @@ import traceback
 import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
-from threading import Thread
+from threading import Thread, Timer
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -77,8 +77,6 @@ class CtaEngine(VtCtaEngine):
         # 持仓存库
         self.posCol = self.mainEngine.strategyDB[POSITION_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
-
-        self.reported = False
 
         if __debug__:
             import pymongo.collection
@@ -440,6 +438,19 @@ class CtaEngine(VtCtaEngine):
     def startAll(self):
         super(CtaEngine, self).startAll()
 
+        # 启动汇报
+        # 通常会提前10分钟启动，至此策略加载完毕处于运作状态
+        # 心跳要等到10分钟后开始接受行情才会触发心跳
+        now = time.time()
+        self.log.info(u'启动汇报')
+        self.mainEngine.slavemReport.lanuchReport()
+        self.heartBeatInterval = 5  # second
+        self.nextHeatBeatTime = now - 1
+
+        # 10分钟后开始触发一次心跳
+        # 避免因为CTP断掉毫无行情，导致心跳从未开始
+        Timer(60 * 10, self.heartBeat).start()
+
     def processTickEvent(self, event):
         """处理行情推送"""
         tick = event.dict_['data']
@@ -474,15 +485,6 @@ class CtaEngine(VtCtaEngine):
         """
         tick = event.dict_['data']
         now = time.time()
-
-        if not self.reported:
-            self.reported = True
-            self.log.info(u'启动汇报')
-
-            # 启动汇报
-            self.mainEngine.slavemReport.lanuchReport()
-            self.heartBeatInterval = 5  # second
-            self.nextHeatBeatTime = now - 1
 
         if self.nextHeatBeatTime < now:
             self.nextHeatBeatTime = now + self.heartBeatInterval
