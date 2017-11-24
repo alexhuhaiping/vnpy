@@ -153,7 +153,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         if self.trading:
             self.bm.updateTick(tick)
 
-
     # ----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
@@ -315,10 +314,11 @@ class SvtBollChannelStrategy(CtaTemplate):
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
 
-    def loadCtaDB(self, document):
+    def loadCtaDB(self, document=None):
         super(SvtBollChannelStrategy, self).loadCtaDB(document)
-        for k in self._varList:
-            try:
-                setattr(self, k, document[k])
-            except KeyError:
-                self.log.warning(u'未保存的key {}'.format(k))
+        if document:
+            for k in self._varList:
+                try:
+                    setattr(self, k, document[k])
+                except KeyError:
+                    self.log.warning(u'未保存的key {}'.format(k))
