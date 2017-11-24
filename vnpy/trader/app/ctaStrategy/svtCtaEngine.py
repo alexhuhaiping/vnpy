@@ -178,7 +178,7 @@ class CtaEngine(VtCtaEngine):
         # 首先检查是否有策略交易该合约
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
-            for so in self.getAllStopOrdersSorted(tick):
+            for so in self.getAllStopOrdersSorted(vtSymbol):
                 if so.vtSymbol == vtSymbol:
                     longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
                     shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
@@ -205,7 +205,7 @@ class CtaEngine(VtCtaEngine):
                         so.status = STOPORDER_TRIGGERED
                         so.strategy.onStopOrder(so)
 
-    def getAllStopOrdersSorted(self, vtTick):
+    def getAllStopOrdersSorted(self, vtSymbol):
         """
         对全部停止单排序后
         :return:
@@ -215,7 +215,7 @@ class CtaEngine(VtCtaEngine):
         shortOpenStopOrders = []
         longCloseStopOrders = []
         stopOrders = []
-        soBySymbols = [so for so in self.workingStopOrderDict.values() if so.vtSymbol == vtTick.vtSymbol]
+        soBySymbols = [so for so in self.workingStopOrderDict.values() if so.vtSymbol == vtSymbol]
 
         for so in soBySymbols:
             if so.direction == DIRECTION_LONG:

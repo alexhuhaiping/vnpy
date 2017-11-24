@@ -318,11 +318,9 @@ class CtaTemplate(vtCtaTemplate):
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
 
             # 本地停止单
-            if self.bm.lastTick is None:
-                units = []
-            else:
-                stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
-                units = [so.toHtml() for so in stopOrders]
+            # stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
+            stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
+            units = [so.toHtml() for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
             # 持仓详情
