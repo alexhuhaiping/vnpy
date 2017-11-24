@@ -700,16 +700,31 @@ class BarManager(VtBarManager):
     def log(self):
         return self.strategy.log
 
+    @property
+    def trading(self):
+        return self.strategy.trading
+
+    @property
+    def inited(self):
+        return self.strategy.inited
+
     # ----------------------------------------------------------------------
     def updateTick(self, tick):
         """TICK更新"""
         newMinute = False  # 默认不是新的一分钟
         oldBar = None
 
+        if self.lastTick is None and not self.strategy.isBackTesting():
+            # 第一个 tick 就比当前时间偏离，则
+            if abs((tick.datetime - arrow.now().datetime).total_seconds()) > 60 * 10:
+                return
+
         # 剔除错误数据
-        if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60 * 10):
-            # 如果当前 tick 比上一个 tick 差距达到 10分钟没成交的合约，则认为是错误数据
+        if self.lastTick and tick.datetime - self.lastTick.datetime > datetime.timedelta(seconds=60 * 20):
+            # 如果当前 tick 比上一个 tick 差距达到 20分钟没成交的合约，则认为是错误数据
+            # 20分钟是早盘10:15 ~ 10:30 的休市时间
             # CTA 策略默认使用比较活跃的合约
+            # 中午休市的时候必须重启服务，否则的话 lastTick 和 新tick之间的跨度会过大
             self.log.warning(u'剔除错误数据')
             return
 

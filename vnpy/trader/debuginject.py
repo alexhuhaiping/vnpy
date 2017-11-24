@@ -61,7 +61,7 @@ def showLastTick():
 
 
 
-vtSymbol = 'hc1805'
+vtSymbol = 'rb1805'
 
 def run():
     return
