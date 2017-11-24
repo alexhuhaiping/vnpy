@@ -468,7 +468,6 @@ class CtaEngine(VtCtaEngine):
             # 逐个推送到策略实例中
             l = self.tickStrategyDict[tick.vtSymbol]
             for strategy in l:
-                self.log.info(u'{} {} {}'.format(strategy.name, tick.vtSymbol, tick.datetime))
                 self.callStrategyFunc(strategy, strategy.onTick, tick)
 
             Thread(name='heartBeat', target=self._heartBeat, args=(event,)).start()
@@ -497,4 +496,4 @@ class CtaEngine(VtCtaEngine):
 
     def heartBeat(self, tick):
         self.mainEngine.slavemReport.heartBeat()
-        self.log.info(u'{} 心跳 ……'.format(tick.vtSymbol))
+        # self.log.info(u'{} 心跳 ……'.format(tick.vtSymbol))

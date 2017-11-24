@@ -703,7 +703,6 @@ class BarManager(VtBarManager):
     # ----------------------------------------------------------------------
     def updateTick(self, tick):
         """TICK更新"""
-        self.log.info(u'开盘 tick 没丢失')
         newMinute = False  # 默认不是新的一分钟
         oldBar = None
 

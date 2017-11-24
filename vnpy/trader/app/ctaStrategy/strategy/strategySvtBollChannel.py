@@ -150,9 +150,8 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onTick(self, tick):
         """收到行情TICK推送（必须由用户继承实现）"""
-        # if self.trading:
-        self.bm.updateTick(tick)
-        self.log.info(u'开盘 tick 没丢失')
+        if self.trading:
+            self.bm.updateTick(tick)
 
 
     # ----------------------------------------------------------------------

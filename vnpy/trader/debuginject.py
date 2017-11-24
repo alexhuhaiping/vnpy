@@ -68,7 +68,8 @@ def run():
     load()
     me.log.debug('====================================================')
 
-    showBar()
+    showLastTick()
+    # showBar()
     # showStopOrder()
     # sell()
     # short()
