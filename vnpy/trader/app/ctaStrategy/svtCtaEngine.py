@@ -78,6 +78,12 @@ class CtaEngine(VtCtaEngine):
         self.posCol = self.mainEngine.strategyDB[POSITION_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
+        # 心跳相关
+        self.heartBeatInterval = 5  # second
+        # 将心跳时间设置为1小时候开始
+        # report 之后会立即重置为当前触发心跳
+        self.nextHeatBeatTime = time.time()
+
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
@@ -444,7 +450,6 @@ class CtaEngine(VtCtaEngine):
         now = time.time()
         self.log.info(u'启动汇报')
         self.mainEngine.slavemReport.lanuchReport()
-        self.heartBeatInterval = 5  # second
         self.nextHeatBeatTime = now - 1
 
         # 10分钟后开始触发一次心跳
