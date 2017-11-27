@@ -450,11 +450,14 @@ class CtaEngine(VtCtaEngine):
         now = time.time()
         self.log.info(u'启动汇报')
         self.mainEngine.slavemReport.lanuchReport()
-        self.nextHeatBeatTime = now - 1
+
+        def foo():
+            self.nextHeatBeatTime = now - 1
+            self.heartBeat()
 
         # 10分钟后开始触发一次心跳
         # 避免因为CTP断掉毫无行情，导致心跳从未开始
-        Timer(60 * 10, self.heartBeat).start()
+        Timer(60 * 5, foo).start()
 
     def processTickEvent(self, event):
         """处理行情推送"""
