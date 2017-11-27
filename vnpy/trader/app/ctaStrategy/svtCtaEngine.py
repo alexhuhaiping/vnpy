@@ -493,8 +493,7 @@ class CtaEngine(VtCtaEngine):
 
         if self.nextHeatBeatTime < now:
             self.nextHeatBeatTime = now + self.heartBeatInterval
-            Thread(name='heartBeat', target=self.heartBeat, args=(tick,)).start()
+            Thread(name='heartBeat', target=self.heartBeat).start()
 
-    def heartBeat(self, tick):
+    def heartBeat(self):
         self.mainEngine.slavemReport.heartBeat()
-        # self.log.info(u'{} 心跳 ……'.format(tick.vtSymbol))
