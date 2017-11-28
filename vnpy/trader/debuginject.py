@@ -45,6 +45,9 @@ def short():
     volume = 20
     stop = False
     s.short(price, volume, stop)
+    s.short(price, volume, stop)
+    s.short(price, volume, stop)
+
     s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
