@@ -55,7 +55,6 @@ class RmEngine(SvtRmEngine):
         with open(self.settingFilePath) as f:
             d = json.load(f)
             for k, v in d.items():
-                print(k,v)
                 setattr(self, k, v)
 
     def toSaveSetting(self):
@@ -63,5 +62,4 @@ class RmEngine(SvtRmEngine):
         d.update({
             'marginRatioWarning': self.marginRatioWarning,
         })
-        print(d)
         return d

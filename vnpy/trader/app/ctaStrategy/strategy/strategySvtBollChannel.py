@@ -185,6 +185,7 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.orderOnXminBar(bar)
 
         # 发出状态更新事件
+        self.saveDB()
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(self.xminBar.datetime))
 
