@@ -255,7 +255,8 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if not self.isBackTesting():
             self.log.warning(
-                u'{} -> {}, {}, {}'.format(originCapital, self.capital, round(charge, 2), round(profile, 2)))
+                u'{}{} {} -> {}, {}, {}'.format(trade.direction, trade.offset, originCapital, self.capital,
+                                                round(charge, 2), round(profile, 2)))
 
         if self.isBackTesting():
             if self.capital <= 0:

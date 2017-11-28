@@ -79,10 +79,10 @@ class CtaEngine(VtCtaEngine):
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
         # 心跳相关
-        self.heartBeatInterval = 5  # second
+        self.heartBeatInterval = 30  # second
         # 将心跳时间设置为1小时候开始
         # report 之后会立即重置为当前触发心跳
-        self.nextHeatBeatTime = time.time()
+        self.nextHeatBeatTime = time.time() + 60 * 10
 
         if __debug__:
             import pymongo.collection
@@ -457,7 +457,18 @@ class CtaEngine(VtCtaEngine):
 
         # 10分钟后开始触发一次心跳
         # 避免因为CTP断掉毫无行情，导致心跳从未开始
-        Timer(60 * 5, foo).start()
+        Timer(60 * 10, foo).start()
+
+        # 10:15 ~ 10:30 的心跳
+        if arrow.now().datetime.time() < datetime.time(10, 15):
+            def bar():
+                self.log.info(u'在休市过程中保持心跳')
+                while arrow.now().datetime.time() < datetime.time(10, 30):
+                    self.heartBeat()
+                    time.sleep(self.heartBeatInterval)
+
+            breakStartTime = datetime.datetime.combine(datetime.date.today(), datetime.time(10, 15))
+            Timer((breakStartTime - now.datetime()).total_seconds(), bar)
 
     def processTickEvent(self, event):
         """处理行情推送"""

@@ -8,6 +8,7 @@ from vnpy.trader.svtEngine import MainEngine
 from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI
+from vnpy.trader.app import riskManager
 
 
 def runChildProcess():
@@ -36,6 +37,7 @@ def runChildProcess():
     me.addApp(ctaStrategy)
     me.log.info(u'启动网页UI')
     me.addApp(webUI)  # 网页UI
+    me.addApp(riskManager) # 风控模块
 
     me.connect('CTP')
     me.log.info(u'连接CTP接口')
