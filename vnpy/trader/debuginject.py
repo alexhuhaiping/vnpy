@@ -33,7 +33,15 @@ def checkHands():
 def cover():
     s = getStrategy(vtSymbol)
     # s.pos = -15
-    s.cover(s.bm.bar.close, 1, True)
+
+    price = s.bm.bar.close - 1
+    volume = 20
+    stop = False
+
+    s.cover(price, volume, stop)
+    s.cover(price, volume, stop)
+    s.cover(price, volume, stop)
+
     s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
@@ -44,6 +52,7 @@ def short():
     price = s.bm.bar.close - 1
     volume = 20
     stop = False
+
     s.short(price, volume, stop)
     s.short(price, volume, stop)
     s.short(price, volume, stop)
@@ -64,16 +73,18 @@ def showStopOrder():
         print(os.toHtml())
 
 
-def showBar():
-    s = getStrategy(vtSymbol)
-    s.log.info(u'{}'.format(s.bar.datetime))
-
-
 def showLastTick():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bm.lastTick.datetime))
 
 
+def showBar():
+    s = getStrategy(vtSymbol)
+
+    s.log.info(u'{}'.format(str(s.am.highArray)))
+
+
+# vtSymbol = 'rb1805'
 vtSymbol = 'ag1712'
 
 
@@ -86,8 +97,8 @@ def run():
     # showBar()
     # showStopOrder()
     # sell()
-    short()
-    # cover()
+    # short()
+    cover()
     # checkHands(me)
 
     me.log.debug('====================================================')

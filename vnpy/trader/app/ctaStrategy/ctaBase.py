@@ -70,6 +70,7 @@ MINUTE_DB_NAME = 'ctp'
 
 MINUTE_COL_NAME = 'bar_1min'
 DAY_COL_NAME = 'bar_1day'
+CONTRACT_COL_NAME = 'contract'
 
 # 引擎类型，用于区分当前策略的运行环境
 ENGINETYPE_BACKTESTING = 'backtesting'  # 回测

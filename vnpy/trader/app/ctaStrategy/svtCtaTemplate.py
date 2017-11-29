@@ -112,6 +112,7 @@ class CtaTemplate(vtCtaTemplate):
         self.marginList = []
         self._positionDetail = None  # 仓位详情
 
+
         # K线管理器
         self.maxBarNum = 0
         self.initMaxBarNum()
@@ -315,10 +316,14 @@ class CtaTemplate(vtCtaTemplate):
 
             orderDic = OrderedDict(items)
             orderDic['bar'] = self.barToHtml()
+            if self.bm._preBar:
+                orderDic['preBar'] = self.barToHtml(self.bm._preBar)
+
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
+            if self.bm._preXminBar:
+                orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.bm._preXminBar)
 
             # 本地停止单
-            # stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.bm.lastTick)
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
             units = [so.toHtml() for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
@@ -555,8 +560,9 @@ class CtaTemplate(vtCtaTemplate):
         newPrice = round(price / self.priceTick, 0) * self.priceTick
         return newPrice
 
-    def barToHtml(self):
-        bar = self.bm.bar
+    def barToHtml(self, bar=None):
+        bar = bar or self.bm.bar
+        assert isinstance(bar, VtBarData)
         if bar is None:
             return u'bar 无数据'
         itmes = (
@@ -568,8 +574,9 @@ class CtaTemplate(vtCtaTemplate):
         )
         return OrderedDict(itmes)
 
-    def xminBarToHtml(self):
-        bar = self.bm.xminBar
+    def xminBarToHtml(self, bar=None):
+        bar = bar or self.bm.xminBar
+        assert isinstance(bar, VtBarData)
         if bar is None:
             return u'xminBar 无数据'
 
@@ -693,6 +700,9 @@ class BarManager(VtBarManager):
     def __init__(self, strategy, onBar, xmin=0, onXminBar=None):
         super(BarManager, self).__init__(onBar, xmin, onXminBar)
         self.strategy = strategy
+        self._preBar = None  # 前一个1分钟K线对象
+        self._preXminBar = None  # 前一个X分钟K线对象
+
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
 

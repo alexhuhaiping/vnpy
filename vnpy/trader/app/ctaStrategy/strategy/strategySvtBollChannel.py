@@ -157,8 +157,8 @@ class SvtBollChannelStrategy(CtaTemplate):
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
         self.bm.updateBar(bar)
-        if self.trading:
-            self.log.info(u'更新 bar'.format(bar.datetime))
+        # if self.trading:
+        #     self.log.info(u'更新 bar'.format(bar.datetime))
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):

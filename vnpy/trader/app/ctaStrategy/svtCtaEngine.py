@@ -66,6 +66,10 @@ class CtaEngine(VtCtaEngine):
         self.ctpCol1dayBar = self.mainEngine.ctpdb[DAY_COL_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
 
+        # 合约的详情
+        self.contractCol = self.mainEngine.ctpdb[CONTRACT_COL_NAME].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+
         self.strategyDB = self.mainEngine.strategyDB
         # 尝试创建 ctaCollection
         self.initCollection()
@@ -494,8 +498,6 @@ class CtaEngine(VtCtaEngine):
             for strategy in l:
                 self.callStrategyFunc(strategy, strategy.onTick, tick)
 
-            self._heartBeat(event)
-
     def _heartBeat(self, event):
         """
         通过 tick 推送事件来触发心跳
@@ -511,3 +513,33 @@ class CtaEngine(VtCtaEngine):
 
     def heartBeat(self):
         self.mainEngine.slavemReport.heartBeat()
+
+    def loadSetting(self):
+        super(CtaEngine, self).loadSetting()
+        for us in ['ag', 'T']:
+            # 订阅 ag 和 T 的主力合约
+            sql = {
+                'underlyingSymbol': us,
+                'activeEndDate': {'$ne': None}
+            }
+            # 逆序, 取出第一个，就是当前的主力合约
+            cursor = self.contractCol.find(sql).sort('activeEndDate', -1)
+            d = next(cursor)
+            symbol = d['symbol']
+
+            # 订阅合约
+            contract = self.mainEngine.getContract(symbol)
+            if not contract:
+                err = u'找不到维持心跳的合约 {}'.format(symbol)
+                self.log.critical(err)
+                time.sleep(1)
+                raise ValueError(err)
+
+            self.log.info(u'订阅维持心跳的合约 {}'.format(symbol))
+
+            req = VtSubscribeReq()
+            req.symbol = contract.symbol
+            self.mainEngine.subscribe(req, contract.gatewayName)
+
+            # 仅对 ag 和 T 的tick推送进行心跳
+            self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
