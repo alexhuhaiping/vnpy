@@ -112,7 +112,6 @@ class CtaTemplate(vtCtaTemplate):
         self.marginList = []
         self._positionDetail = None  # 仓位详情
 
-
         # K线管理器
         self.maxBarNum = 0
         self.initMaxBarNum()
@@ -315,13 +314,12 @@ class CtaTemplate(vtCtaTemplate):
             )
 
             orderDic = OrderedDict(items)
-            orderDic['bar'] = self.barToHtml()
-            if self.bm._preBar:
-                orderDic['preBar'] = self.barToHtml(self.bm._preBar)
+            bars = [self.barToHtml()]
+            orderDic['bar'] = pd.DataFrame(bars).to_html()
 
-            orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
-            if self.bm._preXminBar:
-                orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.bm._preXminBar)
+            bars = [self.xminBarToHtml()]
+            orderDic['{}minBar'.format(self.barXmin)] = pd.DataFrame(bars).to_html()
+            # orderDic['{}minBars'.format(self.barXmin)] = self.am.toHtml()
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
@@ -853,3 +851,18 @@ class ArrayManager(VtArrayManager):
         if array:
             return result
         return result[-1]
+
+    def toHtml(self):
+        """
+
+        :return:
+        """
+        od = OrderedDict([
+            ('open', self.openArray[-5:]),
+            ('high', self.highArray[-5:]),
+            ('low', self.lowArray[-5:]),
+            ('close', self.closeArray[-5:]),
+            ('volume', self.volumeArray[-5:]),
+        ])
+
+        return pd.DataFrame(od).to_html()
