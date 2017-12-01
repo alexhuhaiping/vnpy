@@ -156,9 +156,16 @@ class SvtBollChannelStrategy(CtaTemplate):
 
     # ----------------------------------------------------------------------
     def onBar(self, bar):
-        """收到Bar推送（必须由用户继承实现）"""
+        """
+        :param bar: 在实盘中就是 self.preBar
+        :return:
+        """
         # 调试用的缓存每日权益
-        if self.isBackTesting():
+        if self.isBackTesting() and self.preBar:
+            print(self.bar == bar)
+            print(self.preBar == bar)
+            print(self.preBar == self.bar)
+            raise
             if bar.tradingDay != self.preBar.tradingDay:
                 # 新的交易日
                 self.balanceList[self.preBar.tradingDay] = self.rtBalance
@@ -170,7 +177,7 @@ class SvtBollChannelStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.log.info(u'capital:{} rtBalance:{} '.format(self.capital, self.rtBalance))
             self.log.info(u'price:{} pos:{} '.format(self.bar.close, self.pos))
-            self.log.info(u'averagePrice:{} '.format(self.averagePrice))
+            self.log.info(u'averagePrice:{} turnover：{}'.format(self.averagePrice, self.turnover))
             self.closeout()
 
     # ----------------------------------------------------------------------

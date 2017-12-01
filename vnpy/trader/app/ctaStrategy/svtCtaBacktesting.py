@@ -800,16 +800,10 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
+        self.dailyResult[u'日收益率曲线'] = balanceList.values[1:]
+        self.dailyResult[u'结算日'] = df.index.values
 
-        keys = imap(lambda dt: dt.timestamp(), df.index)
-        def values():
-            for i in balanceList.values[1:]:
-                yield i
-        dailyReturnRateSereis = pd.Series(list(balanceList.values[1:]), index=df.index)
-        self.dailyResult[u'日收益率曲线'] = dict(zip(keys, values()))
-        print(self.dailyResult[u'日收益率曲线'])
-
-        return
+        # return
         if not self.isShowFig:
             return
 

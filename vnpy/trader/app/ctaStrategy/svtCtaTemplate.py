@@ -319,12 +319,18 @@ class CtaTemplate(vtCtaTemplate):
             )
 
             orderDic = OrderedDict(items)
-            bars = [self.barToHtml()]
-            orderDic['bar'] = pd.DataFrame(bars).to_html()
 
-            bars = [self.xminBarToHtml()]
-            orderDic['{}minBar'.format(self.barXmin)] = pd.DataFrame(bars).to_html()
-            # orderDic['{}minBars'.format(self.barXmin)] = self.am.toHtml()
+            # bars = [self.barToHtml()]
+            # orderDic['bar'] = pd.DataFrame(bars).to_html()
+            if self.preBar:
+                orderDic['preBar'] = self.barToHtml(self.preBar)
+            orderDic['bar'] = self.barToHtml()
+
+            # bars = [self.xminBarToHtml()]
+            # orderDic['{}minBar'.format(self.barXmin)] = pd.DataFrame(bars).to_html()
+            if self.preXminBar:
+                orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.preXminBar)
+            orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
@@ -752,6 +758,9 @@ class BarManager(VtBarManager):
     @property
     def inited(self):
         return self.strategy.inited
+
+    # ----------------------------------------------------------------------
+    def _updateBarByTick(self, tick):
 
     # ----------------------------------------------------------------------
     def updateTick(self, tick):
