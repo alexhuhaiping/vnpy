@@ -157,7 +157,9 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onBar(self, bar):
         """
-        :param bar: 在实盘中就是 self.preBar
+        self.bar 更新完最后一个 tick ，在生成新的 bar 之前将 self.bar 传入
+        该函数是由下一根 bar 的第一个 tick 驱动的，而不是当前 bar 的最后一个 tick
+        :param bar:
         :return:
         """
         # 调试用的缓存每日权益
@@ -165,12 +167,11 @@ class SvtBollChannelStrategy(CtaTemplate):
             print(self.bar == bar)
             print(self.preBar == bar)
             print(self.preBar == self.bar)
-            raise
             if bar.tradingDay != self.preBar.tradingDay:
                 # 新的交易日
                 self.balanceList[self.preBar.tradingDay] = self.rtBalance
 
-        self.bm.updateBar(bar)
+        self.bm.updateXminBar(bar)
         # if self.trading:
         #     self.log.info(u'更新 bar'.format(bar.datetime))
         if self.rtBalance < 0:
@@ -182,7 +183,12 @@ class SvtBollChannelStrategy(CtaTemplate):
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
-        """收到X分钟K线"""
+        """
+        这个函数是由 self.xminBar 的最后一根 bar 驱动的
+        执行完这个函数之后，会立即更新到下一个函数
+        :param xminBar:
+        :return:
+        """
         bar = xminBar
 
         # 全撤之前发出的委托

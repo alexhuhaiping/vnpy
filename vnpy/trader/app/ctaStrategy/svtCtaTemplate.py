@@ -760,13 +760,12 @@ class BarManager(VtBarManager):
         return self.strategy.inited
 
     # ----------------------------------------------------------------------
-    def _updateBarByTick(self, tick):
-
-    # ----------------------------------------------------------------------
     def updateTick(self, tick):
-        """TICK更新"""
-        newMinute = False  # 默认不是新的一分钟
-
+        """
+        onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
+        :param tick:
+        :return:
+        """
         if self.lastTick is None and not self.strategy.isBackTesting():
             # 第一个 tick 就比当前时间偏离，则
             if abs((tick.datetime - arrow.now().datetime).total_seconds()) > 60 * 10:
@@ -781,20 +780,42 @@ class BarManager(VtBarManager):
             self.log.warning(u'剔除错误数据')
             return
 
+        # 更新 bar
+        self.updateBar(tick)
+
+        # 缓存Tick
+        self.lastTick = tick
+
+    def updateBar(self, tick):
+        """
+        onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
+        :param tick:
+        :return:
+        """
         # 尚未创建对象
+        newMinute = False  # 默认不是新的一分钟
+
         if not self.bar:
             self.bar = VtBarData()
             newMinute = True
         # 新的一分钟
         elif self.bar.datetime.minute != tick.datetime.minute:
             # 生成上一分钟K线的时间戳
-            self.bar.datetime = self.bar.datetime.replace(second=0, microsecond=0)  # 将秒和微秒设为0
+            # 上一根k线的时间戳为，当前分钟的 0秒
+            dt = self.bar.datetime.replace(second=0, microsecond=0)
+            dt += datetime.timedelta(minutes=1)
+            self.bar.datetime = dt
             self.bar.date = self.bar.datetime.strftime('%Y%m%d')
             self.bar.time = self.bar.datetime.strftime('%H:%M:%S.%f')
+
+            if newMinute:
+                # 先推送当前的bar，再从 tick 中更新数据
+                self.onBar(self.bar)
 
             # 创建新的K线对象
             self.preBar, self.bar = self.bar, VtBarData()
             newMinute = True
+
 
         # 初始化新一分钟的K线数据
         if newMinute:
@@ -818,15 +839,12 @@ class BarManager(VtBarManager):
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
 
-        if newMinute and self.preBar:
-            # 推送已经结束的上一分钟K线
-            self.onBar(self.preBar)
-
-        # 缓存Tick
-        self.lastTick = tick
-
-    def updateBar(self, bar):
-        """1分钟K线更新"""
+    def updateXminBar(self, bar):
+        """
+        onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
+        :param bar:
+        :return:
+        """
         if self.strategy.isBackTesting():
             self.bar = bar
 

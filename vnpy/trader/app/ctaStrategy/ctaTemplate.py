@@ -338,12 +338,7 @@ class BarManager(object):
         
     #----------------------------------------------------------------------
     def updateTick(self, tick):
-        """
-        TICK更新
-        onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
-        :param tick:
-        :return:
-        """
+        """TICK更新"""
         newMinute = False   # 默认不是新的一分钟
         
         # 尚未创建对象
