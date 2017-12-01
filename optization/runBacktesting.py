@@ -39,15 +39,14 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'rb1805'
-
+    vtSymbol = 'hc1801'
     setting = {
-        'capital': 100000,
         'vtSymbol': vtSymbol,
+        'capital': 100000,
     }
-    setting.update(
-        {"atrWindow":30,"barXmin":15,"bollDev":2.4,"bollWindow":18,"cciWindow":10,"slMultiplier":5.2}
-    )
+    setting.update({
+        "atrWindow": 30, "barXmin": 11, "bollDev": 3.2, "bollWindow": 10.0, "cciWindow": 10, "slMultiplier": 2.0
+    })
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,

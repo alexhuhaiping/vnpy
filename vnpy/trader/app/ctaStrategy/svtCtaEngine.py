@@ -465,14 +465,16 @@ class CtaEngine(VtCtaEngine):
 
         # 10:15 ~ 10:30 的心跳
         if arrow.now().datetime.time() < datetime.time(10, 15):
-            def bar():
+            def shock():
                 self.log.info(u'在休市过程中保持心跳')
                 while arrow.now().datetime.time() < datetime.time(10, 30):
                     self.heartBeat()
                     time.sleep(self.heartBeatInterval)
 
             breakStartTime = datetime.datetime.combine(datetime.date.today(), datetime.time(10, 15))
-            Timer((breakStartTime - now.datetime()).total_seconds(), bar)
+            wait = (breakStartTime - now.datetime()).total_seconds()
+            self.log.info(u'设置了 10:15 ~ 10:30 的定时心跳, {} 秒后启动'.format(wait))
+            Timer(wait, shock).start()
 
     def processTickEvent(self, event):
         """处理行情推送"""
