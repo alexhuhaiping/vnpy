@@ -720,7 +720,8 @@ class CtaTemplate(vtCtaTemplate):
             volume = abs(self.pos)
             self.cover(price, volume)
 
-        self.log.warning(u'一键平仓')
+        if not self.isBackTesting():
+            self.log.warning(u'一键平仓')
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

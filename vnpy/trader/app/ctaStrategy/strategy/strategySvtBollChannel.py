@@ -18,7 +18,7 @@
 
 from __future__ import division
 
-import arrow
+from collections import OrderedDict
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTradeData
@@ -88,6 +88,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
 
         self.hands = self.fixedSize
+        self.balanceList = OrderedDict()
 
     def initMaxBarNum(self):
         self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)
@@ -156,11 +157,20 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
+        # 调试用的缓存每日权益
+        if self.isBackTesting():
+            if bar.tradingDay != self.preBar.tradingDay:
+                # 新的交易日
+                self.balanceList[self.preBar.tradingDay] = self.rtBalance
+
         self.bm.updateBar(bar)
         # if self.trading:
         #     self.log.info(u'更新 bar'.format(bar.datetime))
         if self.rtBalance < 0:
             # 爆仓，一键平仓
+            self.log.info(u'capital:{} rtBalance:{} '.format(self.capital, self.rtBalance))
+            self.log.info(u'price:{} pos:{} '.format(self.bar.close, self.pos))
+            self.log.info(u'averagePrice:{} '.format(self.averagePrice))
             self.closeout()
 
     # ----------------------------------------------------------------------
