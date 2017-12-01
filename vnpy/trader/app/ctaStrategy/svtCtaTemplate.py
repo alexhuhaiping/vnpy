@@ -8,10 +8,7 @@ import traceback
 import time
 import talib
 import logging
-import copy
-from collections import OrderedDict
 import pymongo
-from itertools import chain
 import datetime
 
 import pandas as pd
@@ -169,6 +166,14 @@ class CtaTemplate(vtCtaTemplate):
     @property
     def xminBar(self):
         return self.bm.xminBar
+
+    @property
+    def preBar(self):
+        return self.bm.preBar
+
+    @property
+    def preXminBar(self):
+        return self.bm.preXminBar
 
     @property
     def calssName(self):
@@ -685,6 +690,37 @@ class CtaTemplate(vtCtaTemplate):
             # 反空
             return self.TRADE_STATUS_REV_SHORT
 
+    def closeout(self):
+        """
+        一键平仓
+        :return:
+        """
+        if self.pos == 0:
+            # 无需一键平仓
+            return
+
+        if self.bm.lastTick or self.bar:
+            pass
+        else:
+            self.log.warning(u'没有 tick 或  bar 能提供价格一键平仓')
+            return
+
+        # 一键撤单
+        self.cancelAll()
+
+        # 下平仓单
+        if self.pos > 0:
+            # 平多
+            price = self.bm.lastTick.upperLimit if self.bm.lastTick else self.bar.high
+            volume = self.pos
+            self.sell(price, volume)
+        elif self.pos < 0:
+            # 平空
+            price = self.bm.lastTick.lowerLimit if self.bm.lastTick else self.bar.low
+            volume = abs(self.pos)
+            self.cover(price, volume)
+
+        self.log.warning(u'一键平仓')
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
@@ -698,8 +734,8 @@ class BarManager(VtBarManager):
     def __init__(self, strategy, onBar, xmin=0, onXminBar=None):
         super(BarManager, self).__init__(onBar, xmin, onXminBar)
         self.strategy = strategy
-        self._preBar = None  # 前一个1分钟K线对象
-        self._preXminBar = None  # 前一个X分钟K线对象
+        self.preBar = None  # 前一个1分钟K线对象
+        self.preXminBar = None  # 前一个X分钟K线对象
 
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
@@ -720,7 +756,6 @@ class BarManager(VtBarManager):
     def updateTick(self, tick):
         """TICK更新"""
         newMinute = False  # 默认不是新的一分钟
-        oldBar = None
 
         if self.lastTick is None and not self.strategy.isBackTesting():
             # 第一个 tick 就比当前时间偏离，则
@@ -748,7 +783,7 @@ class BarManager(VtBarManager):
             self.bar.time = self.bar.datetime.strftime('%H:%M:%S.%f')
 
             # 创建新的K线对象
-            oldBar, self.bar = self.bar, VtBarData()
+            self.preBar, self.bar = self.bar, VtBarData()
             newMinute = True
 
         # 初始化新一分钟的K线数据
@@ -773,9 +808,9 @@ class BarManager(VtBarManager):
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
 
-        if newMinute and oldBar:
+        if newMinute and self.preBar:
             # 推送已经结束的上一分钟K线
-            self.onBar(oldBar)
+            self.onBar(self.preBar)
 
         # 缓存Tick
         self.lastTick = tick
@@ -816,17 +851,14 @@ class BarManager(VtBarManager):
             self.xminBar.date = self.xminBar.datetime.strftime('%Y%m%d')
             self.xminBar.time = self.xminBar.datetime.strftime('%H:%M:%S.%f')
 
-            # 推送
-            self.onXminBar(self.xminBar)
+            # 清空老K线缓存对象
+            self.preXminBar, self.xminBar = self.xminBar, VtBarData()
+            # 直接将当前的 1min bar 数据 copy 到 xminBar
+            for k, v in self.bar.__dict__.items():
+                setattr(self.xminBar, k, v)
 
-            if self.strategy.isBackTesting():
-                self.xminBar = None
-            else:
-                # 清空老K线缓存对象
-                self.xminBar = VtBarData()
-                # 直接将当前的 1min bar 数据 copy 到 xminBar
-                for k, v in self.bar.__dict__.items():
-                    setattr(self.xminBar, k, v)
+            # 推送
+            self.onXminBar(self.preXminBar)
 
 
 #########################################################################

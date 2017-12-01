@@ -156,15 +156,16 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
-        self.bm._preBar = bar
         self.bm.updateBar(bar)
         # if self.trading:
         #     self.log.info(u'更新 bar'.format(bar.datetime))
+        if self.rtBalance < 0:
+            # 爆仓，一键平仓
+            self.closeout()
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
         """收到X分钟K线"""
-        self.bm._preXminBar = xminBar
         bar = xminBar
 
         # 全撤之前发出的委托
@@ -267,7 +268,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                 self.capital = 0
 
         # 下止损单
-        self.orderOnXminBar(self.xminBar)
+        self.orderOnXminBar(self.xminBar or self.bm._preXminBar)
 
         # 发出状态更新事件
         self.saveDB()

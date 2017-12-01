@@ -61,6 +61,7 @@ class BacktestingEngine(VTBacktestingEngine):
         """Constructor"""
         # 本地停止单
         self.log = logging.getLogger('ctabacktesting')
+
         super(BacktestingEngine, self).__init__()
 
         self.vtContract = None  # 合约详情 VtConcractData
@@ -531,8 +532,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     orderID = str(self.limitOrderCount)
                     so.vtOrderID = orderID
                     self.strategy.onStopOrder(so)
-                if __debug__:
-                    self.log.debug(u'{}'.format(so))
+
                 # 推送成交数据
                 self.tradeCount += 1  # 成交编号自增1
                 tradeID = str(self.tradeCount)
@@ -800,8 +800,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        print(121212)
-        print(df.index[0].timestamp())
+
         keys = imap(lambda dt: dt.timestamp(), df.index)
         def values():
             for i in balanceList.values[1:]:
@@ -809,6 +808,7 @@ class BacktestingEngine(VTBacktestingEngine):
         dailyReturnRateSereis = pd.Series(list(balanceList.values[1:]), index=df.index)
         self.dailyResult[u'日收益率曲线'] = dict(zip(keys, values()))
         print(self.dailyResult[u'日收益率曲线'])
+
         return
         if not self.isShowFig:
             return
