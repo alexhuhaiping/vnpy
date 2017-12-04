@@ -471,8 +471,8 @@ class CtaEngine(VtCtaEngine):
                     self.heartBeat()
                     time.sleep(self.heartBeatInterval)
 
-            breakStartTime = datetime.datetime.combine(datetime.date.today(), datetime.time(10, 15))
-            wait = (breakStartTime - now.datetime()).total_seconds()
+            breakStartTime = arrow.now().replace(hour=10, minute=15)
+            wait = breakStartTime.timestamp - now
             self.log.info(u'设置了 10:15 ~ 10:30 的定时心跳, {} 秒后启动'.format(wait))
             Timer(wait, shock).start()
 

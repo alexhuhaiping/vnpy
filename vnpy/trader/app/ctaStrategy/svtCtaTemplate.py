@@ -4,6 +4,7 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
+import copy
 import traceback
 import time
 import talib
@@ -116,6 +117,9 @@ class CtaTemplate(vtCtaTemplate):
         # 技术指标生成器
         self.am = ArrayManager(self.maxBarNum)
 
+        # 是否允许一键平仓
+        self.isCloseoutVaild = False
+
         # 计算持仓成本
         self.turnover = EMPTY_FLOAT  # 持仓总值，多空正负
         # self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
@@ -178,6 +182,12 @@ class CtaTemplate(vtCtaTemplate):
     @property
     def calssName(self):
         return self.__class__.__name__
+
+    def onStart(self):
+        if not self.isCloseoutVaild:
+            raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
+        super(CtaTemplate, self).onStart()
+
 
     def onTrade(self, trade):
         """
@@ -320,14 +330,10 @@ class CtaTemplate(vtCtaTemplate):
 
             orderDic = OrderedDict(items)
 
-            # bars = [self.barToHtml()]
-            # orderDic['bar'] = pd.DataFrame(bars).to_html()
             if self.preBar:
                 orderDic['preBar'] = self.barToHtml(self.preBar)
             orderDic['bar'] = self.barToHtml()
 
-            # bars = [self.xminBarToHtml()]
-            # orderDic['{}minBar'.format(self.barXmin)] = pd.DataFrame(bars).to_html()
             if self.preXminBar:
                 orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.preXminBar)
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
@@ -701,6 +707,8 @@ class CtaTemplate(vtCtaTemplate):
         一键平仓
         :return:
         """
+        if not self.isCloseoutVaild:
+            return
         if self.pos == 0:
             # 无需一键平仓
             return
@@ -728,6 +736,7 @@ class CtaTemplate(vtCtaTemplate):
 
         if not self.isBackTesting():
             self.log.warning(u'一键平仓')
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
@@ -777,7 +786,7 @@ class BarManager(VtBarManager):
             # 20分钟是早盘10:15 ~ 10:30 的休市时间
             # CTA 策略默认使用比较活跃的合约
             # 中午休市的时候必须重启服务，否则的话 lastTick 和 新tick之间的跨度会过大
-            self.log.warning(u'剔除错误数据')
+            self.log.warning(u'剔除错误数据 {} {}'.format(self.lastTick.datetime, tick.datetime))
             return
 
         # 更新 bar
@@ -798,8 +807,8 @@ class BarManager(VtBarManager):
         if not self.bar:
             self.bar = VtBarData()
             newMinute = True
-        # 新的一分钟
         elif self.bar.datetime.minute != tick.datetime.minute:
+            # 新的一分钟
             # 生成上一分钟K线的时间戳
             # 上一根k线的时间戳为，当前分钟的 0秒
             dt = self.bar.datetime.replace(second=0, microsecond=0)
@@ -808,14 +817,12 @@ class BarManager(VtBarManager):
             self.bar.date = self.bar.datetime.strftime('%Y%m%d')
             self.bar.time = self.bar.datetime.strftime('%H:%M:%S.%f')
 
-            if newMinute:
-                # 先推送当前的bar，再从 tick 中更新数据
-                self.onBar(self.bar)
+            # 先推送当前的bar，再从 tick 中更新数据
+            self.onBar(self.bar)
 
             # 创建新的K线对象
             self.preBar, self.bar = self.bar, VtBarData()
             newMinute = True
-
 
         # 初始化新一分钟的K线数据
         if newMinute:
@@ -849,10 +856,15 @@ class BarManager(VtBarManager):
             self.bar = bar
 
         self.count += 1
+        newXminBar = False
+        if self.count % self.xmin == 1:
+            # 新的K先后的第一个1分钟
+            newXminBar = True
+            # 清空老K线缓存对象
 
         # 尚未创建对象
-        if not self.xminBar:
-            self.xminBar = VtBarData()
+        if newXminBar:
+            self.preXminBar, self.xminBar = self.xminBar, VtBarData()
 
             self.xminBar.vtSymbol = bar.vtSymbol
             self.xminBar.symbol = bar.symbol
@@ -874,19 +886,13 @@ class BarManager(VtBarManager):
 
         # X分钟已经走完
         if self.count % self.xmin == 0:  # 可以用X整除
-            # 生成上一X分钟K线的时间戳
-            self.xminBar.datetime = self.xminBar.datetime.replace(second=0, microsecond=0)  # 将秒和微秒设为0
+            # 结束的 bar 的时间戳，就是 xminBar 的时间戳
+            self.xminBar.datetime = bar.datetime
             self.xminBar.date = self.xminBar.datetime.strftime('%Y%m%d')
             self.xminBar.time = self.xminBar.datetime.strftime('%H:%M:%S.%f')
 
-            # 清空老K线缓存对象
-            self.preXminBar, self.xminBar = self.xminBar, VtBarData()
-            # 直接将当前的 1min bar 数据 copy 到 xminBar
-            for k, v in self.bar.__dict__.items():
-                setattr(self.xminBar, k, v)
-
             # 推送
-            self.onXminBar(self.preXminBar)
+            self.onXminBar(self.xminBar)
 
 
 #########################################################################

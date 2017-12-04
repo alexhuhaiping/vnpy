@@ -110,6 +110,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         for bar in initData:
             self.bm.bar = bar
             self.onBar(bar)
+            self.bm.preBar = bar
 
         # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
 
@@ -123,6 +124,8 @@ class SvtBollChannelStrategy(CtaTemplate):
             # 需要等待保证金加载完毕
             document = self.fromDB()
             self.loadCtaDB(document)
+
+        self.isCloseoutVaild = True
 
         self.putEvent()
 
@@ -163,13 +166,8 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
         # 调试用的缓存每日权益
-        if self.isBackTesting() and self.preBar:
-            print(self.bar == bar)
-            print(self.preBar == bar)
-            print(self.preBar == self.bar)
-            if bar.tradingDay != self.preBar.tradingDay:
-                # 新的交易日
-                self.balanceList[self.preBar.tradingDay] = self.rtBalance
+        if self.isBackTesting() and self.trading:
+            self.balanceList[bar.tradingDay] = self.rtBalance
 
         self.bm.updateXminBar(bar)
         # if self.trading:
@@ -213,7 +211,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        self.log.info(u'更新 XminBar {}'.format(self.xminBar.datetime))
+        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
     def orderOnXminBar(self, bar):
         """
@@ -280,7 +278,8 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.capitalBalance(trade)
         profile = self.capital - preCapital
 
-        if not self.isBackTesting():
+        # if not self.isBackTesting():
+        if self.isBackTesting():
             self.log.warning(
                 u'{}{} {} -> {}, {}, {}'.format(trade.direction, trade.offset, originCapital, self.capital,
                                                 round(charge, 2), round(profile, 2)))
