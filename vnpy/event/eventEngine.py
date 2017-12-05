@@ -232,12 +232,17 @@ class EventEngine2(object):
         # 检查是否存在对该事件进行监听的处理函数
         if event.type_ in self.__handlers:
             # 若存在，则按顺序将事件传递给处理函数执行
-            [handler(event) for handler in self.__handlers[event.type_]]
+            # [handler(event) for handler in self.__handlers[event.type_]]
             
             # 以上语句为Python列表解析方式的写法，对应的常规循环写法为：
-            #for handler in self.__handlers[event.type_]:
-                #handler(event) 
-                
+            for handler in self.__handlers[event.type_]:
+                try:
+                    handler(event)
+                except Exception as e:
+                    self.log.error(u''.format(e.message))
+                    sleep(0.1)
+                    raise
+
         # 调用通用处理函数进行处理
         if self.__generalHandlers:
             [handler(event) for handler in self.__generalHandlers]        
