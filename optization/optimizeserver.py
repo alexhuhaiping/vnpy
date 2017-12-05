@@ -367,13 +367,13 @@ class Optimization(multiprocessing.Process):
                 v = self.localzone.localize(v)
                 setting[k] = v
 
-        # # 是否有至少一笔成交
-        # if engine.tradeResult:
-        #     # 有成交才保存这个，否则不保存回测结果
-        #     self.resultCol.insert_one(setting)
-        # # 无论是否有成交结果，删除掉任务
-        # self.finishSettingIDQueue.put(_id)
-        # self.argCol.delete_one({'_id': _id})
+        # 是否有至少一笔成交
+        if engine.tradeResult:
+            # 有成交才保存这个，否则不保存回测结果
+            self.resultCol.insert_one(setting)
+        # 无论是否有成交结果，删除掉任务
+        self.finishSettingIDQueue.put(_id)
+        self.argCol.delete_one({'_id': _id})
 
     def log(self, level, msg):
         """

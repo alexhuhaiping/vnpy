@@ -250,10 +250,10 @@ class BacktestingArg(object):
         # 每个品种的回测参数
         documents = []
         for c in contracts:
-            # TODO 测试代码，先只测试螺纹
-            if c['underlyingSymbol'] != 'hc':
-                self.log.debug(u'只生成 hc 的参数')
-                continue
+            # # TODO 测试代码，先只测试螺纹
+            # if c['underlyingSymbol'] != 'hc':
+            #     self.log.debug(u'只生成 hc 的参数')
+            #     continue
 
             for a in strategyArgs:
                 d = a.copy()
@@ -292,8 +292,8 @@ class BacktestingArg(object):
         # 保存回测详情
         self.saveBtinfo()
 
-        # # 保存回测参数
-        # self.saveBtargs(documents)
+        # 保存回测参数
+        self.saveBtargs(documents)
 
     def saveBtargs(self, documents):
 
@@ -327,6 +327,9 @@ if __name__ == '__main__':
 
     # # home 配置
     # optfile = 'optimizeHome.ini'
+
+    print(u'即将使用 {} 的配置'.format(optfile))
+    time.sleep(5)
 
     b = BacktestingArg(argFileName, optfile)
     b.start()

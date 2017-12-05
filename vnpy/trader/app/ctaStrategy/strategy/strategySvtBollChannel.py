@@ -90,6 +90,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
+
     def initMaxBarNum(self):
         self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)
 
@@ -109,6 +110,8 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
+            # TOOD 测试代码
+            self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
 
@@ -166,17 +169,20 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
         # 调试用的缓存每日权益
-        if self.isBackTesting() and self.trading:
-            self.balanceList[bar.tradingDay] = self.rtBalance
+        # if self.isBackTesting() and self.trading:
+        #     preBar = self.preBar
+        #     if preBar.tradingDay != bar.tradingDay:
+        #         self.bm.bar = preBar
+        #         self.log.warning(u'{} {} {} {}'.format(preBar.tradingDay, self.averagePrice, preBar.close, self.rtBalance))
+        #         self.balanceList[preBar.tradingDay] = self.rtBalance
+        #         self.bm.bar = bar
+        #     self.bm.preBar = bar
 
         self.bm.updateXminBar(bar)
         # if self.trading:
         #     self.log.info(u'更新 bar'.format(bar.datetime))
         if self.rtBalance < 0:
             # 爆仓，一键平仓
-            self.log.info(u'capital:{} rtBalance:{} '.format(self.capital, self.rtBalance))
-            self.log.info(u'price:{} pos:{} '.format(self.bar.close, self.pos))
-            self.log.info(u'averagePrice:{} turnover：{}'.format(self.averagePrice, self.turnover))
             self.closeout()
 
     # ----------------------------------------------------------------------
@@ -278,19 +284,18 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.capitalBalance(trade)
         profile = self.capital - preCapital
 
-        # if not self.isBackTesting():
-        if self.isBackTesting():
+        if not self.isBackTesting():
+        # if self.isBackTesting():
             self.log.warning(
                 u'{}{} {} -> {}, {}, {}'.format(trade.direction, trade.offset, originCapital, self.capital,
                                                 round(charge, 2), round(profile, 2)))
-
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
 
         # 下止损单
-        self.orderOnXminBar(self.xminBar or self.bm._preXminBar)
+        self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
         self.saveDB()

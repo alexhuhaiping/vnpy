@@ -58,6 +58,7 @@ class CtaTemplate(vtCtaTemplate):
         'averagePrice',
         'floatProfile',
         'rtBalance',
+        'marginRatio',
     ]
 
     # 成交状态
@@ -135,6 +136,10 @@ class CtaTemplate(vtCtaTemplate):
     @property
     def rtBalance(self):
         return self.capital + self.floatProfile
+
+    @property
+    def marginRatio(self):
+        return round(self.turnover * self.marginRate / self.rtBalance, 2)
 
     @property
     def averagePrice(self):
@@ -258,9 +263,9 @@ class CtaTemplate(vtCtaTemplate):
         扣除手续费
         :return:
         """
-        charge = volume * self.getCommission(price, volume, offset)
-        self.log.info(u'手续费 {}'.format(charge))
-        self.capital -= charge
+        commission = self.getCommission(price, volume, offset)
+        self.log.info(u'手续费 {}'.format(commission))
+        self.capital -= commission
 
     def chargeSplipage(self, volume):
         """
@@ -431,22 +436,23 @@ class CtaTemplate(vtCtaTemplate):
 
         assert isinstance(m, VtCommissionRate)
 
+        turnover = price * volume * self.size
         if offset == OFFSET_OPEN:
             # 开仓
             # 直接将两种手续费计费方式累加
-            value = m.openRatioByMoney * price * volume
+            value = m.openRatioByMoney * turnover
             value += m.openRatioByVolume * volume
         elif offset == OFFSET_CLOSE:
             # 平仓
-            value = m.closeRatioByMoney * price * volume
+            value = m.closeRatioByMoney * turnover
             value += m.closeRatioByVolume * volume
         elif offset == OFFSET_CLOSEYESTERDAY:
             # 平昨
-            value = m.closeRatioByMoney * price * volume
+            value = m.closeRatioByMoney * turnover
             value += m.closeRatioByVolume * volume
         elif offset == OFFSET_CLOSETODAY:
             # 平今
-            value = m.closeTodayRatioByMoney * price * volume
+            value = m.closeTodayRatioByMoney * turnover
             value += m.closeTodayRatioByVolume * volume
         else:
             err = u'未知的开平方向 {}'.format(offset)

@@ -333,9 +333,6 @@ class BacktestingEngine(VTBacktestingEngine):
         # 手续费率
         vtCom = VtCommissionRate()
 
-        # 回测时手续费的惩罚性倍率
-        vtCom.backtestingRate = 2
-
         for k, v in contractDic.items():
             if hasattr(vtCon, k):
                 setattr(vtCon, k, v)
@@ -345,6 +342,10 @@ class BacktestingEngine(VTBacktestingEngine):
 
             if hasattr(vtCom, k):
                 setattr(vtCom, k, v)
+
+        if vtCon.exchange == 'SHFE':
+            vtCom.closeTodayRatioByMoney = vtCom.closeRatioByMoney
+            vtCom.closeTodayRatioByVolume = vtCom.closeRatioByVolume
 
         # 设置数据库
         # self.setDatabase(MINUTE_DB_NAME, self.vtSymbol)
@@ -689,7 +690,7 @@ class BacktestingEngine(VTBacktestingEngine):
             dailyResult.previousClose = previousClose
             previousClose = dailyResult.closePrice
 
-            dailyResult.calculatePnl(openPosition, self.size, self.rate, self.slippage, self.marginRate)
+            dailyResult.calculatePnl(openPosition, self.size, self.strategy.getCommission, self.slippage, self.marginRate)
             openPosition = dailyResult.closePosition
 
         # 生成DataFrame
@@ -800,10 +801,9 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = balanceList.values[1:]
-        self.dailyResult[u'结算日'] = df.index.values
+        self.dailyResult[u'日收益率曲线'] = balanceList.values[1:].tolist()
+        self.dailyResult[u'结算日'] = map(lambda d: d.value, pd.to_datetime(df.index))
 
-        # return
         if not self.isShowFig:
             return
 
@@ -898,7 +898,7 @@ class BacktestingEngine(VTBacktestingEngine):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt,
                                                exitTrade.price, exitTrade.dt,
-                                               -closedVolume, self.rate, self.slippage, self.size)
+                                               -closedVolume, self.strategy.getCommission, self.slippage, self.size)
                         resultList.append(result)
 
                         posList.extend([-1, 0])
@@ -945,7 +945,7 @@ class BacktestingEngine(VTBacktestingEngine):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt,
                                                exitTrade.price, exitTrade.dt,
-                                               closedVolume, self.rate, self.slippage, self.size)
+                                               closedVolume, self.strategy.getCommission, self.slippage, self.size)
                         resultList.append(result)
 
                         posList.extend([1, 0])
@@ -982,12 +982,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for trade in longTrade:
             result = TradingResult(trade.price, trade.dt, endPrice, self.dt,
-                                   trade.volume, self.rate, self.slippage, self.size)
+                                   trade.volume, self.strategy.getCommission, self.slippage, self.size)
             resultList.append(result)
 
         for trade in shortTrade:
             result = TradingResult(trade.price, trade.dt, endPrice, self.dt,
-                                   -trade.volume, self.rate, self.slippage, self.size)
+                                   -trade.volume, self.strategy.getCommission, self.slippage, self.size)
             resultList.append(result)
 
             # 检查是否有交易

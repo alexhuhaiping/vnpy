@@ -16,6 +16,7 @@ import pymongo
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import tradingtime as tt
 
 # 如果安装了seaborn则设置为白色风格
 try:
@@ -472,18 +473,18 @@ class BacktestingEngine(object):
         self.limitOrderDict[orderID] = order
 
         return [orderID]
-    
-    #----------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------
     def cancelOrder(self, vtOrderID):
         """撤单"""
         if vtOrderID in self.workingLimitOrderDict:
             order = self.workingLimitOrderDict[vtOrderID]
-            
+
             order.status = STATUS_CANCELLED
             order.cancelTime = self.dt.strftime('%H:%M:%S')
-            
+
             self.strategy.onOrder(order)
-            
+
             del self.workingLimitOrderDict[vtOrderID]
 
     # ----------------------------------------------------------------------
@@ -519,9 +520,9 @@ class BacktestingEngine(object):
 
         # 推送停止单初始更新
         self.strategy.onStopOrder(so)
-        
+
         return [stopOrderID]
-    
+
     def cancelStopOrder(self, stopOrderID):
         """撤销停止单"""
         # 检查停止单是否存在
@@ -556,13 +557,14 @@ class BacktestingEngine(object):
         """记录日志"""
         log = str(self.dt) + ' ' + content
         self.logList.append(log)
-    #----------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------
     def cancelAll(self, name):
         """全部撤单"""
         # 撤销限价单
         for orderID in self.workingLimitOrderDict.keys():
             self.cancelOrder(orderID)
-        
+
         # 撤销停止单
         for stopOrderID in self.workingStopOrderDict.keys():
             self.cancelStopOrder(stopOrderID)
@@ -1058,7 +1060,7 @@ class BacktestingEngine(object):
 
         plt.show()
 
-        
+
 ########################################################################
 class VtTradingResult(object):
     """每笔交易的结果"""
@@ -1082,9 +1084,9 @@ class VtTradingResult(object):
         assert isinstance(rate, VtCommissionRate)
         commission = turnover * (rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
         commission += self.volume * (
-        rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
+            rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
         # 惩罚性的手续费倍率
-        self.commission = commission * rate.backtestingRate
+        self.commission = commission
 
         self.slippage = slippage * 2 * size * abs(volume)  # 滑点成本
         self.pnl = ((self.exitPrice - self.entryPrice) * volume * size
@@ -1098,22 +1100,45 @@ class TradingResult(VtTradingResult):
     def __init__(self, entryPrice, entryDt, exitPrice,
                  exitDt, volume, rate, slippage, size):
         """Constructor"""
-        super(TradingResult, self).__init__(entryPrice, entryDt, exitPrice,
-                                            exitDt, volume, rate, slippage, size)
+        # super(TradingResult, self).__init__(entryPrice, entryDt, exitPrice,
+        #                                     exitDt, volume, rate, slippage, size)
 
-        assert isinstance(rate, VtCommissionRate)
+        self.entryTradingDay = tt.get_tradingday(entryDt)
+        self.exitTradingDay = tt.get_tradingday(exitDt)
+        closeOffset = OFFSET_CLOSETODAY if self.entryTradingDay == self.exitTradingDay else OFFSET_CLOSE
 
-        # 手续费成本
-        # 按成交额算
-        self.commission = self.turnover * (
-            rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
-        self.commission += self.volume * (
-            rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
-        # 基准手续费 * 2
-        self.commission *= rate.backtestingRate
+        self.entryPrice = entryPrice  # 开仓价格
+        self.exitPrice = exitPrice  # 平仓价格
+
+        self.entryDt = entryDt  # 开仓时间datetime
+        self.exitDt = exitDt  # 平仓时间
+
+        self.volume = volume  # 交易数量（+/-代表方向）
+
+        self.turnover = (self.entryPrice + self.exitPrice) * size * abs(volume)  # 成交金额
+
+        # 开仓
+        commission = rate(entryPrice, volume, OFFSET_OPEN)
+        # 平仓
+        commission += rate(exitPrice, volume, closeOffset)
+        self.commission = commission
+
+        self.slippage = slippage * 2 * size * abs(volume)  # 滑点成本
+        self.pnl = ((self.exitPrice - self.entryPrice) * volume * size
+                    - self.commission - self.slippage)  # 净盈亏
+
+        # assert isinstance(rate, VtCommissionRate)
+        # # 手续费成本
+        # # 按成交额算
+        # self.commission = self.turnover * (
+        #     rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
+        # self.commission += self.volume * (
+        #     rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
+        # # 基准手续费 * 2
+        # self.commission *= rate.backtestingRate
 
 
-########################################################################
+    ########################################################################
 class VTDailyResult(object):
     """每日交易的结果"""
 
@@ -1202,14 +1227,8 @@ class DailyResult(VTDailyResult):
             self.tradingPnl += posChange * (self.closePrice - trade.price) * size
             self.closePosition += posChange
             self.turnover += trade.price * trade.volume * size
-
             # 计算手续费
-            turnover = trade.price * trade.volume * size
-            commission = turnover * (rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
-            commission += trade.volume * (rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
-            # 惩罚性的手续费倍率
-            commission *= rate.backtestingRate
-            self.commission += commission
+            self.commission += rate(trade.price, trade.volume, trade.offset)
 
             self.slippage += trade.volume * size * slippage
 

@@ -463,18 +463,19 @@ class CtaEngine(VtCtaEngine):
         # 避免因为CTP断掉毫无行情，导致心跳从未开始
         Timer(60 * 10, foo).start()
 
-        # 10:15 ~ 10:30 的心跳
-        if arrow.now().datetime.time() < datetime.time(10, 15):
-            def shock():
-                self.log.info(u'在休市过程中保持心跳')
-                while arrow.now().datetime.time() < datetime.time(10, 30):
-                    self.heartBeat()
-                    time.sleep(self.heartBeatInterval)
-
-            breakStartTime = arrow.now().replace(hour=10, minute=15)
-            wait = breakStartTime.timestamp - now
-            self.log.info(u'设置了 10:15 ~ 10:30 的定时心跳, {} 秒后启动'.format(wait))
-            Timer(wait, shock).start()
+        # 国债期货可以保证 10:15 ~ 10:30 的心跳
+        # # 10:15 ~ 10:30 的心跳
+        # if arrow.now().datetime.time() < datetime.time(10, 15):
+        #     def shock():
+        #         self.log.info(u'在休市过程中保持心跳')
+        #         while arrow.now().datetime.time() < datetime.time(10, 30):
+        #             self.heartBeat()
+        #             time.sleep(self.heartBeatInterval)
+        #
+        #     breakStartTime = arrow.now().replace(hour=10, minute=15)
+        #     wait = breakStartTime.timestamp - now
+        #     self.log.info(u'设置了 10:15 ~ 10:30 的定时心跳, {} 秒后启动'.format(wait))
+        #     Timer(wait, shock).start()
 
     def processTickEvent(self, event):
         """处理行情推送"""
@@ -545,3 +546,11 @@ class CtaEngine(VtCtaEngine):
 
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
+
+    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
+        super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
+        self.log.info(u'{}停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+
+    def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
+        super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+        self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
