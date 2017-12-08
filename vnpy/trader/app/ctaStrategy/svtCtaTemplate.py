@@ -11,12 +11,14 @@ import talib
 import logging
 import pymongo
 import datetime
+import functools
 
 import pandas as pd
 import arrow
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtEvent import *
+from vnpy.trader.vtFunction import exception
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import ArrayManager as VtArrayManager
@@ -164,6 +166,8 @@ class CtaTemplate(vtCtaTemplate):
             except AttributeError as e:
                 if self.bar is None:
                     pass
+                else:
+                    raise
             except TypeError:
                 if self.marginRate is None:
                     pass
@@ -188,11 +192,11 @@ class CtaTemplate(vtCtaTemplate):
     def calssName(self):
         return self.__class__.__name__
 
+    @exception('raise')
     def onStart(self):
         if not self.isCloseoutVaild:
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
-
 
     def onTrade(self, trade):
         """
@@ -201,6 +205,7 @@ class CtaTemplate(vtCtaTemplate):
         """
         raise NotImplementedError
 
+    @exception('raise')
     def capitalBalance(self, trade):
         """
         计算持仓成本和利润
@@ -258,6 +263,7 @@ class CtaTemplate(vtCtaTemplate):
 
         self.capital += profile
 
+    @exception('raise')
     def charge(self, offset, price, volume):
         """
         扣除手续费
@@ -277,6 +283,7 @@ class CtaTemplate(vtCtaTemplate):
             slippage = volume * self.size * self.ctaEngine.slippage
             self.capital -= slippage
 
+    @exception('raise')
     def newBar(self, tick):
         bar = VtBarData()
         bar.vtSymbol = tick.vtSymbol
@@ -297,6 +304,7 @@ class CtaTemplate(vtCtaTemplate):
         bar.openInterest = tick.openInterest
         return bar
 
+    @exception('raise')
     def refreshBarByTick(self, bar, tick):
         bar.high = max(bar.high, tick.lastPrice)
         bar.low = min(bar.low, tick.lastPrice)
@@ -307,6 +315,7 @@ class CtaTemplate(vtCtaTemplate):
         bar.low = min(bar.low, bar1min.low)
         bar.close = bar1min.close
 
+    @exception('raise')
     def paramList2Html(self):
         return OrderedDict(
             ((k, getattr(self, k)) for k in self.paramList)
@@ -322,6 +331,7 @@ class CtaTemplate(vtCtaTemplate):
             ((k, getattr(self, k)) for k in self.BALANCE)
         )
 
+    @exception('raise')
     def toHtml(self):
         try:
             param = self.paramList2Html()
@@ -418,6 +428,7 @@ class CtaTemplate(vtCtaTemplate):
             else:
                 return 0.9
 
+    @exception('raise')
     def getCommission(self, price, volume, offset):
         """
 
@@ -473,6 +484,7 @@ class CtaTemplate(vtCtaTemplate):
         assert isinstance(self._size, float) or isinstance(self._size, int)
         return self._size
 
+    @exception('raise')
     def onXminBar(self, xminBar):
         raise NotImplementedError(u'尚未定义')
 
@@ -495,6 +507,7 @@ class CtaTemplate(vtCtaTemplate):
     # def isNewBar(self):
     #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
+    @exception('raise')
     def stop(self):
         # 执行停止策略
         self.ctaEngine.stopStrategy(self)
@@ -505,6 +518,7 @@ class CtaTemplate(vtCtaTemplate):
         self.capital = document['capital']
         self.turnover = document['turnover']
 
+    @exception('raise')
     def toSave(self):
         """
         要存库的数据
@@ -518,6 +532,7 @@ class CtaTemplate(vtCtaTemplate):
 
         return dic
 
+    @exception('raise')
     def saveDB(self):
         """
         将策略的数据保存到 mongodb 数据库
@@ -539,6 +554,7 @@ class CtaTemplate(vtCtaTemplate):
             'userID': gateWay.tdApi.userID,
         }
 
+    @exception('raise')
     def fromDB(self):
         """
 
@@ -775,6 +791,7 @@ class BarManager(VtBarManager):
         return self.strategy.inited
 
     # ----------------------------------------------------------------------
+    @exception('raise')
     def updateTick(self, tick):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
@@ -801,6 +818,7 @@ class BarManager(VtBarManager):
         # 缓存Tick
         self.lastTick = tick
 
+    @exception('raise')
     def updateBar(self, tick):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
@@ -852,6 +870,7 @@ class BarManager(VtBarManager):
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
 
+    @exception('raise')
     def updateXminBar(self, bar):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar

@@ -3,12 +3,11 @@
 """
 包含一些开发中常用的函数
 """
-
+import functools
 import os
 import decimal
-import json
-from datetime import datetime
 import arrow
+import time
 
 
 MAX_NUMBER = 10000000000000
@@ -89,5 +88,24 @@ def getJsonPath(name, moduleFile):
     return moduleJsonPath
 
     
-    
+def exception(do=None):
+    """
+    用于捕获函数中的代码
+    :param do:
+     None       不抛出异常
+     'raise'    继续抛出异常
+    :return:
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kw):
+            try:
+                return func(self, *args, **kw)
+            except Exception as e:
+                self.log.error(e.message)
+                time.sleep(0.1)
+                if do == 'raise':
+                    raise
+        return wrapper
+    return decorator
     

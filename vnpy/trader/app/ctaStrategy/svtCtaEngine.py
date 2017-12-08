@@ -28,6 +28,7 @@ from threading import Thread, Timer
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 import tradingtime as tt
+from vnpy.trader.vtFunction import exception
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -409,6 +410,7 @@ class CtaEngine(VtCtaEngine):
 
             # ----------------------------------------------------------------------
 
+    @exception('raise')
     def savePosition(self, strategy):
         """保存策略的持仓情况到数据库"""
         flt = {'name': strategy.name,
@@ -430,6 +432,7 @@ class CtaEngine(VtCtaEngine):
         self.writeCtaLog(content)
 
     # ----------------------------------------------------------------------
+    @exception('raise')
     def loadPosition(self):
         """从数据库载入策略的持仓情况"""
         for strategy in self.strategyDict.values():
