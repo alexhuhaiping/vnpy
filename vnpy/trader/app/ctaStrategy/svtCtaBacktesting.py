@@ -801,7 +801,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = balanceList.values[1:].tolist()
+        self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
         self.dailyResult[u'结算日'] = map(lambda d: d.value, pd.to_datetime(df.index))
 
         if not self.isShowFig:

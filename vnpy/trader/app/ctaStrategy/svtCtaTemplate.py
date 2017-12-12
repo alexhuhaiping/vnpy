@@ -141,7 +141,7 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def marginRatio(self):
-        return round(self.turnover * self.marginRate / self.rtBalance, 2)
+        return abs(round(self.turnover * self.marginRate / self.rtBalance, 2))
 
     @property
     def averagePrice(self):

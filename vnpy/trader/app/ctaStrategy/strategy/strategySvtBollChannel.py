@@ -92,7 +92,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
-
     def initMaxBarNum(self):
         self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)
 
@@ -294,10 +293,12 @@ class SvtBollChannelStrategy(CtaTemplate):
         profile = self.capital - preCapital
 
         if not self.isBackTesting():
-        # if self.isBackTesting():
-            self.log.warning(
-                u'{}{} {} -> {}, {}, {}'.format(trade.direction, trade.offset, originCapital, self.capital,
-                                                round(charge, 2), round(profile, 2)))
+            # if self.isBackTesting():
+            text = u'{}{}\n\n'.format(trade.direction, trade.offset)
+            text += u'资金变化 {} -> {}\n\n'.format(originCapital, self.capital)
+            text += u'仓位{} -> {}\n\n'.format(self.pos - trade.volume, self.pos)
+            text += u'手续费{} 利润{}'.format(round(charge, 2), round(profile, 2))
+            self.log.warning(text)
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
