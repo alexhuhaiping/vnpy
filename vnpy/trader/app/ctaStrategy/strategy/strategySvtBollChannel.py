@@ -174,21 +174,11 @@ class SvtBollChannelStrategy(CtaTemplate):
         :param bar:
         :return:
         """
-        # 调试用的缓存每日权益
-        # if self.isBackTesting() and self.trading:
-        #     preBar = self.preBar
-        #     if preBar.tradingDay != bar.tradingDay:
-        #         self.bm.bar = preBar
-        #         self.log.warning(u'{} {} {} {}'.format(preBar.tradingDay, self.averagePrice, preBar.close, self.rtBalance))
-        #         self.balanceList[preBar.tradingDay] = self.rtBalance
-        #         self.bm.bar = bar
-        #     self.bm.preBar = bar
-
         self.bm.updateXminBar(bar)
-        # if self.trading:
-        #     self.log.info(u'更新 bar'.format(bar.datetime))
         if self.rtBalance < 0:
             # 爆仓，一键平仓
+            t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
+            self.log.warning(t)
             self.closeout()
 
     # ----------------------------------------------------------------------
@@ -294,11 +284,11 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if not self.isBackTesting():
             # if self.isBackTesting():
-            text = u'{}{}\n\n'.format(trade.direction, trade.offset)
-            text += u'资金变化 {} -> {}\n\n'.format(originCapital, self.capital)
-            text += u'仓位{} -> {}\n\n'.format(self.pos - trade.volume, self.pos)
-            text += u'手续费{} 利润{}'.format(round(charge, 2), round(profile, 2))
-            self.log.warning(text)
+            textList = [u'{}{}'.format(trade.direction, trade.offset)]
+            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append(u'仓位{} -> {}'.format(self.pos - trade.volume, self.pos))
+            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            self.log.warning(u'\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了

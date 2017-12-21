@@ -15,6 +15,7 @@ import functools
 
 import pandas as pd
 import arrow
+import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtEvent import *
@@ -24,7 +25,7 @@ from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import ArrayManager as VtArrayManager
 from vnpy.trader.app.ctaStrategy.ctaTemplate import BarManager as VtBarManager
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
-from vnpy.trader.vtObject import VtBarData, VtCommissionRate
+from vnpy.trader.vtObject import VtBarData, VtCommissionRate, VtTradeData
 
 if __debug__:
     from vnpy.trader.svtEngine import MainEngine
@@ -141,7 +142,10 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def marginRatio(self):
-        return abs(round(self.turnover * self.marginRate / self.rtBalance, 2))
+        try:
+            abs(round(self.turnover * self.marginRate / self.rtBalance, 2))
+        except ZeroDivisionError:
+            return 0
 
     @property
     def averagePrice(self):
@@ -198,12 +202,37 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
-    def onTrade(self, trade):
+    @exception()
+    def saveTrade(self, event):
         """
-        :param trade: VtTradeData
+        保存成交单
         :return:
         """
-        raise NotImplementedError
+        trade = event.dict_['data']
+        assert isinstance(trade, VtTradeData)
+
+        if trade.vtSymbol != self.vtSymbol:
+            return
+
+        self.log.info(u'保存成交单 {}'.format(trade.tradeID))
+        dic = trade.__dict__.copy()
+        dic.pop('rawData')
+
+        # 时间戳
+        dt = dic['datetime']
+
+        if not dt.tzinfo:
+            t = u'成交单 {} {} 没有时区'.format(trade.symbol, dt)
+            raise ValueError(t)
+        td = dic['tradingDay']
+        if td is None:
+            t = u'成交单 {} {} 没有交易日'.format(trade.symbol, dt)
+            raise ValueError(t)
+        dic['class'] = self.className
+        dic['name'] = self.name
+
+        self.ctaEngine.saveTrade(dic)
+
 
     @exception('raise')
     def capitalBalance(self, trade):
@@ -634,6 +663,7 @@ class CtaTemplate(vtCtaTemplate):
         en = self.ctaEngine.mainEngine.eventEngine
         en.register(EVENT_MARGIN_RATE, self.updateMarginRate)
         en.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
+        en.register(EVENT_TRADE, self.saveTrade)
 
     def updateMarginRate(self, event):
         """更新合约数据"""
@@ -758,6 +788,15 @@ class CtaTemplate(vtCtaTemplate):
 
         if not self.isBackTesting():
             self.log.warning(u'一键平仓')
+
+    def toStatus(self):
+        dic = {
+            'pos': self.pos,
+            'rtBalance': self.rtBalance,
+            'averagePrice': self.averagePrice,
+        }
+        return dic
+
 
 
 ########################################################################

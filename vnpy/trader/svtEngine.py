@@ -1,4 +1,7 @@
 # encoding: UTF-8
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 import traceback
 from threading import Thread
@@ -14,6 +17,7 @@ from vnpy.trader.language import text
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtEngine import MainEngine as VtMaingEngine
+from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 
 if __debug__:
     import vnpy.trader.debuginject as debuginject
@@ -22,8 +26,6 @@ if __debug__:
 ########################################################################
 class MainEngine(VtMaingEngine):
     """主引擎"""
-
-    LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
     # ----------------------------------------------------------------------
     def __init__(self, eventEngine):

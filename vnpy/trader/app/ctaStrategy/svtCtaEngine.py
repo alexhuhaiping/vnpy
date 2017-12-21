@@ -28,7 +28,7 @@ from threading import Thread, Timer
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 import tradingtime as tt
-from vnpy.trader.vtFunction import exception
+from vnpy.trader.vtFunction import exception, LOCAL_TIMEZONE
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -48,10 +48,6 @@ from .strategy import STRATEGY_CLASS
 class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
 
-    @property
-    def LOCAL_TIMEZONE(self):
-        return self.mainEngine.LOCAL_TIMEZONE
-
     def __init__(self, mainEngine, eventEngine):
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
         assert isinstance(self.mainEngine, MainEngine)
@@ -61,15 +57,15 @@ class CtaEngine(VtCtaEngine):
 
         # 1min bar
         self.ctpCol1minBar = self.mainEngine.ctpdb[MINUTE_COL_NAME].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 日线 bar
         self.ctpCol1dayBar = self.mainEngine.ctpdb[DAY_COL_NAME].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 合约的详情
         self.contractCol = self.mainEngine.ctpdb[CONTRACT_COL_NAME].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         self.strategyDB = self.mainEngine.strategyDB
         # 尝试创建 ctaCollection
@@ -77,11 +73,15 @@ class CtaEngine(VtCtaEngine):
 
         # cta 策略存库
         self.ctaCol = self.mainEngine.strategyDB[CTA_COL_NAME].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 持仓存库
         self.posCol = self.mainEngine.strategyDB[POSITION_COLLECTION_NAME].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+        # 成交存库
+        self.tradeCol = self.mainEngine.strategyDB[TRADE_COLLECTION_NAME].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 心跳相关
         self.heartBeatInterval = 30  # second
@@ -289,6 +289,7 @@ class CtaEngine(VtCtaEngine):
     def initCollection(self):
         self.createCtaCollection()
         self.createPosCollecdtion()
+        self.createTradeCollecdtion()
 
     def createCtaCollection(self):
         db = self.strategyDB
@@ -304,7 +305,7 @@ class CtaEngine(VtCtaEngine):
         else:
             ctaCol = db[CTA_COL_NAME]
 
-        # 尝试创建创建索引
+        # 创建创建索引
         indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
         indexClass = IndexModel([('class', ASCENDING)], name='class', background=True)
         indexDatetime = IndexModel([('datetime', DESCENDING)], name='datetime', background=True)
@@ -320,7 +321,7 @@ class CtaEngine(VtCtaEngine):
             assert isinstance(db, pymongo.database.Database)
 
         colNames = db.collection_names()
-        if CTA_COL_NAME not in colNames:
+        if POSITION_COLLECTION_NAME not in colNames:
             # 还没创建 cta collection
             col = db.create_collection(POSITION_COLLECTION_NAME)
         else:
@@ -330,6 +331,33 @@ class CtaEngine(VtCtaEngine):
 
         posIndex = IndexModel(posMulIndex, name='posIndex', background=True, unique=True)
         self.mainEngine.createCollectionIndex(col, [posIndex])
+
+    def createTradeCollecdtion(self):
+        """
+        成交单存库
+        :return:
+        """
+
+        db = self.strategyDB
+
+        if __debug__:
+            import pymongo.database
+            assert isinstance(db, pymongo.database.Database)
+
+        colNames = db.collection_names()
+        if TRADE_COLLECTION_NAME not in colNames:
+            # 还没创建 cta collection
+            col = db.create_collection(TRADE_COLLECTION_NAME)
+        else:
+            col = db[TRADE_COLLECTION_NAME]
+
+        # 成交单的索引
+        indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
+        indexClass = IndexModel([('class', ASCENDING)], name='class', background=True)
+        indexDatetime = IndexModel([('datetime', DESCENDING)], name='datetime', background=True)
+
+        indexes = [indexSymbol, indexClass, indexDatetime]
+        self.mainEngine.createCollectionIndex(col, indexes)
 
     def initAll(self):
         try:
@@ -557,3 +585,12 @@ class CtaEngine(VtCtaEngine):
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+
+    @exception()
+    def saveTrade(self, dic):
+        """
+        将成交单保存到数据库
+        :param dic:
+        :return:
+        """
+        self.tradeCol.insert_one(dic)

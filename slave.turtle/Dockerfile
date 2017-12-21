@@ -5,7 +5,7 @@ COPY . /srv/vnpy
 RUN cd /srv/vnpy \
     && pip install -r requirements.txt \
     && pip install -e . \
-    && pip install --upgrade tradingtime==2017.11.21 log4mongo \
+    && pip install --upgrade tradingtime>=2017.12.20 log4mongo \
     && rm -rf /var/lib/apt/lists/* \
     && echo "更新镜像结束"
 

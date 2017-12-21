@@ -1,12 +1,15 @@
 # encoding: UTF-8
 
-import time
+import datetime as dtt
+
+import arrow
+import tradingtime as tt
 
 from vnpy.event import *
-
 from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import *
+from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 
 
 ########################################################################
@@ -168,3 +171,27 @@ class VtGateway(sVtGateway):
         self.eventEngine.put(event1)
 
 
+    def onTrade(self, trade):
+        """
+        推送前增加时间戳和交易日属性
+        :param trade:
+        :return:
+        """
+        now = arrow.now().datetime
+        t = dtt.time(*list(map(int, trade.tradeTime.split(':'))))
+        tradeTime = dtt.datetime.combine(dtt.date.today(), t)
+        tradeTime = LOCAL_TIMEZONE.localize(tradeTime)
+        if now - tradeTime < dtt.timedelta(hours=1):
+            # 回报和本地时间差在1个小时内则没有跨日
+            pass
+        else:
+            # 跨日了
+            tradeTime = dtt.datetime.combine(dtt.date.today() - dtt.timedelta(days=1), t)
+            tradeTime = LOCAL_TIMEZONE.localize(tradeTime)
+
+        _, tradingDay = tt.get_tradingday(tradeTime)
+
+        trade.datetime = tradeTime
+        trade.tradingDay = tradingDay
+
+        super(VtGateway, self).onTrade(trade)

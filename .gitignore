@@ -73,3 +73,4 @@ slave.turtle/kill_turtle.sh
 slave.turtle/shell.sh
 slave.turtle/RM_setting.json
 log.sh
+testclear.py

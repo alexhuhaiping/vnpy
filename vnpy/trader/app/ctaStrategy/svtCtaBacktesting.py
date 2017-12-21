@@ -32,7 +32,7 @@ from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData, VtContractData, VtMarginRate, VtCommissionRate
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import TradingResult, formatNumber, DailyResult
-from vnpy.trader.vtFunction import getTempPath, getJsonPath
+from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
 
@@ -53,8 +53,6 @@ class BacktestingEngine(VTBacktestingEngine):
 
     TICK_MODE = 'tick'
     BAR_MODE = 'bar'
-
-    LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
     # ----------------------------------------------------------------------
     def __init__(self):
@@ -85,15 +83,15 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 1min bar collection
         self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 日线的 collection
         self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 合约详情 collection
         self.ctpColContract = ctpdb['contract'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
@@ -211,7 +209,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.startDate = startDate
     #     self.initDays = initDays
     #
-    #     self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
+    #     self.dataStartDate = LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
     #
     #     # initTimeDelta = timedelta(initDays)
     #     # 要获取 initDays 个交易日的数据

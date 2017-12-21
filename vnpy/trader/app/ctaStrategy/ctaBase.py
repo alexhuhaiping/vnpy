@@ -60,6 +60,7 @@ SETTING_DB_NAME = 'cta'
 # POSITION_DB_NAME = 'VnTrader_Position_Db'
 POSITION_DB_NAME = 'cta'
 POSITION_COLLECTION_NAME = 'pos'
+TRADE_COLLECTION_NAME = 'trade'
 CTA_DB_NAME = 'strategy'
 CTA_COL_NAME = 'cta'
 

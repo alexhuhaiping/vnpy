@@ -8,8 +8,9 @@ import os
 import decimal
 import arrow
 import time
+import pytz
 
-
+LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 MAX_NUMBER = 10000000000000
 MAX_DECIMAL = 4
 
@@ -27,7 +28,7 @@ def safeUnicode(value):
         d = decimal.Decimal(str(value))
         if abs(d.as_tuple().exponent) > MAX_DECIMAL:
             value = round(value, ndigits=MAX_DECIMAL)
-    
+
     return unicode(value)
 
 
@@ -102,7 +103,9 @@ def exception(do=None):
             try:
                 return func(self, *args, **kw)
             except Exception as e:
-                self.log.error(e.message)
+                err = u"There was an exception in  "
+                err += func.__name__
+                self.log.exception(err)
                 time.sleep(0.1)
                 if do == 'raise':
                     raise

@@ -149,6 +149,7 @@ class VtTradeData(VtBaseData):
         self.volume = EMPTY_INT  # 成交数量
         self.tradeTime = EMPTY_STRING  # 成交时间
         self.tradingDay = None # 交易日
+        self.datetime = None # 成交时间戳
 
 ########################################################################
 class VtOrderData(VtBaseData):
