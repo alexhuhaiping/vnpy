@@ -87,7 +87,9 @@ class DrBarData(object):
         bar.vtSymbol = drTick.vtSymbol
         isTrading, tradingDay = tt.get_tradingday(drTick.datetime)
 
-        bar.tradingDay = LOCAL_TZINFO.localize(tradingDay)
+        if not tradingDay.tzinfo:
+            tradingDay = LOCAL_TZINFO.localize(tradingDay)
+        bar.tradingDay = tradingDay
 
         if not isTrading:
             # if __debug__:
