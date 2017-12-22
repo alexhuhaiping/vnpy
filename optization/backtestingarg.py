@@ -138,6 +138,9 @@ class BacktestingArg(object):
         """
         self.dbConnect()
 
+        # 检查参数
+        self.checkArg()
+
         # 生成优化参数组合
         strategyArgs = self.createStrategyArgsGroup()
 
@@ -318,6 +321,23 @@ class BacktestingArg(object):
 
             self.log.info(u'{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
         self.argCol.insert_many(documents[start:])
+
+    def checkArg(self):
+        """
+        检查参数设置是否正常
+        :return:
+        """
+        # 是否已经有同名的参数组
+        sql = {
+            'group': self.group
+        }
+        if self.group == 'test':
+            # 测试用的组名直接删除
+            self.btinfoCol.delete_one(sql)
+        else:
+            binfo = self.btinfoCol.find_one(sql)
+            if binfo:
+                raise ValueError(u'已经存在同名的参数组 {}'.format(self.group))
 
 
 if __name__ == '__main__':

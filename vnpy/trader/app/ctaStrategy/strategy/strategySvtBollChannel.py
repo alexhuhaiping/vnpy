@@ -262,6 +262,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         pass
 
     # ----------------------------------------------------------------------
+    @exception()
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
 

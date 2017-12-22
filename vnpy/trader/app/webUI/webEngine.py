@@ -11,7 +11,7 @@ app = Flask(__name__)
 if __debug__:
     from vnpy.trader.svtEngine import MainEngine
 
-PORT = 38080
+PORT = 8080
 
 
 class ServerThread(Thread):
