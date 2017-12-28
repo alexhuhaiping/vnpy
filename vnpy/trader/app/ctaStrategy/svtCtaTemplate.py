@@ -143,7 +143,7 @@ class CtaTemplate(vtCtaTemplate):
     @property
     def marginRatio(self):
         try:
-            abs(round(self.turnover * self.marginRate / self.rtBalance, 2))
+            return abs(round(self.turnover * self.marginRate / self.rtBalance, 2))
         except ZeroDivisionError:
             return 0
 
@@ -754,13 +754,15 @@ class CtaTemplate(vtCtaTemplate):
             # 反空
             return self.TRADE_STATUS_REV_SHORT
 
+    @exception()
     def closeout(self):
         """
         一键平仓
         :return:
         """
         if not self.isCloseoutVaild:
-            return
+            raise ValueError(u'未设置可强平')
+
         if self.pos == 0:
             # 无需一键平仓
             return
