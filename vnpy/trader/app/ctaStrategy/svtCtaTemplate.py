@@ -771,6 +771,9 @@ class CtaTemplate(vtCtaTemplate):
             self.log.warning(u'没有 tick 或  bar 能提供价格一键平仓')
             return
 
+        t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
+        self.log.warning(t)
+
         # 一键撤单
         self.cancelAll()
 
@@ -788,6 +791,8 @@ class CtaTemplate(vtCtaTemplate):
 
         if not self.isBackTesting():
             self.log.warning(u'一键平仓')
+
+        self.isCloseoutVaild = False
 
     def toStatus(self):
         dic = {

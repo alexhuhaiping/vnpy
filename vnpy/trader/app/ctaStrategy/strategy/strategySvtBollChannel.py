@@ -175,10 +175,8 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
         self.bm.updateXminBar(bar)
-        if self.rtBalance < 0:
+        if self.isCloseoutVaild and self.rtBalance < 0:
             # 爆仓，一键平仓
-            t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
-            self.log.warning(t)
             self.closeout()
 
     # ----------------------------------------------------------------------
