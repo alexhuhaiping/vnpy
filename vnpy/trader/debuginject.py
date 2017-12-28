@@ -161,7 +161,7 @@ def run():
     load()
     me.log.debug('====================================================')
 
-    testToStatus()
+    # testToStatus()
     # saveTradeData()
     # testSaveTrade()
     # showLastTick()
