@@ -430,6 +430,7 @@ class CtaEngine(VtCtaEngine):
         self.stopAll()
         self.mainEngine.slavemReport.endHeartBeat()
 
+    @exception()
     def stopStrategy(self, name):
         super(CtaEngine, self).stopStrategy(name)
         if name in self.strategyDict:
