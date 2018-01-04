@@ -142,6 +142,8 @@ class MainEngine(VtMaingEngine):
             self._testActive = False
 
         self.active = False
+        self.log.info(u'关闭前操作完成')
+        sleep(1.1)
 
     def run_forever(self):
         self.active = True
