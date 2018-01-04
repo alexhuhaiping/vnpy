@@ -421,6 +421,7 @@ class CtaEngine(VtCtaEngine):
                 time.sleep(0.1)
                 count += 1
 
+    @exception('raise')
     def stop(self):
         """
         程序停止时退出前的调用
@@ -428,15 +429,9 @@ class CtaEngine(VtCtaEngine):
         """
         self.log.info(u'CTA engine 即将关闭……')
         self.stopAll()
+
+        self.log.info(u'停止心跳')
         self.mainEngine.slavemReport.endHeartBeat()
-
-    def stopStrategy(self, name):
-        super(CtaEngine, self).stopStrategy(name)
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-            strategy.onStop()
-
-            # ----------------------------------------------------------------------
 
     @exception('raise')
     def savePosition(self, strategy):

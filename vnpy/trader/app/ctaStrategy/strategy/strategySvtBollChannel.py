@@ -91,6 +91,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
+        self.a = 0
 
     def initMaxBarNum(self):
         self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)

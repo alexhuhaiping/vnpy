@@ -153,8 +153,4 @@ class MainEngine(VtMaingEngine):
                 self.testfunc()
             sleep(1)
 
-        # 停止心跳
-        self.log.info(u'停止心跳')
-        self.slavemReport.endHeartBeat()
-
         self.log.info(u'系统完全关闭')
