@@ -230,6 +230,7 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(t)
         dic['class'] = self.className
         dic['name'] = self.name
+        dic['pos'] = self.pos
 
         self.ctaEngine.saveTrade(dic)
 
