@@ -203,38 +203,38 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
-    @exception()
-    def saveTrade(self, event):
-        """
-        保存成交单
-        :return:
-        """
-        trade = event.dict_['data']
-        assert isinstance(trade, VtTradeData)
-
-        if trade.vtSymbol != self.vtSymbol:
-            return
-
-        self.log.info(u'保存成交单 {}'.format(trade.tradeID))
-        dic = trade.__dict__.copy()
-        dic.pop('rawData')
-
-        # 时间戳
-        dt = dic['datetime']
-
-        if not dt.tzinfo:
-            t = u'成交单 {} {} 没有时区'.format(trade.symbol, dt)
-            raise ValueError(t)
-        td = dic['tradingDay']
-        if td is None:
-            t = u'成交单 {} {} 没有交易日'.format(trade.symbol, dt)
-            raise ValueError(t)
-        dic['class'] = self.className
-        dic['name'] = self.name
-        dic['pos'] = self.pos
-
-        self.ctaEngine.saveTrade(dic)
-
+    # @exception()
+    # def saveTrade(self, event):
+    #     """
+    #     保存成交单
+    #     :return:
+    #     """
+    #     trade = event.dict_['data']
+    #     assert isinstance(trade, VtTradeData)
+    #
+    #     if trade.vtSymbol != self.vtSymbol:
+    #         return
+    #
+    #     self.log.info(u'保存成交单 {}'.format(trade.tradeID))
+    #     dic = trade.__dict__.copy()
+    #     dic.pop('rawData')
+    #
+    #     # 时间戳
+    #     dt = dic['datetime']
+    #
+    #     if not dt.tzinfo:
+    #         t = u'成交单 {} {} 没有时区'.format(trade.symbol, dt)
+    #         raise ValueError(t)
+    #     td = dic['tradingDay']
+    #     if td is None:
+    #         t = u'成交单 {} {} 没有交易日'.format(trade.symbol, dt)
+    #         raise ValueError(t)
+    #     dic['class'] = self.className
+    #     dic['name'] = self.name
+    #     dic['pos'] = self.pos
+    #     dic.update(self.positionDetail.toHtml())
+    #
+    #     self.ctaEngine.saveTrade(dic)
 
     @exception('raise')
     def capitalBalance(self, trade):
@@ -665,7 +665,7 @@ class CtaTemplate(vtCtaTemplate):
         en = self.ctaEngine.mainEngine.eventEngine
         en.register(EVENT_MARGIN_RATE, self.updateMarginRate)
         en.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
-        en.register(EVENT_TRADE, self.saveTrade)
+        # en.register(EVENT_TRADE, self.saveTrade)
 
     def updateMarginRate(self, event):
         """更新合约数据"""
@@ -808,7 +808,6 @@ class CtaTemplate(vtCtaTemplate):
             'averagePrice': self.averagePrice,
         }
         return dic
-
 
 
 ########################################################################

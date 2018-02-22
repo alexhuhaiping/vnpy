@@ -94,7 +94,6 @@ class CtaEngine(VtCtaEngine):
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
             assert isinstance(self.ctpCol1minBar, pymongo.collection.Collection)
 
-
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """
         从数据库中读取历史行情
@@ -591,3 +590,35 @@ class CtaEngine(VtCtaEngine):
         :return:
         """
         self.tradeCol.insert_one(dic)
+
+    def processTradeEvent(self, event):
+        super(CtaEngine, self).processTradeEvent(event)
+
+        trade = event.dict_['data']
+
+        # 在完成 strategy.pos 的更新后，保存 trade。trade 也保存更新后的 pos
+        if trade.vtOrderID in self.orderStrategyDict:
+            self.saveTradeByStrategy(trade)
+
+    @exception()
+    def saveTradeByStrategy(self, trade):
+        strategy = self.orderStrategyDict[trade.vtOrderID]
+
+        dic = trade.__dict__.copy()
+        dic.pop('rawData')
+
+        # 时间戳
+        dt = dic['datetime']
+
+        if not dt.tzinfo:
+            t = u'成交单 {} {} 没有时区'.format(trade.symbol, dt)
+            raise ValueError(t)
+        td = dic['tradingDay']
+        if td is None:
+            t = u'成交单 {} {} 没有交易日'.format(trade.symbol, dt)
+            raise ValueError(t)
+        dic['class'] = strategy.className
+        dic['name'] = strategy.name
+        dic['pos'] = strategy.pos
+
+        self.saveTrade(dic)

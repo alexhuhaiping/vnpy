@@ -288,6 +288,10 @@ class SvtBollChannelStrategy(CtaTemplate):
             textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
             textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
             textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList.append(
+                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml()])
+            )
+
             self.log.warning(u'\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
