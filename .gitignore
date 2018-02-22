@@ -75,3 +75,5 @@ slave.turtle/RM_setting.json
 log.sh
 testclear.py
 *.pickle
+slave.turtle/logging_test.conf
+logging_test.*

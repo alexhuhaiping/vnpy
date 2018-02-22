@@ -129,6 +129,7 @@ class CtaTemplate(vtCtaTemplate):
         # self.avrPrice = EMPTY_FLOAT  # 持仓均价，多空正负
 
         self.registerEvent()
+        self.prePos = self._pos
 
     @property
     def floatProfile(self):
@@ -160,7 +161,7 @@ class CtaTemplate(vtCtaTemplate):
 
     @pos.setter
     def pos(self, pos):
-        self._pos = pos
+        self.prePos, self._pos = self._pos, pos
 
         if self.inited and self.trading and self.isBackTesting():
             self.posList.append(pos)
@@ -754,6 +755,9 @@ class CtaTemplate(vtCtaTemplate):
         if prePos < 0 and pos == 0:
             # 反空
             return self.TRADE_STATUS_REV_SHORT
+
+        self.log.warning(u'prePos:{} pos:{}'.format(prePos, pos))
+        return None
 
     @exception()
     def closeout(self):
