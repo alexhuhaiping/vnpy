@@ -84,15 +84,16 @@ class CtaEngine(VtCtaEngine):
             codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 心跳相关
-        self.heartBeatInterval = 30  # second
+        self.heartBeatInterval = 10  # second
         # 将心跳时间设置为1小时候开始
         # report 之后会立即重置为当前触发心跳
         self.nextHeatBeatTime = time.time() + 60 * 10
-
+        self.active = True
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
             assert isinstance(self.ctpCol1minBar, pymongo.collection.Collection)
+
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
         """
@@ -377,7 +378,7 @@ class CtaEngine(VtCtaEngine):
     def initQryMarginRate(self):
         for s in self.strategyDict.values():
             count = 1
-            while s._marginRate is None:
+            while s._marginRate is None and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
                     err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
@@ -402,7 +403,7 @@ class CtaEngine(VtCtaEngine):
             # 每个合约都要重新强制查询
             s.commissionRate = None
 
-            while s.commissionRate is None:
+            while s.commissionRate is None and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
@@ -427,6 +428,7 @@ class CtaEngine(VtCtaEngine):
         程序停止时退出前的调用
         :return:
         """
+        self.active = False
         self.log.info(u'CTA engine 即将关闭……')
         self.stopAll()
 
