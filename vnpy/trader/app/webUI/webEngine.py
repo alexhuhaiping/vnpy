@@ -69,8 +69,8 @@ def showCtaStrategy():
     html = ''
     try:
         ctaApp.log.info(u'开始刷新 strategy 页面')
-        for ctaName, ctaStrategy in ctaApp.strategyDict.items():
-
+        strategyList = list(ctaApp.strategyDict.items())
+        for ctaName, ctaStrategy in strategyList:
             html += ctaName
             html += '</br>'
             html += ctaStrategy.className
