@@ -438,7 +438,7 @@ class CtaEngine(VtCtaEngine):
                 time.sleep(0.1)
                 count += 1
             else:
-                self.log.warning(u'加载品种 {} 手续费率成功'.format(str(s.vtSymbol)))
+                self.log.info(u'加载品种 {} 手续费率成功'.format(str(s.vtSymbol)))
 
     @exception('raise')
     def stop(self):
