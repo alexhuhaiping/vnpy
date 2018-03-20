@@ -144,12 +144,17 @@ def saveTradeData():
 
     s.saveTrade(trade)
 
+
 def testToStatus():
     s = getStrategy(vtSymbol)
     self = s
     t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
     s.log.debug(t)
 
+
+def toHtml():
+    s = getStrategy(vtSymbol)
+    s.log.info(str(s.toHtml()))
 
 
 # vtSymbol = 'rb1805'
@@ -160,7 +165,7 @@ def run():
     return
     load()
     me.log.debug('====================================================')
-
+    toHtml()
     # testToStatus()
     # saveTradeData()
     # testSaveTrade()

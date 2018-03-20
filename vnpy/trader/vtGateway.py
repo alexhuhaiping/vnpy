@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+import logging
 import datetime as dtt
 
 import arrow
@@ -148,6 +149,21 @@ class sVtGateway(object):
     
 
 class VtGateway(sVtGateway):
+    def __init__(self, eventEngine, gatewayName):
+        super(VtGateway, self).__init__(eventEngine, gatewayName)
+        logger = logging.getLogger('root')
+        # 定制 logger.name
+        self.log = logging.getLogger(self.gatewayName)
+        # self.log.parent = logger
+        # self.log.propagate = 0
+
+        # for f in logger.filters:
+        #     self.log.addFilter(f)
+        # for h in logger.handlers:
+        #     self.log.addHandler(h)
+        self.log.info(u'加载 {}'.format(self.gatewayName))
+
+
     def onMraginRate(self, marginRate):
         """
         保证金率推送
@@ -195,3 +211,7 @@ class VtGateway(sVtGateway):
         trade.tradingDay = tradingDay
 
         super(VtGateway, self).onTrade(trade)
+
+    def close(self):
+        super(VtGateway, self).close()
+        self.log.info('即将关闭 gateWay')

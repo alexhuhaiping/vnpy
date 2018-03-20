@@ -7,12 +7,14 @@ vn.ctp的gateway接入
 vtSymbol直接使用symbol
 '''
 
+
 import os
 import json
 from copy import copy
 from datetime import datetime, timedelta
 import arrow
 import logging
+from threading import Thread
 
 
 from vnpy.api.ctp import MdApi, TdApi, defineDict
@@ -1524,6 +1526,13 @@ class CtpGateway(svtCtpGateway):
     def qryCommissionRate(self, symbol):
         self.tdApi.qryCommissionRate(symbol)
 
+    def close(self):
+        self.log.info(u'关闭交易、行情接口')
+        super(CtpGateway, self).close()
+        # if self.mdConnected:
+        #     self.mdApi.close()
+        # if self.tdConnected:
+        #     self.tdApi.close()
 
 class CtpTdApi(svtCtpTdApi):
     def qryMarginRate(self, symbol):

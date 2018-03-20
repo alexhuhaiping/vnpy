@@ -1,10 +1,11 @@
 # encoding: UTF-8
-
+import logging
 from werkzeug.serving import make_server
 import traceback
 from flask import Flask
 from threading import Thread
 import pandas as pd
+from vnpy.trader.vtFunction import exception
 
 app = Flask(__name__)
 
@@ -17,6 +18,7 @@ PORT = 38080
 class ServerThread(Thread):
     def __init__(self, app):
         Thread.__init__(self)
+        self.setDaemon(True)
         self.srv = make_server('0.0.0.0', PORT, app)
         self.ctx = app.app_context()
         self.ctx.push()
@@ -32,6 +34,7 @@ class WebEngine(object):
     def __init__(self, mainEngine, eventEngine):
         self.app = app
         self.app.mainEngine = mainEngine
+        self.log = logging.getLogger('root')
 
         assert isinstance(app.mainEngine, MainEngine)
 
@@ -42,6 +45,7 @@ class WebEngine(object):
         self.serverThread.start()
 
     def stop(self):
+        self.log.info(u'webEngine 即将关闭')
         self.serverThread.shutdown()
 
 
@@ -50,6 +54,7 @@ def index():
     return 'vnpy web UI'
 
 
+@exception()
 @app.route('/strategy')
 def showCtaStrategy():
     """
@@ -63,7 +68,9 @@ def showCtaStrategy():
 
     html = ''
     try:
+        ctaApp.log.info(u'开始刷新 strategy 页面')
         for ctaName, ctaStrategy in ctaApp.strategyDict.items():
+
             html += ctaName
             html += '</br>'
             html += ctaStrategy.className
@@ -79,12 +86,12 @@ def showCtaStrategy():
                 # html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
             html += '</br>'
             html += '</br>'
+        ctaApp.log.info(u'获得 strategy 页面')
+
     except:
-        err = traceback.format_exc()
-        html += '</br>'
-        html += '</br>'
-        html += err.replace('\n', '</br>')
-        print(err)
+        err = traceback.format_exc() + '</br>' * 2
+        html = err.replace('\n', '</br>') + html
+        app.logger.error(html)
     return html
 
 

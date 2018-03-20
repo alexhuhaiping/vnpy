@@ -281,13 +281,16 @@ class EventEngine2(object):
     def stop(self):
         """停止引擎"""
         # 将引擎设为停止
+        self.log.info(u'即将关闭 EventEngine')
         self.__active = False
         
         # 停止计时器
+        self.log.info(u'停止计时器')
         self.__timerActive = False
         self.__timer.join()
-        
+
         # 等待事件处理线程退出
+        self.log.info(u'等待事件处理线程退出')
         self.__thread.join()
             
     #----------------------------------------------------------------------
