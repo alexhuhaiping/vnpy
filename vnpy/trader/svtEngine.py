@@ -143,6 +143,8 @@ class MainEngine(VtMaingEngine):
 
         self.active = False
         self.log.info(u'关闭前操作完成')
+        import threading
+        self.log.info(u'存活线程 {}'.format(threading.activeCount()))
         sleep(1.1)
 
     def run_forever(self):

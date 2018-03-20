@@ -107,6 +107,7 @@ class OptimizeService(object):
         self.initContractCollection()
 
         self.threadLog = threading.Thread(target=self.logout)
+        self.threadLog.setDaemon(True)
         self.logActive = True
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
