@@ -300,6 +300,11 @@ class VtMarginRate(VtBaseData):
         self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
         self.marginRate = 1.
 
+    def loadFromContract(self, dic):
+        for k in list(self.__dict__.keys()):
+            if k in dic:
+                setattr(self, k, dic[k])
+
 
 ########################################################################
 class VtCommissionRate(VtBaseData):
@@ -320,6 +325,11 @@ class VtCommissionRate(VtBaseData):
         self.openRatioByVolume = EMPTY_FLOAT
         self.closeRatioByVolume = EMPTY_FLOAT
         self.closeTodayRatioByVolume = EMPTY_FLOAT
+
+    def loadFromContract(self, dic):
+        for k in list(self.__dict__.keys()):
+            if k in dic:
+                setattr(self, k, dic[k])
 
 
 ########################################################################

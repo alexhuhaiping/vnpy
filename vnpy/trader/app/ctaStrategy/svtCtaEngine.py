@@ -39,6 +39,7 @@ from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.svtEngine import MainEngine
+from vnpy.trader.vtObject import VtMarginRate, VtCommissionRate
 
 from .ctaBase import *
 from .strategy import STRATEGY_CLASS
@@ -359,62 +360,74 @@ class CtaEngine(VtCtaEngine):
         indexes = [indexSymbol, indexClass, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
 
+    @exception('raise')
     def initAll(self):
-        try:
-            super(CtaEngine, self).initAll()
+        super(CtaEngine, self).initAll()
 
-            # 查询手续费率
-            self.initQryCommissionRate()
+        strategyList = list(self.strategyDict.values())
+        for s in strategyList:
+            # 先从合约数据库中获取
+            dic = self.contractCol.find_one({'vtSymbol': s.vtSymbol})
+            self.loadCommissionRate(s, dic)
+            self.loadMarginRate(s, dic)
 
-            # 加载品种保证金率
-            self.initQryMarginRate()
+        # 查询手续费率
+        t = Thread(target=self._updateQryCommissionRate)
+        t.setDaemon(True)
+        t.start()
 
-        except Exception as e:
-            err = e.message
-            self.log.critical(err)
-            raise
+        # 加载品种保证金率
+        t = Thread(target=self._updateQryMarginRate)
+        t.setDaemon(True)
+        t.start()
 
-    def initQryMarginRate(self):
-        for s in self.strategyDict.values():
+    def loadMarginRate(self, s, dic):
+
+        vm = VtMarginRate()
+        vm.loadFromContract(dic)
+        s.setMarginRate(vm)
+        self.log.debug(u'预加载保证金率 {} {}'.format(s.vtSymbol, vm.marginRate))
+
+    def loadCommissionRate(self, s, dic):
+        vc = VtCommissionRate()
+        vc.loadFromContract(dic)
+        s.setMarginRate(vc)
+        self.log.debug(u'预加载手续费率 {}'.format(s.vtSymbol))
+
+    def _updateQryMarginRate(self):
+        strategyList = list(self.strategyDict.values())
+        for s in strategyList:
+            # 再从CTP中更新
             count = 1
-            while s._marginRate is None and self.active:
+            while s.isNeedUpdateMarginRate and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
                     err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
                     self.log.warning(err)
-                    # ctpGateway = self.mainEngine.getGateway('CTP')
-                    # ctpGateway.close()
-                    # ctpGateway.connect()
-                    # time.sleep(5)
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
-                    self.log.info(u'尝试加载 {} 保证金率'.format(s.vtSymbol))
+                    # self.log.info(u'尝试加载 {} 保证金率'.format(s.vtSymbol))
                     self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
                 time.sleep(0.1)
                 count += 1
 
-    def initQryCommissionRate(self):
-        for s in list(self.strategyDict.values()):
+    def _updateQryCommissionRate(self):
+        strategyList = list(self.strategyDict.values())
+        for s in strategyList:
+            # 再从CTP中更新
             count = 1
-            # 每个合约都要重新强制查询
-            s.commissionRate = None
 
             while s.commissionRate is None and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
-                    # self.log.warning(u'ctpGateway 重连')
-                    # ctpGateway = self.mainEngine.getGateway('CTP')
-                    # ctpGateway.close()
-                    # ctpGateway.connect()
-                    # time.sleep(5)
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
-                    self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
+                    # self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
                     self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果

@@ -1059,6 +1059,7 @@ class svtCtpTdApi(TdApi):
         order.cancelTime = data['CancelTime']
         order.frontID = data['FrontID']
         order.sessionID = data['SessionID']
+        order.rawData = data
 
         # 推送
         self.gateway.onOrder(order)

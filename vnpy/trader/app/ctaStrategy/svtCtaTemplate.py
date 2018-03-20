@@ -131,6 +131,9 @@ class CtaTemplate(vtCtaTemplate):
         self.registerEvent()
         self.prePos = self._pos
 
+        self.isNeedUpdateMarginRate = True
+        self.isNeedUpdateCommissionRate = True
+
     @property
     def floatProfile(self):
         if not self.bar:
@@ -670,26 +673,34 @@ class CtaTemplate(vtCtaTemplate):
     def updateMarginRate(self, event):
         """更新合约数据"""
         marginRate = event.dict_['data']
+        self.isNeedUpdateMarginRate = False
         if marginRate.vtSymbol != self.vtSymbol:
             return
 
+        self.setMarginRate(marginRate)
+    def setMarginRate(self, marginRate):
         self._marginRate = marginRate
+
 
     def updateCommissionRate(self, event):
         """更新合约数据"""
         commissionRate = event.dict_['data']
+        self.isNeedUpdateCommissionRate = False
 
         # commissionRate.vtSymbol 可能为 'rb' 或者 'rb1801' 前者说明合约没改过，后者说明该合约有变动
         if commissionRate.underlyingSymbol == self.vtSymbol:
             # 返回 rb1801, 合约有变动，强制更新
-            self.commissionRate = commissionRate
+            self.setCommissionRate(commissionRate)
             return
         elif self.vtSymbol.startswith(commissionRate.underlyingSymbol):
             # 返回 rb ,合约没有变动
-            self.commissionRate = commissionRate
+            self.setCommissionRate(commissionRate)
             return
         else:
             pass
+
+    def setCommissionRate(self, commissionRate):
+        self.commissionRate = commissionRate
 
     def initContract(self):
         """

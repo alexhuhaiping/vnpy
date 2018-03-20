@@ -58,6 +58,20 @@ def short():
     s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
+def buy():
+    s = getStrategy(vtSymbol)
+    s.log.debug(u'测试 buy')
+    # s.pos = -15
+
+    price = s.bm.lastTick.upperLimit + 1
+    volume = 1
+    stop = True
+
+    s.buy(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
+
+
 def sell():
     s = getStrategy(vtSymbol)
     # s.pos = -15
@@ -157,6 +171,12 @@ def toHtml():
     s.log.info(str(s.toHtml()))
 
 
+def closeout():
+    s = getStrategy(vtSymbol)
+    s.log.info(u'强制平仓')
+    s.closeout()
+    s.log.info(u'强制平仓下单完成')
+
 # vtSymbol = 'rb1805'
 vtSymbol = 'ag1806'
 
@@ -165,13 +185,16 @@ def run():
     return
     load()
     me.log.debug('====================================================')
-    toHtml()
+    buy()
+
+    # toHtml()
     # testToStatus()
     # saveTradeData()
     # testSaveTrade()
     # showLastTick()
     # showBar()
     # showStopOrder()
+    # closeout()
     # sell()
     # short()
     # cover()

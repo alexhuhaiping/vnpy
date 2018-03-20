@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from vnpy.trader.vtFunction import exception
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtObject import VtTradeData
+from vnpy.trader.vtObject import VtTradeData, VtOrderData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
 from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
 
@@ -152,16 +152,24 @@ class TestStrategy(CtaTemplate):
         self.ma = am.ma(5)
 
         if self.trading:
-            self.orderOnXminBar(bar)
+            pass
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
+    @exception()
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
-        pass
+        assert isinstance(order, VtOrderData)
+        t = u'报单回报\n'
+        for k, v in order.__dict__.items():
+            if k == 'rawData':
+                t += u'{}: {}\n'.format(k, str(v))
+                continue
+            t += u'{}: {}\n'.format(k, v)
+        self.log.info(t)
 
     # ----------------------------------------------------------------------
     @exception()
@@ -202,8 +210,6 @@ class TestStrategy(CtaTemplate):
                 self.capital = 0
 
         # 成交后重新下单
-
-        self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
         self.saveDB()

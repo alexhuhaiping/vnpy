@@ -388,7 +388,7 @@ class CtaEngine(object):
         try:
             name = setting['name']
             className = setting['className']
-        except Exception, e:
+        except Exception as e:
             self.writeCtaLog(u'载入策略出错：%s' % e)
             return
 

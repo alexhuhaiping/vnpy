@@ -1,5 +1,6 @@
 # encoding: UTF-8
 import sys
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -134,7 +135,6 @@ class MainEngine(VtMaingEngine):
         except Exception as e:
             self.log.info(traceback.format_exc())
 
-
     @exception()
     def exit(self):
         super(MainEngine, self).exit()
@@ -156,3 +156,8 @@ class MainEngine(VtMaingEngine):
             sleep(1)
 
         self.log.info(u'系统完全关闭')
+
+    def sendOrder(self, orderReq, gatewayName):
+        self.log.info(u'gateWay: {} 发送报单'.format(gatewayName))
+        vtOrderID = super(MainEngine, self).sendOrder(orderReq, gatewayName)
+        self.log.info(u'获得报单回报 {}'.format(vtOrderID))
