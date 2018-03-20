@@ -213,5 +213,5 @@ class VtGateway(sVtGateway):
         super(VtGateway, self).onTrade(trade)
 
     def close(self):
+        self.log.info(u'即将关闭 gateWay')
         super(VtGateway, self).close()
-        self.log.info('即将关闭 gateWay')
