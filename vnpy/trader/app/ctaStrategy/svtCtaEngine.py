@@ -85,10 +85,12 @@ class CtaEngine(VtCtaEngine):
             codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
         # 心跳相关
-        self.heartBeatInterval = 10  # second
+        self.heartBeatInterval = 49  # second
         # 将心跳时间设置为1小时候开始
         # report 之后会立即重置为当前触发心跳
         self.nextHeatBeatTime = time.time() + 60 * 10
+        self.heatBeatTickCount = 0
+        self.nextHeartBeatCount = 100  # second
         self.active = True
         if __debug__:
             import pymongo.collection
@@ -413,6 +415,8 @@ class CtaEngine(VtCtaEngine):
                 # 每0.1秒检查一次返回结果
                 time.sleep(0.1)
                 count += 1
+            else:
+                self.log.info(u'加载品种 {} 保证金率成功'.format(s.vtSymbol))
 
     def _updateQryCommissionRate(self):
         strategyList = list(self.strategyDict.values())
@@ -433,6 +437,8 @@ class CtaEngine(VtCtaEngine):
                 # 每0.1秒检查一次返回结果
                 time.sleep(0.1)
                 count += 1
+            else:
+                self.log.warning(u'加载品种 {} 手续费率成功'.format(str(s.vtSymbol)))
 
     @exception('raise')
     def stop(self):
@@ -550,13 +556,15 @@ class CtaEngine(VtCtaEngine):
         tick = event.dict_['data']
         now = time.time()
 
-        if self.nextHeatBeatTime < now:
-            self.nextHeatBeatTime = now + self.heartBeatInterval
+        self.heatBeatTickCount += 1
 
+        if self.nextHeatBeatTime < now or self.nextHeartBeatCount <= self.heatBeatTickCount:
+            self.nextHeatBeatTime = now + self.heartBeatInterval
+            self.heatBeatTickCount = 0
             Thread(name='heartBeat', target=self.heartBeat).start()
 
+
     def heartBeat(self):
-        self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
     def loadSetting(self):
