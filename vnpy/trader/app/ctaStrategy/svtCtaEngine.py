@@ -565,6 +565,7 @@ class CtaEngine(VtCtaEngine):
 
 
     def heartBeat(self):
+        self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
     def loadSetting(self):
