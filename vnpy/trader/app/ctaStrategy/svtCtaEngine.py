@@ -424,7 +424,7 @@ class CtaEngine(VtCtaEngine):
             # 再从CTP中更新
             count = 1
 
-            while s.commissionRate is None and self.active:
+            while s.isNeedUpdateCommissionRate and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
