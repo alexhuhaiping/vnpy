@@ -77,3 +77,5 @@ testclear.py
 *.pickle
 slave.turtle/logging_test.conf
 logging_test.*
+checkstock.py
+nohup.out
