@@ -4,10 +4,8 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+import threading
 import traceback
-from threading import Thread
-from bson.codec_options import CodecOptions
-import pytz
 from time import sleep
 
 from pymongo import MongoClient, ASCENDING
@@ -143,7 +141,7 @@ class MainEngine(VtMaingEngine):
 
         self.active = False
         self.log.info(u'关闭前操作完成')
-        import threading
+
         self.log.info(u'存活线程 {}'.format(threading.activeCount()))
         sleep(1.1)
 
@@ -162,4 +160,5 @@ class MainEngine(VtMaingEngine):
     def sendOrder(self, orderReq, gatewayName):
         self.log.info(u'gateWay: {} 发送报单'.format(gatewayName))
         vtOrderID = super(MainEngine, self).sendOrder(orderReq, gatewayName)
-        self.log.info(u'获得报单回报 {}'.format(vtOrderID))
+        self.log.info(u'发送报单成功 vtOrderID:{}'.format(vtOrderID))
+        return vtOrderID
