@@ -393,7 +393,7 @@ class CtaEngine(VtCtaEngine):
     def loadCommissionRate(self, s, dic):
         vc = VtCommissionRate()
         vc.loadFromContract(dic)
-        s.setMarginRate(vc)
+        s.setCommissionRate(vc)
         self.log.debug(u'预加载手续费率 {}'.format(s.vtSymbol))
 
     def _updateQryMarginRate(self):
