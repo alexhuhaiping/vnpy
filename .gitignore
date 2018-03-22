@@ -72,6 +72,7 @@ slave.turtle/vtserverdocker.sh
 slave.turtle/kill_turtle.sh
 slave.turtle/shell.sh
 slave.turtle/RM_setting.json
+slave.turtle/vtdocker.sh
 log.sh
 testclear.py
 *.pickle
