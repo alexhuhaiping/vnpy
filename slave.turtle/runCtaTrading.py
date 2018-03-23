@@ -2,6 +2,8 @@
 
 import signal
 from time import sleep
+import logging
+import traceback
 
 from vnpy.event import EventEngine2
 from vnpy.trader.svtEngine import MainEngine
@@ -60,4 +62,11 @@ def runChildProcess():
 
 
 if __name__ == '__main__':
-    runChildProcess()
+    try:
+        runChildProcess()
+    except Exception:
+        logger = logging.getLogger('root')
+        err = traceback.format_exc()
+        print(err)
+        logger.critical(err)
+

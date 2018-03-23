@@ -39,9 +39,6 @@ class RmEngine(SvtRmEngine):
         :return:
         """
         # 检查保证金比例
-        print(gatewayName in self.marginRatioDict)
-        print(self.marginRatioDict[gatewayName] >= self.marginRatioLimit)
-        print(self.marginRatioDict[gatewayName], self.marginRatioLimit)
         if gatewayName in self.marginRatioDict and self.marginRatioDict[gatewayName] >= self.marginRatioWarning:
             self.log.warning(
                 u'{}接口保证金占比{}，超过预警值{}'.format(
