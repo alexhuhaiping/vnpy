@@ -69,4 +69,5 @@ if __name__ == '__main__':
         err = traceback.format_exc()
         print(err)
         logger.critical(err)
+        sleep(1)
 
