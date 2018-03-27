@@ -6,12 +6,15 @@ try:
 except:
     from queue import Queue, Empty
 
+import traceback
+import logging
 from threading import Thread
 from time import sleep
 from collections import defaultdict
 
 # 自己开发的模块
 from eventType import *
+from vtFunction import exception
 
 
 ########################################################################
@@ -55,6 +58,7 @@ class EventEngine(object):
     def __init__(self):
         """初始化事件引擎"""
         # 事件队列
+        self.log = logging.getLogger('eventEngine')
         self.__queue = Queue()
         
         # 事件引擎开关
@@ -86,7 +90,9 @@ class EventEngine(object):
                 self.__process(event)
             except Empty:
                 pass
-            
+            except Exception:
+                self.log.critical(traceback.format_exc())
+
     #----------------------------------------------------------------------
     def __process(self, event):
         """处理事件"""
@@ -141,21 +147,25 @@ class EventEngine(object):
         self.__thread.join()
             
     #----------------------------------------------------------------------
-    def register(self, type_, handler):
+    def register(self, type_, handler_):
         """注册事件处理函数监听"""
         # 尝试获取该事件类型对应的处理函数列表，若无defaultDict会自动创建新的list
         handlerList = self.__handlers[type_]
-        
+
+        handler = exception(handler_)
+
         # 若要注册的处理器不在该事件的处理器列表中，则注册该事件
         if handler not in handlerList:
             handlerList.append(handler)
             
     #----------------------------------------------------------------------
-    def unregister(self, type_, handler):
+    def unregister(self, type_, handler_):
         """注销事件处理函数监听"""
         # 尝试获取该事件类型对应的处理函数列表，若无则忽略该次注销请求   
         handlerList = self.__handlers[type_]
-            
+
+        handler = exception(handler_)
+
         # 如果该函数存在于列表中，则移除
         if handler in handlerList:
             handlerList.remove(handler)
@@ -193,6 +203,7 @@ class EventEngine2(object):
     def __init__(self):
         """初始化事件引擎"""
         # 事件队列
+        self.log = logging.getLogger('eventEngine')
         self.__queue = Queue()
         
         # 事件引擎开关
@@ -222,6 +233,8 @@ class EventEngine2(object):
                 self.__process(event)
             except Empty:
                 pass
+            except Exception:
+                self.log.error(traceback.format_exc())
             
     #----------------------------------------------------------------------
     def __process(self, event):
@@ -229,11 +242,11 @@ class EventEngine2(object):
         # 检查是否存在对该事件进行监听的处理函数
         if event.type_ in self.__handlers:
             # 若存在，则按顺序将事件传递给处理函数执行
-            [handler(event) for handler in self.__handlers[event.type_]]
+            # [handler(event) for handler in self.__handlers[event.type_]]
             
             # 以上语句为Python列表解析方式的写法，对应的常规循环写法为：
-            #for handler in self.__handlers[event.type_]:
-                #handler(event) 
+            for handler in self.__handlers[event.type_]:
+                handler(event)
                 
         # 调用通用处理函数进行处理
         if self.__generalHandlers:
@@ -283,21 +296,23 @@ class EventEngine2(object):
         self.__thread.join()
             
     #----------------------------------------------------------------------
-    def register(self, type_, handler):
+    def register(self, type_, handler_):
         """注册事件处理函数监听"""
         # 尝试获取该事件类型对应的处理函数列表，若无defaultDict会自动创建新的list
         handlerList = self.__handlers[type_]
-        
+
+        handler = exception(handler_)
         # 若要注册的处理器不在该事件的处理器列表中，则注册该事件
         if handler not in handlerList:
             handlerList.append(handler)
             
     #----------------------------------------------------------------------
-    def unregister(self, type_, handler):
+    def unregister(self, type_, handler_):
         """注销事件处理函数监听"""
         # 尝试获取该事件类型对应的处理函数列表，若无则忽略该次注销请求   
         handlerList = self.__handlers[type_]
-            
+
+        handler = exception(handler_)
         # 如果该函数存在于列表中，则移除
         if handler in handlerList:
             handlerList.remove(handler)

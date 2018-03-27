@@ -2,9 +2,11 @@
 
 # import shelve
 import urllib
+import logging.config
 from collections import OrderedDict
 from datetime import datetime
 import traceback
+from time import sleep
 
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, DuplicateKeyError, AutoReconnect
@@ -30,6 +32,7 @@ class MainEngine(object):
     def __init__(self):
         """Constructor"""
         # 记录今日日期
+        self.log = logging.getLogger('mainEngine')
         self.todayDate = datetime.now().strftime('%Y%m%d')
 
         # slavem的汇报实例
@@ -69,8 +72,10 @@ class MainEngine(object):
                     # 数据录入机制，不需要查询持仓和权益
                     # self.gatewayDict[gatewayModule.gatewayName].setQryEnabled(True)
                     pass
-            except:
-                traceback.print_exc()
+            except Exception:
+                err = traceback.format_exc()
+                self.log.error(err)
+
 
     # ----------------------------------------------------------------------
     def addGateway(self, gateway, gatewayName=None):
@@ -87,7 +92,9 @@ class MainEngine(object):
             # 接口连接后自动执行数据库连接的任务
             self.dbConnect()
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
     # ----------------------------------------------------------------------
     def subscribe(self, subscribeReq, gatewayName):
@@ -96,7 +103,9 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.subscribe(subscribeReq)
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
             # ----------------------------------------------------------------------
 
@@ -110,7 +119,9 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             return gateway.sendOrder(orderReq)
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
             # ----------------------------------------------------------------------
 
@@ -120,7 +131,9 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.cancelOrder(cancelOrderReq)
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
     # ----------------------------------------------------------------------
     def qryAccount(self, gatewayName):
@@ -129,7 +142,9 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.qryAccount()
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
             # ----------------------------------------------------------------------
 
@@ -139,7 +154,9 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.qryPosition()
         else:
-            self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
+            err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
+            self.log.warning(err)
+            self.writeLog(err)
 
             # ----------------------------------------------------------------------
 
@@ -177,7 +194,7 @@ class MainEngine(object):
 
             url = 'mongodb://{mongoUsername}:{mongoPassword}@{mongoHost}:{mongoPort}/{dbn}?authMechanism=SCRAM-SHA-1'.format(
                 **vtGlobal.VT_setting)
-            print(url)
+            self.log.info(url)
             try:
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(url, connectTimeoutMS=500)
@@ -185,14 +202,16 @@ class MainEngine(object):
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
 
-                self.writeLog(text.DATABASE_CONNECTING_COMPLETED)
+                err = text.DATABASE_CONNECTING_COMPLETED
+                self.log.info(err)
+                self.writeLog(err)
 
                 # 如果启动日志记录，则注册日志事件监听函数
                 if logging:
                     self.eventEngine.register(EVENT_LOG, self.dbLogging)
 
             except ConnectionFailure:
-                self.writeLog(text.DATABASE_CONNECTING_FAILED)
+                self.log.error(text.DATABASE_CONNECTING_FAILED)
 
     # ----------------------------------------------------------------------
     def dbInsert(self, dbName, collectionName, d):
@@ -207,6 +226,7 @@ class MainEngine(object):
             except DuplicateKeyError:
                 pass
         else:
+            self.log.error(text.DATA_INSERT_FAILED)
             self.writeLog(text.DATA_INSERT_FAILED)
     # ----------------------------------------------------------------------
     def dbInsertMany(self, dbName, collectionName, ld):
@@ -223,12 +243,13 @@ class MainEngine(object):
             try:
                 collection.insert_many(ld)
             except AutoReconnect:
+                self.log.warning(u'插入失败,MongoDB尝试重连')
                 self.dbClient.close()
+                sleep(0.3)
                 self.dbConnect()
                 self.dbInsertMany(self, dbName, collectionName, ld)
-
-
         else:
+            self.log.error(text.DATA_INSERT_FAILED)
             self.writeLog(text.DATA_INSERT_FAILED)
 
     # ----------------------------------------------------------------------
@@ -243,6 +264,7 @@ class MainEngine(object):
             else:
                 return []
         else:
+            self.log.error(text.DATA_QUERY_FAILED)
             self.writeLog(text.DATA_QUERY_FAILED)
             return []
 
@@ -266,6 +288,7 @@ class MainEngine(object):
             'time': log.logTime,
             'gateway': log.gatewayName
         }
+
         self.dbInsert(LOG_DB_NAME, self.todayDate, d)
 
     # ----------------------------------------------------------------------
@@ -418,4 +441,3 @@ class DataEngine(object):
         """注册事件监听"""
         self.eventEngine.register(EVENT_CONTRACT, self.updateContract)
         self.eventEngine.register(EVENT_ORDER, self.updateOrder)
-

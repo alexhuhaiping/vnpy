@@ -52,3 +52,4 @@ vn.trader/build/*
 vn.trader/dist/*
 *.bak
 *.egg-info/
+.pytest_cache/

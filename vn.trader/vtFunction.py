@@ -3,7 +3,9 @@
 """
 包含一些开发中常用的函数
 """
-
+import logging
+import functools
+import traceback
 import vtGlobal
 import os
 import decimal
@@ -45,7 +47,7 @@ def loadMongoSetting():
         host = setting['mongoHost']
         port = setting['mongoPort']
         logging = setting['mongoLogging']
-    except:
+    except Exception:
         host = 'localhost'
         port = 27017
         logging = False
@@ -102,4 +104,34 @@ def autoshutdown(clocks=None):
     t.closeTime = closeTime
     t.start()
     return t
+
+
+exceptionDic = {}
+def exception(func):
+    """
+    用于捕获函数中的代码
+    :param do:
+     None       不抛出异常
+     'raise'    继续抛出异常
+    :return:
+    """
+    return func
+    if func in exceptionDic:
+        # 缓存
+        return exceptionDic[func]
+
+    @functools.wraps(func)
+    def wrapper(*args, **kw):
+        try:
+            return func(*args, **kw)
+        except Exception as e:
+            logger = logging.getLogger('root')
+            logger.error(traceback.format_exc())
+            time.sleep(0.3)
+            raise
+
+    # 缓存
+    exceptionDic[func] = wrapper
+    return wrapper
+
 

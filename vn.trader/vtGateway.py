@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+import logging
 import time
 
 from eventEngine import *
@@ -16,6 +17,7 @@ class VtGateway(object):
         """Constructor"""
         self.eventEngine = eventEngine
         self.gatewayName = gatewayName
+        self.log = logging.getLogger('gateway_'.format(gatewayName))
         
     #----------------------------------------------------------------------
     def onTick(self, tick):
@@ -97,7 +99,7 @@ class VtGateway(object):
         event1 = Event(type_=EVENT_LOG)
         event1.dict_['data'] = log
         self.eventEngine.put(event1)
-        print(log.logContent)
+        self.log.info(log.logContent)
 
     #----------------------------------------------------------------------
     def onContract(self, contract):

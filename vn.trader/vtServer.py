@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+import traceback
+import logging
+import logging.config
 import sys
 try:
     # python2 需要设置编码
@@ -12,6 +15,10 @@ import vtGlobal
 import json
 import os
 from argparse import ArgumentParser
+
+# 读取日志配置文件
+loggingConFile = './tmp/logging.conf'
+logging.config.fileConfig(loggingConFile)
 
 from datetime import datetime
 
@@ -71,15 +78,16 @@ class VtServer(RpcServer):
         self.stop()
 
 
-#----------------------------------------------------------------------
-def printLog(content):
-    """打印日志"""
-    print("%s\t%s" % (datetime.now().strftime("%H:%M:%S"), content))
+# #----------------------------------------------------------------------
+# def printLog(content):
+#     """打印日志"""
+#     print("%s\t%s" % (datetime.now().strftime("%H:%M:%S"), content))
 
 
 #----------------------------------------------------------------------
 def runServer():
     """运行服务器"""
+    logger = logging.getLogger()
     VT_setting = vtGlobal.VT_setting
 
     repAddress = 'tcp://*:2014'
@@ -89,12 +97,12 @@ def runServer():
     server = VtServer(repAddress, pubAddress)
     server.start()
 
-    printLog('-'*50)
-    printLog(u'vn.trader服务器已启动')
+    logger.info('-'*50)
+    logger.info(u'vn.trader服务器已启动')
 
     if VT_setting.get('automongodb'):
         # 自动建立MongoDB数据库
-        printLog(u'MongoDB connect... ')
+        logger.info(u'MongoDB connect... ')
         server.engine.dbConnect()
 
     # 建立数据库
@@ -102,7 +110,7 @@ def runServer():
 
     if VT_setting.get('autoctp'):
         # 自动建立CTP链接
-        printLog(u"CTP connect... ")
+        logger.info(u"CTP connect... ")
         # 建立 CTP 链接后就会开始获取所有合约信息
         server.engine.connect("CTP")
 
@@ -112,16 +120,16 @@ def runServer():
     if VT_setting.get('autoshutdown'):
         # 自动关闭 线程阻塞
         wait2shutdown = autoshutdown()
-        printLog(u"time to shutdown %s" % wait2shutdown.closeTime)
+        logger.info(u"time to shutdown %s" % wait2shutdown.closeTime)
         wait2shutdown.join()
     else:
         # 进入主循环
         while True:
-            printLog(u'input "exit" to exit')
+            logger.info(u'input "exit" to exit')
             if raw_input() != 'exit':
                 continue
 
-            printLog(u'confirm？yes|no')
+            logger.info(u'confirm？yes|no')
             if raw_input() == 'yes':
                 break
 
@@ -150,4 +158,9 @@ if __name__ == '__main__':
     with open(fileName) as f:
         vtGlobal.VT_setting = json.load(f)
 
-    runServer()
+    logger = logging.getLogger()
+    try:
+        runServer()
+    except Exception:
+        logger.critical(traceback.format_exc())
+

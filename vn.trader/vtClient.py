@@ -105,7 +105,7 @@ class ClientEngine(object):
     #----------------------------------------------------------------------
     def writeLog(self, content):
         """快速发出日志事件"""
-        self.client.writeLog(content)      
+        self.client.writeLog(content)
     
     #----------------------------------------------------------------------
     def dbConnect(self):

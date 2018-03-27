@@ -7,6 +7,7 @@ vn.ctp的gateway接入
 vtSymbol直接使用symbol
 '''
 
+import logging
 import vtGlobal
 import os
 import json
@@ -236,6 +237,7 @@ class CtpMdApi(MdApi):
         super(CtpMdApi, self).__init__()
 
         self.gateway = gateway  # gateway对象
+        self.log = gateway.log
         self.gatewayName = gateway.gatewayName  # gateway对象名称
 
         self.reqID = EMPTY_INT  # 操作请求编号
@@ -254,7 +256,7 @@ class CtpMdApi(MdApi):
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
-
+        self.log.info(text.DATA_SERVER_CONNECTED)
         self.writeLog(text.DATA_SERVER_CONNECTED)
 
         self.login()
@@ -266,6 +268,7 @@ class CtpMdApi(MdApi):
         self.loginStatus = False
         self.gateway.mdConnected = False
 
+        self.log.info(text.DATA_SERVER_DISCONNECTED)
         self.writeLog(text.DATA_SERVER_DISCONNECTED)
 
     # ----------------------------------------------------------------------
@@ -291,6 +294,7 @@ class CtpMdApi(MdApi):
             self.loginStatus = True
             self.gateway.mdConnected = True
 
+            self.log.info(text.DATA_SERVER_LOGIN)
             self.writeLog(text.DATA_SERVER_LOGIN)
 
             # 重新订阅之前订阅的合约
@@ -313,6 +317,7 @@ class CtpMdApi(MdApi):
             self.loginStatus = False
             self.gateway.mdConnected = False
 
+            self.log.info(text.DATA_SERVER_LOGOUT)
             self.writeLog(text.DATA_SERVER_LOGOUT)
 
         # 否则，推送错误信息
@@ -468,6 +473,7 @@ class CtpTdApi(TdApi):
         super(CtpTdApi, self).__init__()
 
         self.gateway = gateway  # gateway对象
+        self.log = gateway.log
         self.gatewayName = gateway.gatewayName  # gateway对象名称
 
         self.reqID = EMPTY_INT  # 操作请求编号
@@ -521,6 +527,7 @@ class CtpTdApi(TdApi):
         """服务器连接"""
         self.connectionStatus = True
 
+        self.log.info(text.TRADING_SERVER_CONNECTED)
         self.writeLog(text.TRADING_SERVER_CONNECTED)
 
         if self.requireAuthentication:
@@ -535,6 +542,7 @@ class CtpTdApi(TdApi):
         self.loginStatus = False
         self.gateway.tdConnected = False
 
+        self.log.info(text.TRADING_SERVER_DISCONNECTED)
         self.writeLog(text.TRADING_SERVER_DISCONNECTED)
 
     # ----------------------------------------------------------------------
@@ -548,9 +556,13 @@ class CtpTdApi(TdApi):
         if error['ErrorID'] == 0:
             self.authStatus = True
 
+            self.log.info(text.TRADING_SERVER_AUTHENTICATED)
             self.writeLog(text.TRADING_SERVER_AUTHENTICATED)
 
             self.login()
+        else:
+            self.log.error(u'{}'.format(str(error)))
+
 
     # ----------------------------------------------------------------------
     def onRspUserLogin(self, data, error, n, last):
@@ -562,6 +574,7 @@ class CtpTdApi(TdApi):
             self.loginStatus = True
             self.gateway.tdConnected = True
 
+            self.log.info(text.TRADING_SERVER_LOGIN)
             self.writeLog(text.TRADING_SERVER_LOGIN)
 
             # 确认结算信息
@@ -577,6 +590,7 @@ class CtpTdApi(TdApi):
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
             err.errorMsg = error['ErrorMsg'].decode('gbk')
+            self.log.error(u'{}'.format(err.errorMsg))
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -587,6 +601,7 @@ class CtpTdApi(TdApi):
             self.loginStatus = False
             self.gateway.tdConnected = False
 
+            self.log.info(text.TRADING_SERVER_LOGOUT)
             self.writeLog(text.TRADING_SERVER_LOGOUT)
 
         # 否则，推送错误信息
@@ -659,6 +674,7 @@ class CtpTdApi(TdApi):
     # ----------------------------------------------------------------------
     def onRspSettlementInfoConfirm(self, data, error, n, last):
         """确认结算信息回报"""
+        self.log.info(text.SETTLEMENT_INFO_CONFIRMED)
         self.writeLog(text.SETTLEMENT_INFO_CONFIRMED)
 
         # 查询合约代码
@@ -893,6 +909,7 @@ class CtpTdApi(TdApi):
         self.gateway.onContract(contract)
 
         if last:
+            self.log.info(text.CONTRACT_DATA_RECEIVED)
             self.writeLog(text.CONTRACT_DATA_RECEIVED)
 
     # ----------------------------------------------------------------------

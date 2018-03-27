@@ -6,11 +6,13 @@
 使用DR_setting.json来配置需要收集的合约，以及主力合约代码。
 '''
 
+import logging
 import copy
 import json
 import os
 import time
 from datetime import datetime
+import tradingtime as tt
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -33,6 +35,7 @@ class DrEngine(object):
     # ----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine):
         """Constructor"""
+        self.log = logging.getLogger('dr')
         self.mainEngine = mainEngine
         self.eventEngine = eventEngine
 
@@ -79,7 +82,15 @@ class DrEngine(object):
         contract = event.dict_['data']
         if contract.productClass != u'期货':
             return
+
         vtSymbol = symbol = contract.symbol
+
+        # 检查 tradingtime 是否已经添加了该品种
+        try:
+            tt.get_trading_status(vtSymbol)
+        except TypeError:
+            self.log.warning(u'tradingtime 缺少品种 {}'.format(vtSymbol))
+            return
 
         req = VtSubscribeReq()
         req.symbol = symbol
@@ -245,12 +256,14 @@ class DrEngine(object):
                 #     activeSymbol = self.activeSymbolDict[vtSymbol]
                 #     self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
-                self.writeDrLog(text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
-                                                                time=bar.time,
-                                                                open=bar.open,
-                                                                high=bar.high,
-                                                                low=bar.low,
-                                                                close=bar.close))
+                barText = text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
+                                                time=bar.time,
+                                                open=bar.open,
+                                                high=bar.high,
+                                                low=bar.low,
+                                                close=bar.close)
+                self.log.debug(barText)
+                self.writeDrLog(barText)
             bar.tickNew(drTick)
             # 否则继续累加新的K线
         else:
@@ -401,7 +414,7 @@ class DrEngine(object):
                     # 超过10分钟没有新增合约，退出
                     return
 
-            print(u'更新保证金率第 {} 轮 {} 个合约'.format(turn, len(self.marginRateBySymbol)))
+            self.log.info(u'更新保证金率第 {} 轮 {} 个合约'.format(turn, len(self.marginRateBySymbol)))
             turn += 1
             for symbol, marginRate in list(self.marginRateBySymbol.items()):
                 if marginRate is not None:
@@ -412,7 +425,7 @@ class DrEngine(object):
                 count = 0
                 while self.marginRateBySymbol[symbol] is None:
                     if count % 12 == 0:
-                        print(u'尝试获取 {} 的保证金率'.format(symbol))
+                        self.log.info(u'尝试获取 {} 的保证金率'.format(symbol))
                         self.mainEngine.qryMarginRate('CTP', symbol)
                     count += 1
                     time.sleep(0.1)
@@ -467,7 +480,7 @@ class DrEngine(object):
                     # 超过10分钟没有新增合约，退出
                     return
 
-            print(u'更新手续费率第 {} 轮'.format(turn))
+            self.log.info(u'更新手续费率第 {} 轮'.format(turn))
             turn += 1
             for symbol, marginRate in list(self.vtCommissionRateBySymbol.items()):
                 if marginRate is not None:
@@ -481,7 +494,7 @@ class DrEngine(object):
 
                 while self.vtCommissionRateBySymbol[symbol] is None:
                     if count % 12 == 0:
-                        print(u'尝试获取 {} 的手续费率'.format(symbol))
+                        self.log.info(u'尝试获取 {} 的手续费率'.format(symbol))
                         self.mainEngine.qryCommissionRate('CTP', symbol)
                     count += 1
                     time.sleep(0.1)
