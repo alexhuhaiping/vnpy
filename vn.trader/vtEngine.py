@@ -106,6 +106,7 @@ class MainEngine(object):
             err = text.GATEWAY_NOT_EXIST.format(gateway=gatewayName)
             self.log.warning(err)
             self.writeLog(err)
+            raise
 
             # ----------------------------------------------------------------------
 

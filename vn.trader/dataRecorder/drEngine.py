@@ -22,6 +22,7 @@ from drBase import *
 from eventEngine import *
 from language import text
 from vtGateway import VtSubscribeReq, VtLogData
+import vtGlobal
 
 
 ########################################################################
@@ -130,7 +131,8 @@ class DrEngine(object):
     def loadSetting(self):
         """载入设置"""
 
-        with open(self.settingFileName) as f:
+        # with open(self.settingFileName) as f:
+        with open(vtGlobal.VT_setting['DR_setting']) as f:
             drSetting = json.load(f)
 
             # 如果working设为False则不启动行情记录功能
@@ -141,6 +143,7 @@ class DrEngine(object):
             if 'tick' in drSetting:
                 l = drSetting['tick']
                 # setting = ["m1609", "XSPEED"],
+                self.log.debug(str(l))
                 for setting in l:
                     symbol = setting[0]
                     vtSymbol = symbol
