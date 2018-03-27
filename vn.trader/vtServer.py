@@ -17,7 +17,10 @@ import os
 from argparse import ArgumentParser
 
 # 读取日志配置文件
-loggingConFile = './tmp/logging.conf'
+loggingConFile = './logging.conf'
+if __debug__:
+    loggingConFile = './tmp/logging.conf'
+
 logging.config.fileConfig(loggingConFile)
 
 from datetime import datetime
