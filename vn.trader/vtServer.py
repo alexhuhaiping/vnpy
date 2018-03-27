@@ -16,13 +16,6 @@ import json
 import os
 from argparse import ArgumentParser
 
-# 读取日志配置文件
-loggingConFile = './logging.conf'
-if __debug__:
-    loggingConFile = './tmp/logging.conf'
-
-logging.config.fileConfig(loggingConFile)
-
 from datetime import datetime
 
 from vtFunction import autoshutdown
@@ -160,6 +153,10 @@ if __name__ == '__main__':
 
     with open(fileName) as f:
         vtGlobal.VT_setting = json.load(f)
+
+    # 读取日志配置文件
+    loggingConFile = vtGlobal.VT_setting['logging.conf']
+    logging.config.fileConfig(loggingConFile)
 
     logger = logging.getLogger()
     try:
