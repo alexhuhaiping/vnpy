@@ -82,8 +82,9 @@ class DrEngine(object):
         contract = event.dict_['data']
         if contract.productClass != u'期货':
             return
-
         vtSymbol = symbol = contract.symbol
+
+        self.log.debug(u'订阅 {}'.format(vtSymbol))
 
         # 检查 tradingtime 是否已经添加了该品种
         try:
