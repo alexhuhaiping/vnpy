@@ -304,9 +304,11 @@ class DrEngine(object):
                 self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME, datas)
                 self.mainEngine.dbInsertMany(MINUTE_DB_NAME, BAR_COLLECTION_NAME_BAK, datas)
 
+                # slavem 的心跳，必须要有数据插入才保证心跳
+                self.mainEngine.slavemReport.heartBeat()
+
             time.sleep(5)
-            # slavem 的心跳
-            self.mainEngine.slavemReport.heartBeat()
+
 
         self.mainEngine.slavemReport.endHeartBeat()
 
