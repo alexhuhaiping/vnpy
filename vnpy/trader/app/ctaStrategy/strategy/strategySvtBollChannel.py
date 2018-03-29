@@ -20,7 +20,6 @@ from __future__ import division
 
 from collections import OrderedDict
 
-from vnpy.trader.vtFunction import exception
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
@@ -84,7 +83,6 @@ class SvtBollChannelStrategy(CtaTemplate):
     ]
     varList.extend(_varList)
 
-    @exception('raise')
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
@@ -99,7 +97,6 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略初始化' % self.name)
@@ -136,7 +133,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
@@ -152,7 +148,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
@@ -160,14 +155,12 @@ class SvtBollChannelStrategy(CtaTemplate):
         # self.saveDB()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onTick(self, tick):
         """收到行情TICK推送（必须由用户继承实现）"""
         if self.trading:
             self.bm.updateTick(tick)
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onBar(self, bar):
         """
         self.bar 更新完最后一个 tick ，在生成新的 bar 之前将 self.bar 传入
@@ -181,7 +174,6 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.closeout()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onXminBar(self, xminBar):
         """
         这个函数是由 self.xminBar 的最后一根 bar 驱动的
@@ -215,7 +207,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
-    @exception('raise')
     def orderOnXminBar(self, bar):
         """
         在 onXminBar 中的的指标计算和下单逻辑
@@ -261,7 +252,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         pass
 
     # ----------------------------------------------------------------------
-    @exception()
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
 
@@ -312,7 +302,6 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.putEvent()
 
-    @exception('raise')
     def updateHands(self):
         """
         更新开仓手数

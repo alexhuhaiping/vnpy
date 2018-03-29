@@ -239,14 +239,21 @@ class EventEngine2(object):
                 try:
                     handler(event)
                 except Exception as e:
-                    self.log.error(u''.format(e.message))
+                    self.log.error(u'{}'.format(e.message))
                     sleep(0.1)
                     raise
 
         # 调用通用处理函数进行处理
         if self.__generalHandlers:
-            [handler(event) for handler in self.__generalHandlers]        
-               
+            # [handler(event) for handler in self.__generalHandlers]
+            for handler in self.__generalHandlers:
+                try:
+                    handler(event)
+                except Exception as e:
+                    self.log.error(u'{}'.format(e.message))
+                    sleep(0.1)
+                    raise
+
     #----------------------------------------------------------------------
     def __runTimer(self):
         """运行在计时器线程中的循环函数"""

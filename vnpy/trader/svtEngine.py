@@ -15,8 +15,7 @@ from slavem import Reporter
 from vnpy.trader.language import text
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtGlobal import globalSetting
-from vnpy.trader.vtEngine import MainEngine as VtMaingEngine
-from vnpy.trader.vtFunction import LOCAL_TIMEZONE, exception
+from vnpy.trader.vtEngine import MainEngine as VtMaingEngine, PositionDetail
 
 if __debug__:
     import vnpy.trader.debuginject as debuginject
@@ -133,7 +132,6 @@ class MainEngine(VtMaingEngine):
         except Exception as e:
             self.log.info(traceback.format_exc())
 
-    @exception()
     def exit(self):
         super(MainEngine, self).exit()
         if __debug__:

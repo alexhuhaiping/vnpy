@@ -8,7 +8,6 @@ from __future__ import division
 
 from collections import OrderedDict
 
-from vnpy.trader.vtFunction import exception
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTradeData, VtOrderData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
@@ -39,7 +38,6 @@ class TestStrategy(CtaTemplate):
     ]
     varList.extend(_varList)
 
-    @exception('raise')
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(TestStrategy, self).__init__(ctaEngine, setting)
@@ -50,7 +48,6 @@ class TestStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略初始化' % self.name)
@@ -87,7 +84,6 @@ class TestStrategy(CtaTemplate):
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
@@ -99,21 +95,18 @@ class TestStrategy(CtaTemplate):
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onTick(self, tick):
         """收到行情TICK推送（必须由用户继承实现）"""
         if self.trading:
             self.bm.updateTick(tick)
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onBar(self, bar):
         """
         self.bar 更新完最后一个 tick ，在生成新的 bar 之前将 self.bar 传入
@@ -127,7 +120,6 @@ class TestStrategy(CtaTemplate):
             self.closeout()
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def onXminBar(self, xminBar):
         """
         这个函数是由 self.xminBar 的最后一根 bar 驱动的
@@ -159,7 +151,6 @@ class TestStrategy(CtaTemplate):
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
-    @exception()
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         assert isinstance(order, VtOrderData)
@@ -172,7 +163,6 @@ class TestStrategy(CtaTemplate):
         self.log.info(t)
 
     # ----------------------------------------------------------------------
-    @exception()
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
 
@@ -200,7 +190,7 @@ class TestStrategy(CtaTemplate):
             textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
             textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
             textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml()])
+                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
             )
 
             self.log.warning(u'\n'.join(textList))

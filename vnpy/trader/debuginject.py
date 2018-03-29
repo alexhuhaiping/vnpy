@@ -63,7 +63,7 @@ def buy():
     s.log.debug(u'测试 buy')
     # s.pos = -15
 
-    price = s.bm.lastTick.upperLimit + 1
+    price = s.bm.lastTick.lastPrice - 1
     volume = 1
     stop = True
 
@@ -177,6 +177,13 @@ def closeout():
     s.closeout()
     s.log.info(u'强制平仓下单完成')
 
+
+def checkPosition():
+    s = getStrategy(vtSymbol)
+    # s._pos += 1
+    s.log.debug(s.trading)
+
+
 # vtSymbol = 'rb1805'
 vtSymbol = 'ag1806'
 
@@ -184,8 +191,10 @@ vtSymbol = 'ag1806'
 def run():
     return
     load()
-    me.log.debug('====================================================')
-    buy()
+    me.log.info('====================================================')
+
+    # checkPosition()
+    # buy()
 
     # toHtml()
     # testToStatus()
@@ -194,7 +203,7 @@ def run():
     # showLastTick()
     # showBar()
     # showStopOrder()
-    # closeout()
+    closeout()
     # sell()
     # short()
     # cover()

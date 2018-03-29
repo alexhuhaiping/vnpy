@@ -11,6 +11,7 @@ from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI
 from vnpy.trader.app import riskManager
+from vnpy.trader.vtFunction import exception
 
 
 def runChildProcess():
@@ -23,6 +24,7 @@ def runChildProcess():
     me = MainEngine(ee)
     me.log.info(u'主引擎创建成功')
 
+    @exception
     def shutdownFunction(signalnum, frame):
         me.log.info(u'系统即将关闭')
         me.exit()

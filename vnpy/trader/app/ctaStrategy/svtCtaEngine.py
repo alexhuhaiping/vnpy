@@ -28,7 +28,7 @@ from threading import Thread, Timer
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 import tradingtime as tt
-from vnpy.trader.vtFunction import exception, LOCAL_TIMEZONE
+from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -38,7 +38,7 @@ from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, 
 from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
 from vnpy.trader.vtGlobal import globalSetting
-from vnpy.trader.svtEngine import MainEngine
+from vnpy.trader.svtEngine import MainEngine, PositionDetail
 from vnpy.trader.vtObject import VtMarginRate, VtCommissionRate
 
 from .ctaBase import *
@@ -92,6 +92,11 @@ class CtaEngine(VtCtaEngine):
         self.heatBeatTickCount = 0
         self.nextHeartBeatCount = 100  # second
         self.active = True
+
+        self.positionErrorSet = set()  # 出现仓位异常的策略
+        self.checkPositionCount = 0  # 仓位检查间隔计数
+        self.checkPositionInterval = 5  # second
+
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
@@ -362,7 +367,6 @@ class CtaEngine(VtCtaEngine):
         indexes = [indexSymbol, indexClass, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
 
-    @exception('raise')
     def initAll(self):
         super(CtaEngine, self).initAll()
 
@@ -440,7 +444,6 @@ class CtaEngine(VtCtaEngine):
             else:
                 self.log.info(u'加载品种 {} 手续费率成功'.format(str(s.vtSymbol)))
 
-    @exception('raise')
     def stop(self):
         """
         程序停止时退出前的调用
@@ -453,7 +456,6 @@ class CtaEngine(VtCtaEngine):
         self.log.info(u'停止心跳')
         self.mainEngine.slavemReport.endHeartBeat()
 
-    @exception('raise')
     def savePosition(self, strategy):
         """保存策略的持仓情况到数据库"""
         flt = {'name': strategy.name,
@@ -475,7 +477,6 @@ class CtaEngine(VtCtaEngine):
         self.writeCtaLog(content)
 
     # ----------------------------------------------------------------------
-    @exception('raise')
     def loadPosition(self):
         """从数据库载入策略的持仓情况"""
         for strategy in self.strategyDict.values():
@@ -563,7 +564,6 @@ class CtaEngine(VtCtaEngine):
             self.heatBeatTickCount = 0
             Thread(name='heartBeat', target=self.heartBeat).start()
 
-
     def heartBeat(self):
         self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
@@ -606,7 +606,6 @@ class CtaEngine(VtCtaEngine):
         super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
 
-    @exception()
     def saveTrade(self, dic):
         """
         将成交单保存到数据库
@@ -624,7 +623,6 @@ class CtaEngine(VtCtaEngine):
         if trade.vtOrderID in self.orderStrategyDict:
             self.saveTradeByStrategy(trade)
 
-    @exception()
     def saveTradeByStrategy(self, trade):
         strategy = self.orderStrategyDict[trade.vtOrderID]
 
@@ -646,3 +644,71 @@ class CtaEngine(VtCtaEngine):
         dic['pos'] = strategy.pos
 
         self.saveTrade(dic)
+
+    def checkPositionDetail(self, event):
+        """
+        定时检查持仓状况
+        :return:
+        """
+
+        self.checkPositionCount += 1
+        if self.checkPositionCount >= self.checkPositionInterval:
+            # 间隔达到5秒
+            self.checkPositionCount = 0
+        else:
+            # 间隔时间不够
+            return
+
+        for s in self.strategyDict.values():
+            # 上次检查已经有异常了,这次有异常直接回报
+            self._checkPositionByStrategy(s)
+
+    def _checkPositionByStrategy(self, strategy):
+        """
+        对指定的策略进行仓位检查
+        :param strategy:
+        :return:
+        """
+        posErrSet = self.positionErrorSet
+        s = strategy
+        if not s.trading:
+            return
+
+        errored = s in posErrSet
+
+        def errorHandler(err):
+            if errored:
+                err = u'仓位异常 停止交易 {}'.format(err)
+                s.positionErrReport(err)
+                s.trading = False
+                # s.closeout()
+
+        d = self.mainEngine.dataEngine.getPositionDetail(s.vtSymbol)
+        assert isinstance(d, PositionDetail)
+
+        if not (d.longPos == d.longYd or d.longPos == d.longTd):
+            # 多头仓位异常
+            posErrSet.add(s)
+            err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=s.name, **d.__dict__)
+            errorHandler(err)
+
+        elif not (d.longPos == d.longYd or d.longPos == d.longTd):
+            # 空头仓位异常
+            posErrSet.add(s)
+            err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=s.name,
+                                                                                                **d.__dict__)
+            errorHandler(err)
+
+        elif s.pos != d.longPos + d.shortPos:
+            posErrSet.add(s)
+            err = u'{name} s.pos:{pos} longPos:{longPos} shortPos:{shortPos} '.format(name=s.name, pos=s.pos,
+                                                                                           **d.__dict__)
+            errorHandler(err)
+        else:
+            # 没有异常
+            if errored:
+                posErrSet.remove(s)
+
+    def registerEvent(self):
+        super(CtaEngine, self).registerEvent()
+        self.eventEngine.register(EVENT_TIMER, self.checkPositionDetail)

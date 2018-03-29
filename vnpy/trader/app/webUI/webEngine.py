@@ -5,7 +5,6 @@ import traceback
 from flask import Flask
 from threading import Thread
 import pandas as pd
-from vnpy.trader.vtFunction import exception
 
 app = Flask(__name__)
 
@@ -54,7 +53,6 @@ def index():
     return 'vnpy web UI'
 
 
-@exception()
 @app.route('/strategy')
 def showCtaStrategy():
     """
