@@ -565,7 +565,7 @@ class CtaEngine(VtCtaEngine):
             Thread(name='heartBeat', target=self.heartBeat).start()
 
     def heartBeat(self):
-        self.log.info(u'触发心跳')
+        # self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
     def loadSetting(self):
@@ -699,7 +699,7 @@ class CtaEngine(VtCtaEngine):
                                                                                                 **d.__dict__)
             errorHandler(err)
 
-        elif s.pos != d.longPos + d.shortPos:
+        elif s.pos != d.longPos - d.shortPos:
             posErrSet.add(s)
             err = u'{name} s.pos:{pos} longPos:{longPos} shortPos:{shortPos} '.format(name=s.name, pos=s.pos,
                                                                                            **d.__dict__)
