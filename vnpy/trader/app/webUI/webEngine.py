@@ -64,11 +64,16 @@ def showCtaStrategy():
         from vnpy.trader.app.ctaStrategy import CtaEngine
         assert isinstance(ctaApp, CtaEngine)
 
+    dic = {u'策略个数':0, u'总权益': 0}
+
     html = ''
     try:
         ctaApp.log.info(u'开始刷新 strategy 页面')
         strategyList = list(ctaApp.strategyDict.items())
         for ctaName, ctaStrategy in strategyList:
+            dic[u'策略个数'] += 1
+            dic[u'总权益'] += ctaStrategy.rtBalance
+
             html += ctaName
             html += '</br>'
             html += ctaStrategy.className
@@ -84,6 +89,8 @@ def showCtaStrategy():
                 # html += pd.DataFrame([ctaStrategy.varList2Html()], index=['var']).to_html()
             html += '</br>'
             html += '</br>'
+
+        html = pd.DataFrame([dic]).to_html() + '</br>' + html
         ctaApp.log.info(u'获得 strategy 页面')
 
     except:
