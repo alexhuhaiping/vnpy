@@ -72,7 +72,7 @@ def showCtaStrategy():
         strategyList = list(ctaApp.strategyDict.items())
         for ctaName, ctaStrategy in strategyList:
             dic[u'策略个数'] += 1
-            dic[u'总权益'] += ctaStrategy.rtBalance
+            dic[u'总权益'] += int(ctaStrategy.rtBalance)
 
             html += ctaName
             html += '</br>'
