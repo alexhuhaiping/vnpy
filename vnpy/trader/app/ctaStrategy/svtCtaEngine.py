@@ -686,13 +686,13 @@ class CtaEngine(VtCtaEngine):
         d = self.mainEngine.dataEngine.getPositionDetail(s.vtSymbol)
         assert isinstance(d, PositionDetail)
 
-        if not (d.longPos == d.longYd or d.longPos == d.longTd):
+        if d.longPos != d.longYd + d.longTd:
             # 多头仓位异常
             posErrSet.add(s)
             err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=s.name, **d.__dict__)
             errorHandler(err)
 
-        elif not (d.longPos == d.longYd or d.longPos == d.longTd):
+        elif d.shortPos != d.shortYd + d.shortTd:
             # 空头仓位异常
             posErrSet.add(s)
             err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=s.name,
