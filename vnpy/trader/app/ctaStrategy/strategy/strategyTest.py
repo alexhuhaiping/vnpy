@@ -7,8 +7,10 @@
 from __future__ import division
 
 from collections import OrderedDict
+import arrow
 
 from vnpy.trader.vtConstant import *
+from vnpy.trader.vtFunction import waitToContinue
 from vnpy.trader.vtObject import VtTradeData, VtOrderData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
 from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
@@ -87,6 +89,11 @@ class TestStrategy(CtaTemplate):
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
+
+        moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
+
+        wait = moment - arrow.now().datetime
+        self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
         if not self.isBackTesting():
             # 实盘，可以存库。

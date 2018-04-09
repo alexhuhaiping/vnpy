@@ -10,7 +10,9 @@ import os
 import decimal
 import arrow
 import time
+import datetime
 import pytz
+import tradingtime as tt
 
 LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 MAX_NUMBER = 10000000000000
@@ -119,3 +121,25 @@ def exception(func):
     return wrapper
 
 
+
+def waitToContinue(vtSymbol, now):
+    """
+    用夹逼法获得最近的一个连续竞价时间段
+    :return:
+    """
+    if tt.get_trading_status(vtSymbol, now) != tt.continuous_auction:
+        # 已经处于连续交易时间中
+        return now
+
+    c = now
+    while tt.get_trading_status(vtSymbol, c) != tt.continuous_auction:
+        # 1分钟步长往前探索
+        c += datetime.timedelta(minutes=1)
+
+    while tt.get_trading_status(vtSymbol, c) == tt.continuous_auction:
+        # 1秒钟步长往回探索，得到连续交易前1秒
+        c -= datetime.timedelta(seconds=1)
+
+    # 增加1秒
+    c += datetime.timedelta(seconds=1)
+    return c

@@ -19,8 +19,12 @@
 from __future__ import division
 
 from collections import OrderedDict
+import arrow
+from threading import Timer
+import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
+from vnpy.trader.vtFunction import waitToContinue, exception
 from vnpy.trader.vtObject import VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
 from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
@@ -138,14 +142,33 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.log.info(u'%s策略启动' % self.name)
 
         if self.xminBar and self.am and self.inited and self.trading:
-            self.cancelAll()
-            self.orderOnXminBar(self.xminBar)
+            if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
+                # 已经进入连续竞价的阶段，直接下单
+                self.log.info(u'已经处于连续竞价阶段')
+                self._orderOnStart()
+            else:  # 还没进入连续竞价，使用一个定时器
+
+                self.log.info(u'尚未开始连续竞价')
+                moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
+                wait = (moment - arrow.now().datetime).total_seconds()
+                self.log.info(u'{} 后开始下停止单'.format(wait))
+
+                Timer(wait, self._orderOnStart).start()
 
         if not self.isBackTesting():
             # 实盘，可以存库。
             self.saving = True
 
         self.putEvent()
+
+    @exception
+    def _orderOnStart(self):
+        """
+        在onStart中的下单
+        :return:
+        """
+        self.cancelAll()
+        self.orderOnXminBar(self.barXmin)
 
     # ----------------------------------------------------------------------
     def onStop(self):
