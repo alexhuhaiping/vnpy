@@ -84,6 +84,10 @@ class CtaEngine(VtCtaEngine):
         self.tradeCol = self.mainEngine.strategyDB[TRADE_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
 
+        # 订单响应存库
+        self.orderBackCol = self.mainEngine.strategyDB[ORDERBACK_COLLECTION_NAME].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
         # 心跳相关
         self.heartBeatInterval = 49  # second
         # 将心跳时间设置为1小时候开始
@@ -298,6 +302,7 @@ class CtaEngine(VtCtaEngine):
         self.createCtaCollection()
         self.createPosCollecdtion()
         self.createTradeCollecdtion()
+        self.createOrderBackCollecdtion()
 
     def createCtaCollection(self):
         db = self.strategyDB
@@ -365,6 +370,32 @@ class CtaEngine(VtCtaEngine):
         indexDatetime = IndexModel([('datetime', DESCENDING)], name='datetime', background=True)
 
         indexes = [indexSymbol, indexClass, indexDatetime]
+        self.mainEngine.createCollectionIndex(col, indexes)
+
+    def createOrderBackCollecdtion(self):
+        """
+        成交单存库
+        :return:
+        """
+
+        db = self.strategyDB
+
+        if __debug__:
+            import pymongo.database
+            assert isinstance(db, pymongo.database.Database)
+
+        colNames = db.collection_names()
+        if ORDERBACK_COLLECTION_NAME not in colNames:
+            # 还没创建 cta collection
+            col = db.create_collection(ORDERBACK_COLLECTION_NAME)
+        else:
+            col = db[ORDERBACK_COLLECTION_NAME]
+
+        # 成交单的索引
+        indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
+        indexDatetime = IndexModel([('timestamp', DESCENDING)], name='timestamp', background=True)
+
+        indexes = [indexSymbol, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
 
     def initAll(self):
@@ -613,6 +644,14 @@ class CtaEngine(VtCtaEngine):
         :return:
         """
         self.tradeCol.insert_one(dic)
+
+    def saveOrderback(self, dic):
+        """
+        将订单响应保存到数据库
+        :param dic:
+        :return:
+        """
+        self.orderBackCol.insert_one(dic)
 
     def processTradeEvent(self, event):
         super(CtaEngine, self).processTradeEvent(event)
