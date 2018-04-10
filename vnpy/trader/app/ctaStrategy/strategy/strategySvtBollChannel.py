@@ -170,7 +170,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
         self.cancelAll()
-        self.orderOnXminBar(self.barXmin)
+        self.orderOnXminBar(self.xminBar)
 
     # ----------------------------------------------------------------------
     def onStop(self):
