@@ -137,6 +137,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.putEvent()
 
     # ----------------------------------------------------------------------
+    @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
@@ -147,13 +148,15 @@ class SvtBollChannelStrategy(CtaTemplate):
                 self.log.info(u'已经处于连续竞价阶段')
                 self._orderOnStart()
             else:  # 还没进入连续竞价，使用一个定时器
-
                 self.log.info(u'尚未开始连续竞价')
                 moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
                 wait = (moment - arrow.now().datetime).total_seconds()
-                self.log.info(u'{} 后开始下停止单'.format(wait))
+                self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
                 Timer(wait, self._orderOnStart).start()
+        else:
+            self.log.warning(
+                u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
 
         if not self.isBackTesting():
             # 实盘，可以存库。
@@ -161,7 +164,6 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.putEvent()
 
-    @exception
     def _orderOnStart(self):
         """
         在onStart中的下单
