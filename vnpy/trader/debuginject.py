@@ -203,7 +203,7 @@ def run():
     # showLastTick()
     # showBar()
     # showStopOrder()
-    closeout()
+    # closeout()
     # sell()
     # short()
     # cover()

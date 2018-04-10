@@ -441,6 +441,7 @@ class CtaEngine(VtCtaEngine):
                     # 30秒超时
                     err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
                     self.log.warning(err)
+                    continue
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
@@ -463,6 +464,7 @@ class CtaEngine(VtCtaEngine):
                 if count % 3000 == 0:
                     # 30秒超时
                     self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
+                    continue
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
