@@ -283,8 +283,7 @@ class SvtBollChannelStrategy(CtaTemplate):
             dic[k] = v
             t += u'{}: {}\n'.format(k, v)
 
-        self.log.warning(t)
-
+        # self.log.warning(t)
         self.ctaEngine.saveOrderback(dic)
 
     # ----------------------------------------------------------------------
