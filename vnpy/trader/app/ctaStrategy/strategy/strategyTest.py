@@ -8,6 +8,7 @@ from __future__ import division
 
 from collections import OrderedDict
 import arrow
+import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue
