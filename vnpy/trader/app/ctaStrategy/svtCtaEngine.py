@@ -24,6 +24,7 @@ import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
 from threading import Thread, Timer
+from collections import defaultdict
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -97,9 +98,10 @@ class CtaEngine(VtCtaEngine):
         self.nextHeartBeatCount = 100  # second
         self.active = True
 
-        self.positionErrorSet = set()  # 出现仓位异常的策略
+        self.positionErrorCountDic = defaultdict(lambda: 0)  # {strategy: errCount}出现仓位异常的策略
         self.checkPositionCount = 0  # 仓位检查间隔计数
-        self.checkPositionInterval = 5  # second
+        self.checkPositionInterval = 2  # second
+        self.reportPosErrCount = 5  # 连续5次仓位异常则报告
 
         if __debug__:
             import pymongo.collection
@@ -710,15 +712,16 @@ class CtaEngine(VtCtaEngine):
         :param strategy:
         :return:
         """
-        posErrSet = self.positionErrorSet
+        countDic = self.positionErrorCountDic
         s = strategy
         if not s.trading:
             return
 
-        errored = s in posErrSet
+        errCount = countDic[s]
 
         def errorHandler(err):
-            if errored:
+            countDic[s] += 1
+            if errCount >= self.reportPosErrCount:
                 err = u'仓位异常 停止交易 {}'.format(err)
                 s.positionErrReport(err)
                 s.trading = False
@@ -729,26 +732,22 @@ class CtaEngine(VtCtaEngine):
 
         if d.longPos != d.longYd + d.longTd:
             # 多头仓位异常
-            posErrSet.add(s)
             err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=s.name, **d.__dict__)
             errorHandler(err)
 
         elif d.shortPos != d.shortYd + d.shortTd:
             # 空头仓位异常
-            posErrSet.add(s)
             err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=s.name,
-                                                                                                **d.__dict__)
+                                                                                           **d.__dict__)
             errorHandler(err)
 
         elif s.pos != d.longPos - d.shortPos:
-            posErrSet.add(s)
             err = u'{name} s.pos:{pos} longPos:{longPos} shortPos:{shortPos} '.format(name=s.name, pos=s.pos,
-                                                                                           **d.__dict__)
+                                                                                      **d.__dict__)
             errorHandler(err)
         else:
-            # 没有异常
-            if errored:
-                posErrSet.remove(s)
+            # 没有异常，重置仓位异常次数
+            countDic[s] = 0
 
     def registerEvent(self):
         super(CtaEngine, self).registerEvent()
