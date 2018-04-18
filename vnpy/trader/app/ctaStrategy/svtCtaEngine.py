@@ -655,8 +655,6 @@ class CtaEngine(VtCtaEngine):
         :param dic:
         :return:
         """
-        dic = dic.copy()
-        dic['datetime'] = arrow.now().datetime
         self.orderBackCol.insert_one(dic)
 
     def processTradeEvent(self, event):
@@ -759,3 +757,11 @@ class CtaEngine(VtCtaEngine):
     def registerEvent(self):
         super(CtaEngine, self).registerEvent()
         self.eventEngine.register(EVENT_TIMER, self.checkPositionDetail)
+
+    def processOrderEvent(self, event):
+        order = event.dict_['data']
+        dic = order.__dict__.copy()
+        dic.pop('rawData')
+        dic['datetime'] = arrow.now().datetime
+        self.saveOrderback(dic)
+        return super(CtaEngine, self).processOrderEvent(event)

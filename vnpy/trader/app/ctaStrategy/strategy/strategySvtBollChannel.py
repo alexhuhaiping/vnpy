@@ -276,17 +276,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
-        dic = {}
-        t = u'报单回报\n'
-        t += u'ID: {}\n'.format(id(order))
-        for k, v in order.__dict__.items():
-            if k == 'rawData':
-                continue
-            dic[k] = v
-            t += u'{}: {}\n'.format(k, v)
-
-        # self.log.warning(t)
-        self.ctaEngine.saveOrderback(dic)
+        pass
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
