@@ -127,7 +127,7 @@ def waitToContinue(vtSymbol, now):
     用夹逼法获得最近的一个连续竞价时间段
     :return:
     """
-    if tt.get_trading_status(vtSymbol, now) != tt.continuous_auction:
+    if tt.get_trading_status(vtSymbol, now) == tt.continuous_auction:
         # 已经处于连续交易时间中
         return now
 

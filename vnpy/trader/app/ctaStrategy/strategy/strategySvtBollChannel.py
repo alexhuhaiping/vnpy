@@ -150,10 +150,10 @@ class SvtBollChannelStrategy(CtaTemplate):
             else:  # 还没进入连续竞价，使用一个定时器
                 self.log.info(u'尚未开始连续竞价')
                 moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
-                wait = (moment - arrow.now().datetime).total_seconds()
+                wait = (moment - arrow.now().datetime)
                 self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
-                Timer(wait, self._orderOnStart).start()
+                Timer(wait.total_seconds(), self._orderOnStart).start()
         else:
             self.log.warning(
                 u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
