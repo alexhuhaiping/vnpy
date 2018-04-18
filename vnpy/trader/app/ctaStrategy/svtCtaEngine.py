@@ -716,7 +716,10 @@ class CtaEngine(VtCtaEngine):
         """
         countDic = self.positionErrorCountDic
         s = strategy
-        if not s.trading:
+        if s.trading and s.inited:
+            # 需要策略已经初始化完且开始交易才进行仓位校验
+            pass
+        else:
             return
 
         def errorHandler(err):

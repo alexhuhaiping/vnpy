@@ -209,7 +209,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         bar = xminBar
 
         # 全撤之前发出的委托
-        self.coancelAll()
+        self.cancelAll()
 
         # 保存K线数据
         am = self.am
