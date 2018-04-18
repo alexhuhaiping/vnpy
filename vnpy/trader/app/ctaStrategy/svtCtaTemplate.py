@@ -207,7 +207,7 @@ class CtaTemplate(vtCtaTemplate):
     def sendOrder(self, orderType, price, volume, stop=False):
         log = u'orderType {}, price {}, volume {}, stop {}'.format(orderType, price, volume, stop)
         self.log.info(log)
-        return super(CtaTemplate).sendOrder(self, orderType, price, volume, stop)
+        return super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
     # def saveTrade(self, event):
     #     """
