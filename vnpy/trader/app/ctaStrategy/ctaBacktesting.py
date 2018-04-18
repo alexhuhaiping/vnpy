@@ -30,6 +30,7 @@ from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData, VtCommissionRate
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
+from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 
 from .ctaBase import *
 
@@ -1103,8 +1104,13 @@ class TradingResult(VtTradingResult):
         # super(TradingResult, self).__init__(entryPrice, entryDt, exitPrice,
         #                                     exitDt, volume, rate, slippage, size)
 
-        self.entryTradingDay = tt.get_tradingday(entryDt)
-        self.exitTradingDay = tt.get_tradingday(exitDt)
+        import datetime
+        # self.entryTradingDay = tt.get_tradingday(entryDt)
+        # self.exitTradingDay = tt.get_tradingday(exitDt)
+
+        self.entryTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(entryDt, datetime.time()))
+        self.exitTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(exitDt, datetime.time()))
+
         closeOffset = OFFSET_CLOSETODAY if self.entryTradingDay == self.exitTradingDay else OFFSET_CLOSE
 
         self.entryPrice = entryPrice  # 开仓价格
@@ -1138,7 +1144,9 @@ class TradingResult(VtTradingResult):
         # self.commission *= rate.backtestingRate
 
 
-    ########################################################################
+        ########################################################################
+
+
 class VTDailyResult(object):
     """每日交易的结果"""
 

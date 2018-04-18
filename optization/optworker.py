@@ -129,6 +129,16 @@ class Optimization(object):
 
         data = pickle.loads(r.text.encode('utf-8'))
 
+        if data == u'版本不符':
+            self.log('error', u'版本不符')
+            self.setLongWait()
+            return
+
+        if data == u'':
+            self.log('info', u'没有回测任务')
+            self.setLongWait()
+            return
+
         setting = data['setting']
         if setting is None:
             # 没有得到任务，放弃

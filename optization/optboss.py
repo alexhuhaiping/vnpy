@@ -22,7 +22,7 @@ class WorkService(object):
         cpuCount = multiprocessing.cpu_count() - 1
         self.cpuCount = max(cpuCount, 1)
         if __debug__:
-            self.cpuCount = min(2, self.cpuCount)
+            self.cpuCount = min(1, self.cpuCount)
 
         self.logs = {}
         self.workers = []

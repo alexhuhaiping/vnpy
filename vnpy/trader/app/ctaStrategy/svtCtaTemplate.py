@@ -209,7 +209,7 @@ class CtaTemplate(vtCtaTemplate):
         self.log.info(log)
         return super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
-    w
+
     #     """
     #     保存成交单
     #     :return:

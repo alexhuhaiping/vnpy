@@ -170,12 +170,15 @@ class OptimizeService(object):
 
     def checkResult(self):
         """
-
+        检查已经完成任务，从任务collection中剔除
         :return:
         """
+        self.log.info(u'开始核对已经完成的回测任务')
         cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
         if cursor.count() == 0:
+            self.log.info(u'没有需要核对的回测任务')
             return
+
         argsIDs = {d['_id'] for d in cursor}
 
         cursor = self.resultCol.find({}, {}, no_cursor_timeout=True)
@@ -183,6 +186,8 @@ class OptimizeService(object):
 
         # 对比回测
         finishIDs = argsIDs & resultIDs
+
+        self.log.info(u'已经完成任务 {} of {}'.format(len(finishIDs), len(argsIDs)))
 
         # 删除已经完成的回测参数
         for _id in finishIDs:
@@ -227,9 +232,13 @@ class OptimizeService(object):
         # 检查 colleciton 中是否有新的回测任务
         cursor = self.argCol.find(no_cursor_timeout=True)
 
-        if cursor.count() == 0:
+        count = cursor.count()
+        if count == 0:
             # 没有任何任务
+            self.log.info(u'没有回测任务')
             return
+        else:
+            self.log.info(u'即将开始回测任务 {} 个'.format(count))
 
         # 优先回测最近的品种
         cursor = cursor.sort([
@@ -257,23 +266,21 @@ class OptimizeService(object):
 
         :return:
         """
-        results = []
+        self.results = []
         while not self.stoped.wait(0):
             try:
-                r = self.resultQueue.get(timeout=1)
+                r = self.resultQueue.get(timeout=3)
                 self.log.info(u'{}'.format(r[u'总交易次数']))
-                if r[u'总交易次数'] < 3:
+                if r[u'总交易次数'] > 3:
                     # 总交易次数太少的不保存
-                    continue
-                else:
-                    results.append(r)
-                    if len(results) > 100:
-                        self.resultCol.insert_many(results)
-                        break
+                    self.results.append(r)
+                    if len(self.results) > 100:
+                        self.resultCol.insert_many(self.results)
+                        self.results = []
             except Empty:
-                if results:
-                    self.resultCol.insert_many(results)
-
+                if self.results:
+                    self.resultCol.insert_many(self.results)
+                    self.results = []
 
 
 if __name__ == '__main__':
