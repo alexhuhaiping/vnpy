@@ -22,6 +22,7 @@ from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from runBacktesting import runBacktesting
+import optweb
 
 # 读取日志配置文件
 loggingConFile = 'logging.conf'
@@ -40,6 +41,10 @@ class OptimizeService(object):
 
     def __init__(self, config=None):
         self.log = logging.getLogger('ctabacktesting')
+
+        cmd = "git log -n 1 | head -n 1 | sed -e 's/^commit //' | head "
+        r = os.popen(cmd)
+        self.gitHash = r.read().strip('\n')
 
         self.cpuCount = multiprocessing.cpu_count()
 
@@ -63,11 +68,12 @@ class OptimizeService(object):
             self.config.get('slavem', 'localhost'),
         )
 
+        self.salt = self.config.get('web', 'salt')
+
         # 任务队列
         self.tasksQueue = Queue(100)
 
-        self.finishTasksIDSet = set()
-        self.finishSettingIDQueue = Queue()
+        self.resultQueue = Queue(10000)
 
         self.stoped = Event()
         self.stoped.set()
@@ -94,26 +100,16 @@ class OptimizeService(object):
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
         # 创建任务
+        self.webForever = optweb.ServerThread(self)
+
         self.createTaskForever = Thread(name=u'创建任务', target=self.__createTaskForever)
+        self.saveResultForever = Thread(name=u'保存回测结果', target=self.__saveResultForever)
 
         # 初始化索引
         self.initContractCollection()
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
             signal.signal(sig, self.shutdown)
-
-    def logout(self):
-        self.log.info('启动')
-        while self.logActive:
-            try:
-                name, level, msg = self.logQueue.get(timeout=1)
-            except Empty:
-                continue
-
-            log = self.logs[name]
-            func = getattr(log, level)
-            func(msg)
-        self.log.info('结束')
 
     def initContractCollection(self):
         # 需要建立的索引
@@ -163,8 +159,14 @@ class OptimizeService(object):
         self.clearTaskQueue()
         self.clearResultQueue()
 
-        # TODO 对照已经完成回测的结果
+        # 对照已经完成回测的结果
         self.checkResult()
+
+        self.webForever.start()
+        self.createTaskForever.start()
+        self.saveResultForever.start()
+
+        self.run()
 
     def checkResult(self):
         """
@@ -187,11 +189,8 @@ class OptimizeService(object):
             self.argCol.delete_many({'_id': _id})
 
     def run(self):
-        self.slavemReport.heartBeat()
-        self.createTaskForever.start()
-
-        while not self.stoped.wait(1):
-            pass
+        while not self.stoped.wait(30):
+            self.slavemReport.heartBeat()
         self.slavemReport.endHeartBeat()
 
     def shutdown(self, signalnum, frame):
@@ -204,6 +203,14 @@ class OptimizeService(object):
     def exit(self):
         self.clearTaskQueue()
         self.clearResultQueue()
+
+    def accpetResult(self, result):
+        """
+        返回的结束
+        :param result:
+        :return:
+        """
+        self.resultQueue.put(result)
 
     def __createTaskForever(self):
         self._createTaskForever()
@@ -232,11 +239,41 @@ class OptimizeService(object):
 
         for setting in cursor:
             # 持续尝试塞入
-            while not self.stoped.wait(0.01):
+            while not self.stoped.wait(0):
                 try:
                     self.tasksQueue.put(setting, timeout=1)
+                    break
                 except Full:
                     pass
+
+    def __saveResultForever(self):
+        self._saveResultForever()
+
+        while not self.stoped.wait(5):
+            self._saveResultForever()
+
+    def _saveResultForever(self):
+        """
+
+        :return:
+        """
+        results = []
+        while not self.stoped.wait(0):
+            try:
+                r = self.resultQueue.get(timeout=1)
+                self.log.info(u'{}'.format(r[u'总交易次数']))
+                if r[u'总交易次数'] < 3:
+                    # 总交易次数太少的不保存
+                    continue
+                else:
+                    results.append(r)
+                    if len(results) > 100:
+                        self.resultCol.insert_many(results)
+                        break
+            except Empty:
+                if results:
+                    self.resultCol.insert_many(results)
+
 
 
 if __name__ == '__main__':

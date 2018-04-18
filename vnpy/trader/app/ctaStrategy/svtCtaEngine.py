@@ -655,6 +655,8 @@ class CtaEngine(VtCtaEngine):
         :param dic:
         :return:
         """
+        dic = dic.copy()
+        dic['datetime'] = arrow.now().datetime
         self.orderBackCol.insert_one(dic)
 
     def processTradeEvent(self, event):
@@ -717,15 +719,17 @@ class CtaEngine(VtCtaEngine):
         if not s.trading:
             return
 
-        errCount = countDic[s]
-
         def errorHandler(err):
             countDic[s] += 1
-            if errCount >= self.reportPosErrCount:
+            if countDic[s] >= self.reportPosErrCount:
                 err = u'仓位异常 停止交易 {}'.format(err)
                 s.positionErrReport(err)
                 s.trading = False
-                # s.closeout()
+                # 全部撤单
+                s.cancelAll()
+            else:
+                self.log.info(u'仓位出现异常次数 {}'.format(countDic[s]))
+                self.log.info(u'{}'.format(err))
 
         d = self.mainEngine.dataEngine.getPositionDetail(s.vtSymbol)
         assert isinstance(d, PositionDetail)

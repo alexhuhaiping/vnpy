@@ -204,6 +204,11 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
+    def sendOrder(self, orderType, price, volume, stop=False):
+        log = u'orderType {}, price {}, volume {}, stop {}'.format(orderType, price, volume, stop)
+        self.log.info(log)
+        return super(CtaTemplate).sendOrder(self, orderType, price, volume, stop)
+
     # def saveTrade(self, event):
     #     """
     #     保存成交单
@@ -663,9 +668,9 @@ class CtaTemplate(vtCtaTemplate):
             return
 
         self.setMarginRate(marginRate)
+
     def setMarginRate(self, marginRate):
         self._marginRate = marginRate
-
 
     def updateCommissionRate(self, event):
         """更新合约数据"""
@@ -683,7 +688,6 @@ class CtaTemplate(vtCtaTemplate):
             return
         else:
             pass
-
 
     def setCommissionRate(self, commissionRate):
         self.commissionRate = commissionRate

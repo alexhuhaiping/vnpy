@@ -209,7 +209,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         bar = xminBar
 
         # 全撤之前发出的委托
-        self.cancelAll()
+        self.coancelAll()
 
         # 保存K线数据
         am = self.am
@@ -239,7 +239,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         :param bar:
         :return:
         """
-
+        if not self.trading:
+            self.log.warn(u'不能下单 trading: False')
+            return
         # 判断是否要进行交易
         self.updateHands()
 

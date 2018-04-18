@@ -230,6 +230,10 @@ class BacktestingEngine(VTBacktestingEngine):
     #
     #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
+
+    def saveOrderback(self, dic):
+        pass
+
     def setShowFig(self, isShow):
         """
         回测后是否展示图片
@@ -600,12 +604,12 @@ class BacktestingEngine(VTBacktestingEngine):
                 if isCrossed:
                     # 出现成交，重新整理停止单队列
 
-                    self.log.info(u'出现成交,重新生成停止单队列')
+                    # self.log.debug(u'出现成交,重新生成停止单队列')
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]
-                    if __debug__:
-                        self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
+                    # if __debug__:
+                    #     self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
                     break
             else:
                 # 一次成交都没有
