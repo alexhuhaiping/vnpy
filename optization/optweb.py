@@ -1,11 +1,15 @@
-# encoding: UTF-8
+# encoding: utf-8
 import time
 import logging
 from werkzeug.serving import make_server
 import traceback
 from flask import Flask, request
 from threading import Thread
-import json
+
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 
 try:
     import cPickle as pickle
@@ -28,13 +32,19 @@ def requestSetting(gitHash):
     logger = logging.getLogger()
     try:
         if not gitHash:
-            return ''
+            logger.debug(u'没有提供版本号')
+            return u''
 
         if gitHash != app.optServer.gitHash:
+            logger.debug(u'版本不符')
             return u'版本不符'
 
         # 校验通过，尝试返回需要回测的参数
-        setting = app.optServer.tasksQueue.get_nowait()
+        try:
+            setting = app.optServer.tasksQueue.get(timeout=1)
+        except queue.Empty:
+            return u'没有任务'
+
         logger.info(u'{vtSymbol} {optsv}'.format(**setting))
         data = {
             'setting': setting,
@@ -76,7 +86,7 @@ class ServerThread(Thread):
         app.optServer = optServer
 
         self.daemon = True
-        self.name = u'web服务'
+        self.name = u'web'
         self.setDaemon(True)
         self.srv = make_server('0.0.0.0', PORT, app)
         self.ctx = app.app_context()

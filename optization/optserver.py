@@ -1,27 +1,30 @@
 # coding:utf-8
-
 import os
 
-from Queue import Empty, Full, Queue
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 from threading import Event, Thread
 import pytz
 from bson.codec_options import CodecOptions
 import ConfigParser
-import time
 import logging.config
 import multiprocessing
 import signal
-import datetime
-import traceback
+import pymongo.errors
 
 from slavem import Reporter
-import arrow
 import pymongo
 from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from runBacktesting import runBacktesting
 import optweb
 
 # 读取日志配置文件
@@ -71,9 +74,9 @@ class OptimizeService(object):
         self.salt = self.config.get('web', 'salt')
 
         # 任务队列
-        self.tasksQueue = Queue(100)
+        self.tasksQueue = queue.Queue(5)
 
-        self.resultQueue = Queue(10000)
+        self.resultQueue = queue.Queue(5)
 
         self.stoped = Event()
         self.stoped.set()
@@ -102,8 +105,8 @@ class OptimizeService(object):
         # 创建任务
         self.webForever = optweb.ServerThread(self)
 
-        self.createTaskForever = Thread(name=u'创建任务', target=self.__createTaskForever)
-        self.saveResultForever = Thread(name=u'保存回测结果', target=self.__saveResultForever)
+        self.createTaskForever = Thread(name=u'createTask', target=self.__createTaskForever)
+        self.saveResultForever = Thread(name=u'saveResult', target=self.__saveResultForever)
 
         # 初始化索引
         self.initContractCollection()
@@ -221,8 +224,8 @@ class OptimizeService(object):
         self._createTaskForever()
 
         while not self.stoped.wait(60):
-            self._createTaskForever()
             self.checkResult()
+            self._createTaskForever()
 
     def _createTaskForever(self):
         """
@@ -252,7 +255,7 @@ class OptimizeService(object):
                 try:
                     self.tasksQueue.put(setting, timeout=1)
                     break
-                except Full:
+                except queue.Full:
                     pass
 
     def __saveResultForever(self):
@@ -271,16 +274,30 @@ class OptimizeService(object):
             try:
                 r = self.resultQueue.get(timeout=3)
                 self.log.info(u'{}'.format(r[u'总交易次数']))
-                if r[u'总交易次数'] > 3:
+
+                if r[u'总交易次数'] < 3:
                     # 总交易次数太少的不保存
-                    self.results.append(r)
-                    if len(self.results) > 100:
-                        self.resultCol.insert_many(self.results)
-                        self.results = []
-            except Empty:
-                if self.results:
-                    self.resultCol.insert_many(self.results)
+                    self.argCol.delete_one({'_id': r['_id']})
+                    continue
+                self.results.append(r)
+                if len(self.results) >= 100:
+                    self.insertResult(self.results)
                     self.results = []
+            except queue.Empty:
+                if self.results:
+                    self.insertResult(self.results)
+                    self.results = []
+
+    def insertResult(self, results):
+        try:
+            self.resultCol.insert_many(self.results)
+        except pymongo.errors.BulkWriteError:
+            # 出现重复的 _id
+            for r in results:
+                try:
+                    self.resultCol.update_one({'_id': r['_id']}, r, upsert=True)
+                except pymongo.errors.DuplicateKeyError:
+                    pass
 
 
 if __name__ == '__main__':

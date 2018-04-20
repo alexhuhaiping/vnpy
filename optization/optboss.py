@@ -5,10 +5,15 @@ import multiprocessing
 import signal
 import threading
 import traceback
+from Queue import Empty
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from optworker import childProcess
 
+# 读取日志配置文件
+loggingConFile = 'logging.conf'
+loggingConFile = getJsonPath(loggingConFile, __file__)
+logging.config.fileConfig(loggingConFile)
 
 class WorkService(object):
     """
@@ -22,7 +27,7 @@ class WorkService(object):
         cpuCount = multiprocessing.cpu_count() - 1
         self.cpuCount = max(cpuCount, 1)
         if __debug__:
-            self.cpuCount = min(1, self.cpuCount)
+            self.cpuCount = min(2, self.cpuCount)
 
         self.logs = {}
         self.workers = []
@@ -30,10 +35,20 @@ class WorkService(object):
         self.logQueue = multiprocessing.Queue()
         self.stoped = multiprocessing.Event()
 
+        # # 生成子进程
+        # for i in range(self.cpuCount):
+        #     name = 'wodker_{}'.format(i)
+        #     w = multiprocessing.Process(name=name, target=childProcess, args=(name, self.stoped, self.logQueue))
+        #     self.workers.append(w)
+
+        # 以子线程来运行 optwork
         for i in range(self.cpuCount):
             name = 'wodker_{}'.format(i)
-            w = multiprocessing.Process(name=name, target=childProcess, args=(name, self.stoped, self.logQueue))
+            w = threading.Thread(name=name, target=childProcess, args=(name, self.stoped, self.logQueue))
             self.workers.append(w)
+
+        for w in self.workers:
+            self.logs[w.name] = logging.getLogger(w.name)
 
         self.logging = True
         self.log.info(u'即将启动 {} 个svnpy优化算力'.format(self.cpuCount))
@@ -44,20 +59,10 @@ class WorkService(object):
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
             signal.signal(sig, self.shutdown)
 
-    def initLog(self):
-        # 读取日志配置文件
-        loggingConFile = 'logging.conf'
-        loggingConFile = getJsonPath(loggingConFile, __file__)
-        logging.config.fileConfig(loggingConFile)
-
-        for w in self.workers:
-            self.logs[w.name] = logging.getLogger(w.name)
-
     def start(self):
         # self.logForever.start()
         for w in self.workers:
             w.start()
-        self.initLog()
         self.run()
 
     def shutdown(self, signalnum, frame):
@@ -74,20 +79,18 @@ class WorkService(object):
         self.logging = False
 
     def run(self):
-        """
-
-        :return:
-        """
         self.stoped.wait(3)
         while self.logging:
             try:
-                name, level, text = self.logQueue.get(1)
-
+                name, level, text = self.logQueue.get(timeout=1)
                 log = self.logs[name]
                 func = getattr(log, level)
                 func(text)
+            except Empty:
+                continue
             except Exception:
-                traceback.print_exc()
+                self.log.critical(traceback.format_exc())
+                raise
 
 
 if __name__ == '__main__':

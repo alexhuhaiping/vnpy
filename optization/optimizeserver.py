@@ -41,8 +41,7 @@ class OptimizeService(object):
         self.log = logging.getLogger('ctabacktesting')
 
         self.cpuCount = multiprocessing.cpu_count()
-
-        # self.cpuCount = 1
+        self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
         self.config = ConfigParser.SafeConfigParser()
@@ -232,6 +231,7 @@ class OptimizeService(object):
         total = cursor.count()
         settingList = [s for s in cursor.limit(limitNum)]
         for setting in settingList:
+            count += 1
             self.log.info(u'{} / {}'.format(count, total))
             self.finishTasksIDSet.add(setting['_id'])
             # 一次最多只能放8个

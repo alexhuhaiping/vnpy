@@ -231,9 +231,6 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
 
-    def saveOrderback(self, dic):
-        pass
-
     def setShowFig(self, isShow):
         """
         回测后是否展示图片
@@ -477,7 +474,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 只返回指定数量的 bar
         initDataNum = len(initDatas)
         if initDataNum < needBarNum:
-            self.log.info(u'预加载的 bar 数量 {} != barAmount:{}'.format(initDataNum, needBarNum))
+            self.log.info(u'{} 预加载的 bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
             return initDatas
 
         # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
@@ -604,7 +601,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 if isCrossed:
                     # 出现成交，重新整理停止单队列
 
-                    # self.log.debug(u'出现成交,重新生成停止单队列')
+                    # self.log.info(u'出现成交,重新生成停止单队列')
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]

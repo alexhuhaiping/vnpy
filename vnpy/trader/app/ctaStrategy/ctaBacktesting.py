@@ -1104,12 +1104,13 @@ class TradingResult(VtTradingResult):
         # super(TradingResult, self).__init__(entryPrice, entryDt, exitPrice,
         #                                     exitDt, volume, rate, slippage, size)
 
-        import datetime
         # self.entryTradingDay = tt.get_tradingday(entryDt)
         # self.exitTradingDay = tt.get_tradingday(exitDt)
-
-        self.entryTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(entryDt, datetime.time()))
-        self.exitTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(exitDt, datetime.time()))
+        # import datetime
+        # self.entryTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(entryDt, datetime.time()))
+        # self.exitTradingDay = LOCAL_TIMEZONE.localize(datetime.datetime.combine(exitDt, datetime.time()))
+        self.entryTradingDay = entryDt
+        self.exitTradingDay = exitDt
 
         closeOffset = OFFSET_CLOSETODAY if self.entryTradingDay == self.exitTradingDay else OFFSET_CLOSE
 

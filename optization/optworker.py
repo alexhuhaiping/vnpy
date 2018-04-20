@@ -1,14 +1,13 @@
 # coding:utf-8
 
 import os
-from Queue import Empty, Full
+import logging
 import threading
-import json
+import time
+from Queue import Empty
 import pytz
 from bson.codec_options import CodecOptions
 import ConfigParser
-import time
-import logging.config
 import multiprocessing
 import signal
 import datetime
@@ -27,8 +26,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from runBacktesting import runBacktesting
 import optcomment
+from optchild import child
 
 
 class Optimization(object):
@@ -41,6 +40,7 @@ class Optimization(object):
         self.localzone = pytz.timezone('Asia/Shanghai')
         self.logQueue = logQueue
         self.name = name
+        self.log = logging.getLogger(self.name)
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
@@ -56,47 +56,30 @@ class Optimization(object):
         self.lastTime = arrow.now().datetime
 
         self.lastSymbol = ''
-        self.datas = []
 
         self.stoped = stoped
 
-        for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
-            signal.signal(sig, self.shutdown)
+        self.tasks = multiprocessing.Queue()
+        self.results = multiprocessing.Queue()
+        self.childStoped = multiprocessing.Event()
+        self.child = None  # 运行回测子进程实例
+        self.waitCount = 0
 
-    def initDB(self):
-        # 数据库链接
-        self.client = pymongo.MongoClient(
-            host=self.config.get('mongo', 'host'),
-            port=self.config.getint('mongo', 'port'),
-        )
-
-        self.db = self.client[self.config.get('mongo', 'dbn')]
-
-        self.db.authenticate(
-            self.config.get('mongo', 'username'),
-            self.config.get('mongo', 'password'),
-        )
-
-        # 回测任务参数队列
-        self.argCol = self.db[self.config.get('mongo', 'argCol')].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
-
-        self.resultCol = self.db[self.config.get('mongo', 'resultCol')].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
     def shutdown(self, signalnum, frame):
-        if not self.stoped.wait(0):
-            self.stoped.set()
+        self.stop()
 
     def log(self, level, text):
         self.logQueue.put((self.name, level, text))
 
     def stop(self):
-        pass
+        if not self.stoped.wait(0):
+            self.stoped.set()
+        if not self.childStoped.wait(0):
+            self.childStoped.set()
 
     def start(self):
-        self.log('info', u'启动 {}'.format(self.name))
-        self.initDB()
+        self.log.info(u'启动 {}'.format(self.name))
         self.run()
 
     def run(self):
@@ -104,13 +87,18 @@ class Optimization(object):
             try:
                 self._run()
             except Exception:
-                self.log('critical', traceback.format_exc())
-                self.log('critical', u'异常退出')
+                self.log.critical(traceback.format_exc())
+                self.log.critical(u'异常退出')
                 break
-        self.log('info', u'子进程退出')
+        self.log.info(u'{} 退出'.format(self.name))
         self.stop()
 
     def _run(self):
+        # 长时间闲置，关闭子进程
+        if self.child is not None and time.time() - self.lastTime > 60:
+            # 闲置超过1分钟
+            self.dropChild()
+
         # 尝试获取任务
         try:
             url = self.getSettingUrl()
@@ -124,40 +112,68 @@ class Optimization(object):
             return
         except Exception:
             self.setLongWait()
-            self.log('critical', traceback.format_exc())
+            self.log.critical(traceback.format_exc())
             return
 
-        data = pickle.loads(r.text.encode('utf-8'))
+        data = r.text
 
         if data == u'版本不符':
-            self.log('error', u'版本不符')
+            self.log.error(u'版本不符')
+            self.setLongWait()
+            return
+        if data == u'没有任务':
+            self.log.info(u'没有回测任务')
+            self.setLongWait()
+            return
+        if data == u'':
+            self.log.error(u'没有提供版本号')
             self.setLongWait()
             return
 
-        if data == u'':
-            self.log('info', u'没有回测任务')
-            self.setLongWait()
-            return
+        data = pickle.loads(data.encode('utf-8'))
 
         setting = data['setting']
         if setting is None:
             # 没有得到任务，放弃
+            self.log.debug(u'optserver 没有任务')
             self.setLongWait()
             return
 
+        self.log.info(u'开始运行回测 {vtSymbol} {optsv}'.format(**setting))
+
+        # 在子进程中运行回测
         result = self.dobacktesting(setting)
-        self.log('info', u'回测结束')
+        if result is None:
+            return
+
+        # 重置闲置时间
+        self.lastTime = time.time()
+
+        self.log.info(u'回测结束')
 
         self.sendResult(result)
+
+    def dropChild(self):
+        if self.child is not None:
+            self.log.info(u'算力闲置，关闭子进程')
+            if not self.childStoped.wait(0):
+                self.childStoped.set()
+            del self.child
+            self.child = None
 
     def getSettingUrl(self):
         url = self.config.get('web', 'url')
 
+        cmd = "git log -n 1 | head -n 1 | sed -e 's/^commit //' | head "
+        r = os.popen(cmd)
+        self.gitHash = r.read().strip('\n')
         return '{}/getsetting/{gitHash}'.format(url, gitHash=self.gitHash)
 
     def setLongWait(self):
         # 长时间待机
+        self.log.debug(u'长待机')
         self.interval = 60
+        # self.interval = 0.1
 
     def setShortWait(self):
         self.interval = 0.01
@@ -170,49 +186,74 @@ class Optimization(object):
         return self.config.get('web', 'url') + '/btr'
 
     def dobacktesting(self, setting):
-        setting = setting.copy()
         vtSymbol = setting['vtSymbol']
 
-        # 执行回测
-        engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False, isOutputResult=False)
+        if self.child and vtSymbol == self.lastSymbol:
+            # 还存在可重复利用的子进程，不需要重新生成子进程
+            self.log.info(u'重复利用子进程')
+            pass
+        else:  # 生成新的子进程
+            # 执行回测
+            if self.child:
+                # 更改子进程标记为，结束子进程
+                if not self.stoped.wait(0):
+                    self.childStoped.set()
+                self.child.join(2)
+                self.child.terminate()
+            # 重置子进程标记
+            self.childStoped.clear()
+            del self.child
+            self.child = multiprocessing.Process(name=self.name, target=child,
+                                                 args=(self.name, self.childStoped, self.tasks, self.results, self.logQueue))
 
-        if self.lastSymbol == vtSymbol and arrow.now().datetime - self.lastTime < datetime.timedelta(minutes=1):
-            # 设置成历史数据已经加载
-            engine.datas = self.datas
-            engine.loadHised = True
+            # self.child = threading.Thread(name=self.name, target=child,
+            #                               args=(self.childStoped, self.tasks, self.results, self.logQueue))
 
-        engine.runBacktesting()  # 运行回测
-
-        self.lastSymbol = vtSymbol
-        self.datas = engine.datas
-        self.lastTime = arrow.now().datetime
-
-        # 输出回测结果
+            self.child.daemon = True
+            # 开始子进程
+            self.child.start()
+            self.log.info(u'使用新子进程')
+        # 向子进程提交回测任务
         try:
-            engine.showDailyResult()
-            engine.showBacktestingResult()
-        except:
-            self.log('error', u'{} {}'.format(vtSymbol, setting['optsv']))
-            self.log('error', traceback.format_exc())
+            self.tasks.put_nowait(setting)
+        except Exception:
+            self.log.error(traceback.format_exc())
             raise
 
-        # 更新回测结果
-        # 逐日汇总
-        setting.update(engine.dailyResult)
-        # 逐笔汇总
-        setting.update(engine.tradeResult)
+        # 等待回测结果出来
+        result = None
+        sec = 0
+        while not self.stoped.wait(0):
+            try:
+                sec += 1
+                result = self.results.get(timeout=1)
+                result = pickle.loads(result)
+                # 获得了数据
+                break
+            except Empty:
+                # 超过5分钟都没完成回测
+                if self.stoped.wait(0):
+                    # 服务关闭
+                    self.log.info(u'服务器退出')
+                    return
+                if sec > 60 * 5:
+                    self.log.warning(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
+                    continue
+
+        self.lastSymbol = vtSymbol
+        self.lastTime = arrow.now().datetime
 
         # 将回测结果进行保存
-        setting['datetime'] = arrow.now().datetime
+        result['datetime'] = arrow.now().datetime
 
         # 将 datetime.date 转化为 datetime.datetime
-        for k, v in list(setting.items()):
+        for k, v in list(result.items()):
             if isinstance(v, datetime.date):
                 v = datetime.datetime.combine(v, datetime.time())
                 v = self.localzone.localize(v)
-                setting[k] = v
+                result[k] = v
 
-        return setting
+        return result
 
     def sendResult(self, result):
         # 返回回测结果
@@ -240,9 +281,23 @@ if __name__ == '__main__':
     # w.start()
     import Queue
 
-    stoped = threading.Event()
-    logQueue = Queue.Queue()
+    stoped = multiprocessing.Event()
+    logQueue = multiprocessing.Queue()
     w = Optimization('work_test', stoped, logQueue)
+
+    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
+        signal.signal(sig, w.shutdown)
+
+
+    def log():
+        while not stoped.wait(0):
+            try:
+                level, text = logQueue.get(timeout=1)
+                func = getattr(w.log, level)
+                func(text)
+            except Empty:
+                pass
+
+
+    threading.Thread(target=log).start()
     w.start()
-    while not w.stoped.wait(1):
-        pass

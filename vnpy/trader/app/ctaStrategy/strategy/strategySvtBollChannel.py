@@ -153,7 +153,8 @@ class SvtBollChannelStrategy(CtaTemplate):
                 wait = (moment - arrow.now().datetime)
                 self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
-                Timer(wait.total_seconds(), self._orderOnStart).start()
+                # 提前2秒下停止单
+                Timer(wait.total_seconds() - 2, self._orderOnStart).start()
         else:
             self.log.warning(
                 u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
