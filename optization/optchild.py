@@ -23,7 +23,7 @@ def child(name, stoped, tasks, results, logQueue):
 
     while not stoped.wait(0):
         try:
-            setting = tasks.get(timeout=1)
+            setting = tasks.get(timeout=0.1)
         # except queue.Empty:
         except Exception:
             continue

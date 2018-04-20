@@ -1,4 +1,4 @@
 #/bin/bash
 
 cd /srv/vnpy/optization
-python optimizeserver.py
+python -O optserver.py

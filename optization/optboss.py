@@ -43,7 +43,7 @@ class WorkService(object):
 
         # 以子线程来运行 optwork
         for i in range(self.cpuCount):
-            name = 'wodker_{}'.format(i)
+            name = 'wodker_{}'.format(i+1)
             w = threading.Thread(name=name, target=childProcess, args=(name, self.stoped, self.logQueue))
             self.workers.append(w)
 

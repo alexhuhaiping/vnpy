@@ -273,11 +273,9 @@ class OptimizeService(object):
         while not self.stoped.wait(0):
             try:
                 r = self.resultQueue.get(timeout=3)
-                self.log.info(u'{}'.format(r[u'总交易次数']))
 
-                if r[u'总交易次数'] < 3:
+                if r[u'总交易次数'] < 1:
                     # 总交易次数太少的不保存
-                    self.argCol.delete_one({'_id': r['_id']})
                     continue
                 self.results.append(r)
                 if len(self.results) >= 100:
