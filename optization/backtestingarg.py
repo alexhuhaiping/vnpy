@@ -74,6 +74,9 @@ class BacktestingArg(object):
     @property
     def group(self):
         return self.param['group']
+    @property
+    def name(self):
+        return self.param['name']
 
     @property
     def className(self):
@@ -329,7 +332,8 @@ class BacktestingArg(object):
         """
         # 是否已经有同名的参数组
         sql = {
-            'group': self.group
+            'group': self.group,
+            'name': self.name,
         }
         if self.group == 'test':
             # 测试用的组名直接删除
@@ -337,16 +341,17 @@ class BacktestingArg(object):
         else:
             binfo = self.btinfoCol.find_one(sql)
             if binfo:
-                raise ValueError(u'已经存在同名的参数组 {}'.format(self.group))
+                raise ValueError(u'已经存在同名的参数组 {}'.format(self.group, self.name))
 
 
 if __name__ == '__main__':
-    argFileName = 'opt_CCI_SvtBollChannel.json'
-    # 本机配置
-    optfile = 'optimize.ini'
+    # 本机测试配置
+    # argFileName = 'opt_CCI_SvtBollChannel.json'
+    # optfile = 'optimize.ini'
 
-    # # home 配置
-    # optfile = 'optimizeHome.ini'
+    # home 配置
+    argFileName = 'opt_CCI_SvtBollChannel.json'
+    optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))
     time.sleep(5)

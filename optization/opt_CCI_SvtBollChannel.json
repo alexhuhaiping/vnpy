@@ -1,7 +1,7 @@
 {
   "param": {
     "group": "布林带密集步长",
-    "name": "20180419",
+    "name": "20180423",
     "className": "SvtBollChannelStrategy",
     "capital": 50000,
     "barXmin": 15,

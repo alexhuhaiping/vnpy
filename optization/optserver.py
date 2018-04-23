@@ -300,6 +300,7 @@ class OptimizeService(object):
 
 
 if __name__ == '__main__':
-    server = OptimizeService()
+    optfile = 'optimize.ini'
+    server = OptimizeService(optfile)
     server.start()
     server.run()
