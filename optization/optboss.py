@@ -60,6 +60,7 @@ class WorkService(object):
             signal.siginterrupt(sig, False)
 
     def start(self):
+        self.log.warning(u'分布式回测算力加入'.format(self.config.get('slavem', 'localhost')))
         # self.logForever.start()
         for w in self.workers:
             w.start()

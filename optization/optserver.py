@@ -157,6 +157,7 @@ class OptimizeService(object):
         pass
 
     def start(self):
+        self.log.warning(u'分布式回测启动')
         self.stoped.clear()
 
         # 清除队列信息
