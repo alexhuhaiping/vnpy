@@ -256,10 +256,10 @@ class BacktestingArg(object):
         # 每个品种的回测参数
         documents = []
         for c in contracts:
-            # TODO 测试代码，先只测试螺纹
-            if c['underlyingSymbol'] != 'rb':
-                self.log.debug(u'只生成 hc 的参数')
-                continue
+            # 测试代码，先只测试螺纹
+            # if c['underlyingSymbol'] != 'rb':
+            #     self.log.debug(u'只生成 hc 的参数')
+            #     continue
 
             for a in strategyArgs:
                 d = a.copy()
