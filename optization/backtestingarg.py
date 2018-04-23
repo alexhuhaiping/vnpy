@@ -256,10 +256,10 @@ class BacktestingArg(object):
         # 每个品种的回测参数
         documents = []
         for c in contracts:
-            # 测试代码，先只测试螺纹
-            # if c['underlyingSymbol'] != 'rb':
-            #     self.log.debug(u'只生成 hc 的参数')
-            #     continue
+            # TODO 测试代码，先只测试螺纹
+            if c['underlyingSymbol'] != 'rb':
+                self.log.debug(u'只生成 hc 的参数')
+                continue
 
             for a in strategyArgs:
                 d = a.copy()
@@ -333,7 +333,6 @@ class BacktestingArg(object):
         # 是否已经有同名的参数组
         sql = {
             'group': self.group,
-            'name': self.name,
         }
         if self.group == 'test':
             # 测试用的组名直接删除
@@ -341,17 +340,17 @@ class BacktestingArg(object):
         else:
             binfo = self.btinfoCol.find_one(sql)
             if binfo:
-                raise ValueError(u'已经存在同名的参数组 {}'.format(self.group, self.name))
+                raise ValueError(u'已经存在同名的参数组{}'.format(self.group))
 
 
 if __name__ == '__main__':
     # 本机测试配置
-    # argFileName = 'opt_CCI_SvtBollChannel.json'
-    # optfile = 'optimize.ini'
+    argFileName = 'opt_test.json'
+    optfile = 'optimize.ini'
 
     # home 配置
-    argFileName = 'opt_CCI_SvtBollChannel.json'
-    optfile = 'optimizeHome.ini'
+    # argFileName = 'opt_CCI_SvtBollChannel.json'
+    # optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))
     time.sleep(5)

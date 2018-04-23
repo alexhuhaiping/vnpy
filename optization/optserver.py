@@ -179,11 +179,17 @@ class OptimizeService(object):
         :return:
         """
         self.log.info(u'开始核对已经完成的回测任务')
-        cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
-        if cursor.count() == 0:
+        dic = self.resultCol.find_one({}, {}, no_cursor_timeout=True)
+        if not dic:
+            self.log.info(u'不需要核对回测任务')
+            return
+
+        dic = self.argCol.find_one({}, {}, no_cursor_timeout=True)
+        if not dic:
             self.log.info(u'没有需要核对的回测任务')
             return
 
+        cursor = self.argCol.find_one({}, {}, no_cursor_timeout=True)
         argsIDs = {d['_id'] for d in cursor}
 
         cursor = self.resultCol.find({}, {}, no_cursor_timeout=True)
@@ -246,10 +252,10 @@ class OptimizeService(object):
             self.log.info(u'即将开始回测任务 {} 个'.format(count))
 
         # 优先回测最近的品种
-        cursor = cursor.sort([
-            ('activeEndDate', -1),
-            ('vtSymbol', -1)
-        ])
+        # cursor = cursor.sort([
+        #     ('activeEndDate', -1),
+        #     ('vtSymbol', -1)
+        # ])
 
         for setting in cursor:
             # 持续尝试塞入
