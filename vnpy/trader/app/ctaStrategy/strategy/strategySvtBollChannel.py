@@ -277,7 +277,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
-        pass
+        self.log.info(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
