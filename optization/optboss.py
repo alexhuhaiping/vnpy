@@ -34,12 +34,6 @@ class WorkService(object):
         self.logQueue = multiprocessing.Queue()
         self.stoped = multiprocessing.Event()
 
-        # # 生成子进程
-        # for i in range(self.cpuCount):
-        #     name = 'wodker_{}'.format(i)
-        #     w = multiprocessing.Process(name=name, target=childProcess, args=(name, self.stoped, self.logQueue))
-        #     self.workers.append(w)
-
         # 以子线程来运行 optwork
         for i in range(self.cpuCount):
             name = 'wodker_{}'.format(i+1)

@@ -40,12 +40,13 @@ class Optimization(object):
         self.localzone = pytz.timezone('Asia/Shanghai')
         self.logQueue = logQueue
         self.name = name
-        self.log = logging.getLogger(self.name)
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
+
+        self.log = logging.getLogger('{}_{}'.format(self.config.get('slavem', 'localhost'), self.name))
 
         cmd = "git log -n 1 | head -n 1 | sed -e 's/^commit //' | head "
         r = os.popen(cmd)
@@ -69,8 +70,8 @@ class Optimization(object):
     def shutdown(self, signalnum, frame):
         self.stop()
 
-    def log(self, level, text):
-        self.logQueue.put((self.name, level, text))
+    # def log(self, level, text):
+    #     self.logQueue.put((self.name, level, text))
 
     def stop(self):
         if not self.stoped.wait(0):
