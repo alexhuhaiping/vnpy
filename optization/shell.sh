@@ -7,5 +7,5 @@ cd ..
 docker run --rm -it --name vnpyshell \
     -v $PWD:/srv/vnpy \
     -v /private/var/log/opt:/var/log/opt \
-    -p 30050:30050 \
+    --net host \
     vnpy:cta /bin/bash
