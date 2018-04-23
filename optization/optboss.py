@@ -22,7 +22,6 @@ class WorkService(object):
     """
 
     def __init__(self, config=None):
-        self.log = logging.getLogger('boss')
 
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
@@ -33,6 +32,8 @@ class WorkService(object):
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
+
+        self.log = logging.getLogger('{}_boss'.format(self.config.get('slavem', 'localhost')))
 
         self.logs = {}
         self.workers = []
@@ -96,7 +97,7 @@ class WorkService(object):
         self.log.info(u'完全退出')
 
 if __name__ == '__main__':
-    # optfile = 'optimize.ini'
-    optfile = 'optimizeHome.ini'
+    optfile = 'optimize.ini'
+    # optfile = 'optimizeHome.ini'
     server = WorkService(optfile)
     server.start()
