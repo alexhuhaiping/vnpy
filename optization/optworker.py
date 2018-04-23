@@ -171,8 +171,8 @@ class Optimization(object):
 
     def setLongWait(self):
         # 长时间待机
-        self.log.debug(u'长待机')
-        self.interval = 60
+        self.log.info(u'长待机')
+        self.interval = 60 * 5
         # self.interval = 0.1
 
     def setShortWait(self):
@@ -238,6 +238,7 @@ class Optimization(object):
                     return
                 if sec > 60 * 5:
                     self.log.warning(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
+                    sec = 0
                     continue
 
         self.lastSymbol = vtSymbol

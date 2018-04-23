@@ -113,6 +113,7 @@ class OptimizeService(object):
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
             signal.signal(sig, self.shutdown)
+            signal.siginterrupt(sig, False)
 
     def initContractCollection(self):
         # 需要建立的索引

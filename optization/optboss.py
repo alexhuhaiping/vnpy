@@ -24,8 +24,7 @@ class WorkService(object):
         self.log = logging.getLogger('boss')
 
         # 要使用的CPU数量
-        cpuCount = multiprocessing.cpu_count() - 1
-        self.cpuCount = max(cpuCount, 1)
+        self.cpuCount = multiprocessing.cpu_count()
         if __debug__:
             self.cpuCount = min(2, self.cpuCount)
 
@@ -58,6 +57,7 @@ class WorkService(object):
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
             signal.signal(sig, self.shutdown)
+            signal.siginterrupt(sig, False)
 
     def start(self):
         # self.logForever.start()
@@ -92,6 +92,7 @@ class WorkService(object):
                 self.log.critical(traceback.format_exc())
                 raise
 
+        self.log.info(u'完全退出')
 
 if __name__ == '__main__':
     server = WorkService()

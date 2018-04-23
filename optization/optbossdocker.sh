@@ -1,11 +1,12 @@
 #!/bin/bash
 
-./kill_opt.sh
+./kill_optboss.sh
 cd ..
+
+# 运行 Docker 容器
 docker run --rm --name vnpy_optboss \
     -v $PWD:/srv/vnpy \
-    -v /private/var/log/svnpy:/var/log/svnpy \
-    -p 30050:30050 \
-    vnpy:cta /bin/bash /srv/vnpy/optization/optserver.sh
+    vnpy:cta /bin/bash /srv/vnpy/optization/optboss.sh
 
+sleep 1
 docker ps -n 3
