@@ -1,4 +1,5 @@
 # coding:utf-8
+import time
 import logging
 import multiprocessing
 import signal
@@ -38,7 +39,7 @@ class WorkService(object):
 
         # 以子线程来运行 optwork
         for i in range(self.cpuCount):
-            name = 'wodker_{}'.format(i+1)
+            name = 'woker_{}'.format(i+1)
             w = threading.Thread(name=name, target=childProcess, args=(name, self.stoped, self.logQueue, config))
             self.workers.append(w)
 
@@ -59,6 +60,7 @@ class WorkService(object):
         self.log.warning(u'分布式回测算力加入'.format(self.config.get('slavem', 'localhost')))
         # self.logForever.start()
         for w in self.workers:
+            time.sleep(0.5)
             w.start()
         self.run()
 
