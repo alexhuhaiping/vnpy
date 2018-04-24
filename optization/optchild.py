@@ -57,6 +57,7 @@ def child(name, stoped, tasks, results, logQueue):
 
         results.put(pickle.dumps(setting))
 
+        engine.closeMongoDB()
         # 销毁实例，尝试回收内存
         del engine
 

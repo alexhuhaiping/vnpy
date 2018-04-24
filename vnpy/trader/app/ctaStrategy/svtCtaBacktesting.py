@@ -75,26 +75,10 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult = OrderedDict()  # 按日汇总的回测结果
         self.tradeResult = OrderedDict()  # 按笔汇总回测结果
 
-        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
-                                            connectTimeoutMS=500)
-
-        ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
-        ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-
-        # 1min bar collection
-        self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
-
-        # 日线的 collection
-        self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
-
-        # 合约详情 collection
-        self.ctpColContract = ctpdb['contract'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
-
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
+
+        self.initMongoDB()
 
         logging.Formatter.converter = self.barTimestamp
 
@@ -128,6 +112,27 @@ class BacktestingEngine(VTBacktestingEngine):
     #
     #     self.initData = self._resample(self.barPeriod, self._initData)
     #     self.datas = self._resample(self.barPeriod, self._datas)
+    def initMongoDB(self):
+        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
+                                            connectTimeoutMS=500)
+
+        ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
+        ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
+
+        # 1min bar collection
+        self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+        # 日线的 collection
+        self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+        # 合约详情 collection
+        self.ctpColContract = ctpdb['contract'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+    def closeMongoDB(self):
+        self.dbClient.close()
 
     @classmethod
     def _resample(cls, barPeriod, datas):
@@ -689,7 +694,8 @@ class BacktestingEngine(VTBacktestingEngine):
             dailyResult.previousClose = previousClose
             previousClose = dailyResult.closePrice
 
-            dailyResult.calculatePnl(openPosition, self.size, self.strategy.getCommission, self.slippage, self.marginRate)
+            dailyResult.calculatePnl(openPosition, self.size, self.strategy.getCommission, self.slippage,
+                                     self.marginRate)
             openPosition = dailyResult.closePosition
 
         # 生成DataFrame
