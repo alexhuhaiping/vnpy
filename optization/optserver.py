@@ -189,7 +189,7 @@ class OptimizeService(object):
             self.log.info(u'没有需要核对的回测任务')
             return
 
-        cursor = self.argCol.find_one({}, {}, no_cursor_timeout=True)
+        cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
         argsIDs = {d['_id'] for d in cursor}
 
         cursor = self.resultCol.find({}, {}, no_cursor_timeout=True)
