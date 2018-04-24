@@ -11,11 +11,6 @@ from Queue import Empty
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from optworker import childProcess
 
-# 读取日志配置文件
-loggingConFile = 'logging.conf'
-loggingConFile = getJsonPath(loggingConFile, __file__)
-logging.config.fileConfig(loggingConFile)
-
 class WorkService(object):
     """
 
@@ -97,6 +92,11 @@ class WorkService(object):
         self.log.info(u'完全退出')
 
 if __name__ == '__main__':
+    # 读取日志配置文件
+    loggingConFile = 'logging.conf'
+    loggingConFile = getJsonPath(loggingConFile, __file__)
+    logging.config.fileConfig(loggingConFile)
+
     optfile = 'optimize.ini'
     # optfile = 'optimizeHome.ini'
     server = WorkService(optfile)

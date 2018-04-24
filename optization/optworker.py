@@ -228,6 +228,11 @@ class Optimization(object):
                 sec += 1
                 result = self.results.get(timeout=1)
                 result = pickle.loads(result)
+                if result is None:
+                    self.log.error(u'回测返回结果值为 None')
+                    self.log.error(u'子线程异常退出')
+                    self.stop()
+                    return
                 # 获得了数据
                 break
             except Empty:
@@ -244,6 +249,9 @@ class Optimization(object):
                     self.log.error(u'即将异常退出')
                     self.stop()
                     return
+        if result is None:
+            self.log.warning(u'未获得回测结果')
+            return
 
         self.lastSymbol = vtSymbol
         self.lastTime = arrow.now().datetime

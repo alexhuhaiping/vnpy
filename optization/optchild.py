@@ -10,7 +10,7 @@ import pickle
 import signal
 
 
-def newEngine(datas, setting, stoped, tasks, results, log):
+def newEngine(datas, setting, results, log):
     vtSymbol = setting['vtSymbol']
     engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False,
                             isOutputResult=False)
@@ -64,7 +64,7 @@ def child(name, stoped, tasks, results, logQueue):
         except queue.Empty:
             continue
         try:
-            newEngine(datas, setting, stoped, tasks, results, log)
+            newEngine(datas, setting, results, log)
         except Exception:
             log('error', u'子进程异常退出')
             log('error', traceback.format_exc())
