@@ -187,6 +187,27 @@ class Optimization(object):
         """
         return self.config.get('web', 'url') + '/btr'
 
+    def newChild(self):
+        """
+
+        :return:
+        """
+        # 重置子进程标记
+        self.childStoped.clear()
+        self.child = multiprocessing.Process(name=self.name, target=child,
+                                             args=(
+                                                 self.name, self.childStoped, self.tasks, self.results, self.logQueue))
+
+        # self.child = threading.Thread(name=self.name, target=child,
+        #                               args=(self.childStoped, self.tasks, self.results, self.logQueue))
+
+        self.child.daemon = True
+        # 子进程运行计数
+        self.childRunCount = 0
+        # 开始子进程
+        self.child.start()
+        self.log.info(u'使用新子进程')
+
     def dobacktesting(self, setting):
         vtSymbol = setting['vtSymbol']
 
@@ -200,63 +221,36 @@ class Optimization(object):
             self.log.info(u'子进程复用 {} 次'.format(self.childRunCount))
             pass
         else:  # 生成新的子进程
-            # 执行回测
             self.dropChild()
-            # 重置子进程标记
-            self.childStoped.clear()
-            del self.child
-            self.child = multiprocessing.Process(name=self.name, target=child,
-                                                 args=(
-                                                 self.name, self.childStoped, self.tasks, self.results, self.logQueue))
+            # 执行回测
+            self.newChild()
 
-            # self.child = threading.Thread(name=self.name, target=child,
-            #                               args=(self.childStoped, self.tasks, self.results, self.logQueue))
-
-            self.child.daemon = True
-            # 子进程运行计数
-            self.childRunCount = 0
-            # 开始子进程
-            self.child.start()
-            self.log.info(u'使用新子进程')
         # 向子进程提交回测任务
-        try:
-            self.tasks.put_nowait(setting)
-        except Exception:
-            self.log.error(traceback.format_exc())
-            raise
+        self.tasks.put(setting)
 
         # 等待回测结果出来
-        result = None
         sec = 0
         while not self.stoped.wait(0):
             try:
                 sec += 1
                 result = self.results.get(timeout=1)
                 result = pickle.loads(result)
-                if result is None:
-                    self.log.error(u'回测返回结果值为 None')
-                    self.log.error(u'子线程异常退出')
-                    self.stop()
-                    return
                 # 获得了数据
                 break
             except Empty:
-                if self.stoped.wait(0):
-                    # 服务正常关闭
-                    self.log.info(u'算力线程退出')
-                    return
                 if sec > 60:
+                    sec = 0
                     # 超过5分钟都没完成回测
                     self.log.error(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
-                    log = u'\tstoped: {}'.format(self.stoped.wait(0))
-                    log += u'\tchildStoped: {}'.format(self.childStoped.wait(0))
-                    log += u'\tchild: {}'.format(self.child)
-                    self.log.error(log)
-                    self.log.error(u'即将异常退出')
-                    self.stop()
-                    return
-        if result is None:
-            self.log.warning(u'未获得回测结果')
+                    # 重新生成子进程
+                    self.dropChild()
+                    self.newChild()
+                    while not self.tasks.empty():
+                        self.tasks.get_nowait()
+                    self.tasks.put(setting)
+        else:
+            # 服务正常关闭
+            self.log.info(u'算力线程退出')
             return
 
         self.lastSymbol = vtSymbol
