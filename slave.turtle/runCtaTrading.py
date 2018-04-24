@@ -4,6 +4,7 @@ import signal
 from time import sleep
 import logging
 import traceback
+import logging.config
 
 from vnpy.event import EventEngine2
 from vnpy.trader.svtEngine import MainEngine
@@ -11,11 +12,17 @@ from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI
 from vnpy.trader.app import riskManager
-from vnpy.trader.vtFunction import exception
+from vnpy.trader.vtFunction import exception, getJsonPath
 
 
 def runChildProcess():
     """子进程运行函数"""
+
+    # 读取日志配置文件
+    loggingConFile = 'logging.conf'
+    loggingConFile = getJsonPath(loggingConFile, __file__)
+    logging.config.fileConfig(loggingConFile)
+
 
     ee = EventEngine2()
     ee.log.info(u'===================')

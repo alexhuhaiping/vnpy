@@ -19,12 +19,6 @@ from vnpy.trader.vtGateway import *
 from vnpy.trader.language import text
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 
-# 读取日志配置文件
-loggingConFile = 'logging.conf'
-loggingConFile = getJsonPath(loggingConFile, __file__)
-logging.config.fileConfig(loggingConFile)
-
-
 
 ########################################################################
 class MainEngine(object):

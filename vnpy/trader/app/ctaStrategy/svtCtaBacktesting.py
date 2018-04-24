@@ -37,9 +37,9 @@ from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
 
 # 读取日志配置文件
-loggingConFile = 'logging.conf'
-loggingConFile = getJsonPath(loggingConFile, __file__)
-logging.config.fileConfig(loggingConFile)
+# loggingConFile = 'logging.conf'
+# loggingConFile = getJsonPath(loggingConFile, __file__)
+# logging.config.fileConfig(loggingConFile)
 
 
 ########################################################################
