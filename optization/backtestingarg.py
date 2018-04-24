@@ -345,12 +345,12 @@ class BacktestingArg(object):
 
 if __name__ == '__main__':
     # 本机测试配置
-    argFileName = 'opt_test.json'
-    optfile = 'optimize.ini'
+    # argFileName = 'opt_test.json'
+    # optfile = 'optimize.ini'
 
     # home 配置
-    # argFileName = 'opt_CCI_SvtBollChannel.json'
-    # optfile = 'optimizeHome.ini'
+    argFileName = 'opt_CCI_SvtBollChannel.json'
+    optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))
     time.sleep(5)

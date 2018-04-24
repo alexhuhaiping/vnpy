@@ -64,7 +64,6 @@ class Optimization(object):
         self.results = multiprocessing.Queue()
         self.childStoped = multiprocessing.Event()
         self.child = None  # 运行回测子进程实例
-        self.waitCount = 0
 
 
     def shutdown(self, signalnum, frame):
@@ -232,13 +231,16 @@ class Optimization(object):
                 # 获得了数据
                 break
             except Empty:
-                # 超过5分钟都没完成回测
                 if self.stoped.wait(0):
-                    # 服务关闭
-                    self.log.info(u'服务器退出')
+                    # 服务正常关闭
+                    self.log.info(u'算力线程退出')
                     return
-                if sec > 60 * 10:
+                if sec > 60 * 5:
+                    # 超过5分钟都没完成回测
                     self.log.error(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
+                    log = u'stoped: {}'.format(self.stoped.wait(0))
+                    log += u'childStoped: {}'.format(self.childStoped.wait(0))
+                    log += u'child: {}'.format(self.child)
                     self.log.error(u'即将异常退出')
                     self.stop()
                     return

@@ -85,3 +85,4 @@ optization/optserver.sh
 optization/optboss.sh
 optization/optbossdocker.sh
 optization/opt_test.json
+optization/run_optbossMac.py
