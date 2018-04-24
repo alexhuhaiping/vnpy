@@ -246,6 +246,7 @@ class Optimization(object):
                     log = u'stoped: {}'.format(self.stoped.wait(0))
                     log += u'childStoped: {}'.format(self.childStoped.wait(0))
                     log += u'child: {}'.format(self.child)
+                    self.log.error(log)
                     self.log.error(u'即将异常退出')
                     self.stop()
                     return
