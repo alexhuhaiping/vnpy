@@ -1,6 +1,5 @@
 # coding:utf-8
 import logging
-import logging.config
 import multiprocessing
 import signal
 import threading
@@ -92,10 +91,12 @@ class WorkService(object):
         self.log.info(u'完全退出')
 
 if __name__ == '__main__':
+    # import logging.config
     # 读取日志配置文件
-    loggingConFile = 'logging.conf'
-    loggingConFile = getJsonPath(loggingConFile, __file__)
-    logging.config.fileConfig(loggingConFile)
+    # loggingConFile = 'logging.conf'
+    # loggingConFile = getJsonPath(loggingConFile, __file__)
+    # logging.config.fileConfig(loggingConFile)
+    # print(1414141)
 
     optfile = 'optimize.ini'
     # optfile = 'optimizeHome.ini'

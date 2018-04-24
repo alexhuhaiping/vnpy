@@ -19,7 +19,9 @@ def newEngine(datas, setting, results, log):
         # 设置成历史数据已经加载
         engine.datas = datas[0]
         engine.loadHised = True
+    log('info', u'开始运行回测')
     engine.runBacktesting()  # 运行回测
+    log('info', u'回测运行完毕')
     if not datas:
         datas.append(engine.datas)
 
