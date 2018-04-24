@@ -237,10 +237,11 @@ class Optimization(object):
                     # 服务关闭
                     self.log.info(u'服务器退出')
                     return
-                if sec > 60 * 5:
-                    self.log.warning(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
-                    sec = 0
-                    continue
+                if sec > 60 * 10:
+                    self.log.error(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
+                    self.log.error(u'即将异常退出')
+                    self.stop()
+                    return
 
         self.lastSymbol = vtSymbol
         self.lastTime = arrow.now().datetime
