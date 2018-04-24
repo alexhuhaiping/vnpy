@@ -72,6 +72,6 @@ def child(name, stoped, tasks, results, logQueue):
             log('error', traceback.format_exc())
             stoped.set()
             return  # 异常退出
-    else:
-        # 正常退出子进程
-        log('info', u'子进程正常退出')
+
+    # 正常退出子进程
+    log('info', u'子进程正常退出')

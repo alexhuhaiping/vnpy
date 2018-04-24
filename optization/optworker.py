@@ -60,11 +60,12 @@ class Optimization(object):
 
         self.stoped = stoped
 
+        self.childRunMaxTime = 100
+        self.childRunCount = 0
         self.tasks = multiprocessing.Queue()
         self.results = multiprocessing.Queue()
         self.childStoped = multiprocessing.Event()
         self.child = None  # 运行回测子进程实例
-
 
     def shutdown(self, signalnum, frame):
         self.stop()
@@ -97,6 +98,7 @@ class Optimization(object):
         # 长时间闲置，关闭子进程
         if self.child is not None and time.time() - self.lastTime > 60:
             # 闲置超过1分钟
+            self.log.info(u'算力闲置，关闭子进程')
             self.dropChild()
 
         # 尝试获取任务
@@ -154,11 +156,11 @@ class Optimization(object):
         self.sendResult(result)
 
     def dropChild(self):
-        if self.child is not None:
-            self.log.info(u'算力闲置，关闭子进程')
+        if self.child:
             if not self.childStoped.wait(0):
                 self.childStoped.set()
-            del self.child
+            self.child.join(2)
+            self.child.terminate()
             self.child = None
 
     def getSettingUrl(self):
@@ -188,28 +190,31 @@ class Optimization(object):
     def dobacktesting(self, setting):
         vtSymbol = setting['vtSymbol']
 
+        if self.childRunCount > self.childRunMaxTime:
+            self.dropChild()
+
         if self.child and vtSymbol == self.lastSymbol:
             # 还存在可重复利用的子进程，不需要重新生成子进程
             self.log.info(u'重复利用子进程')
+            self.childRunCount += 1
+            self.log.info(u'子进程复用 {} 次'.format(self.childRunCount))
             pass
         else:  # 生成新的子进程
             # 执行回测
-            if self.child:
-                # 更改子进程标记为，结束子进程
-                if not self.stoped.wait(0):
-                    self.childStoped.set()
-                self.child.join(2)
-                self.child.terminate()
+            self.dropChild()
             # 重置子进程标记
             self.childStoped.clear()
             del self.child
             self.child = multiprocessing.Process(name=self.name, target=child,
-                                                 args=(self.name, self.childStoped, self.tasks, self.results, self.logQueue))
+                                                 args=(
+                                                 self.name, self.childStoped, self.tasks, self.results, self.logQueue))
 
             # self.child = threading.Thread(name=self.name, target=child,
             #                               args=(self.childStoped, self.tasks, self.results, self.logQueue))
 
             self.child.daemon = True
+            # 子进程运行计数
+            self.childRunCount = 0
             # 开始子进程
             self.child.start()
             self.log.info(u'使用新子进程')
