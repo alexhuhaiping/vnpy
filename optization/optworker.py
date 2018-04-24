@@ -240,12 +240,12 @@ class Optimization(object):
                     # 服务正常关闭
                     self.log.info(u'算力线程退出')
                     return
-                if sec > 60 * 5:
+                if sec > 60:
                     # 超过5分钟都没完成回测
-                    self.log.error(u'回测 {vtSymbol} {optsv} 超过5分钟未完成'.format(**setting))
-                    log = u'stoped: {}'.format(self.stoped.wait(0))
-                    log += u'childStoped: {}'.format(self.childStoped.wait(0))
-                    log += u'child: {}'.format(self.child)
+                    self.log.error(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
+                    log = u'\tstoped: {}'.format(self.stoped.wait(0))
+                    log += u'\tchildStoped: {}'.format(self.childStoped.wait(0))
+                    log += u'\tchild: {}'.format(self.child)
                     self.log.error(log)
                     self.log.error(u'即将异常退出')
                     self.stop()
