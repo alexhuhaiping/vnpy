@@ -19,6 +19,7 @@ class WorkService(object):
 
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
+        self.cpuCount = 1
         if __debug__:
             self.cpuCount = min(2, self.cpuCount)
 
