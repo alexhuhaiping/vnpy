@@ -60,7 +60,7 @@ class Optimization(object):
 
         self.stoped = stoped
 
-        self.childRunMaxTime = 100
+        self.childRunMaxTime = self.config.getint('worker', 'childRunMaxTime')
         self.childRunCount = 0
         self.tasks = multiprocessing.Queue()
         self.results = multiprocessing.Queue()

@@ -17,12 +17,8 @@ class WorkService(object):
     """
 
     def __init__(self, config=None):
-
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
-        # self.cpuCount = 3
-        if __debug__:
-            self.cpuCount = min(3, self.cpuCount)
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
@@ -94,7 +90,7 @@ class WorkService(object):
         self.log.info(u'完全退出')
 
 if __name__ == '__main__':
-    # import logging.config
+    import logging.config
     # 读取日志配置文件
     loggingConFile = 'logging.conf'
     loggingConFile = getJsonPath(loggingConFile, __file__)

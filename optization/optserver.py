@@ -1,11 +1,12 @@
 # coding:utf-8
 import os
+import traceback
+import time
 
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-
 try:
     import Queue as queue
 except ImportError:
@@ -18,6 +19,7 @@ import logging.config
 import multiprocessing
 import signal
 import pymongo.errors
+import requests
 
 from slavem import Reporter
 import pymongo
@@ -26,11 +28,7 @@ from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 import optweb
-
-# 读取日志配置文件
-loggingConFile = 'logging.conf'
-loggingConFile = getJsonPath(loggingConFile, __file__)
-logging.config.fileConfig(loggingConFile)
+import optcomment
 
 
 class OptimizeService(object):
@@ -43,7 +41,14 @@ class OptimizeService(object):
     SIG_STOP = 'close_service'
 
     def __init__(self, config=None):
-        self.log = logging.getLogger('ctabacktesting')
+
+        # 读取日志配置文件
+        loggingConFile = 'logging.conf'
+        loggingConFile = getJsonPath(loggingConFile, __file__)
+        logging.config.fileConfig(loggingConFile)
+
+        self.log = logging.getLogger()
+        self.webLog = logging.getLogger('web')
 
         cmd = "git log -n 1 | head -n 1 | sed -e 's/^commit //' | head "
         r = os.popen(cmd)
@@ -73,14 +78,6 @@ class OptimizeService(object):
 
         self.salt = self.config.get('web', 'salt')
 
-        # 任务队列
-        self.tasksQueue = queue.Queue(5)
-
-        self.resultQueue = queue.Queue(5)
-
-        self.stoped = Event()
-        self.stoped.set()
-
         # 数据库链接
         self.client = pymongo.MongoClient(
             host=self.config.get('mongo', 'host'),
@@ -102,11 +99,23 @@ class OptimizeService(object):
         self.resultCol = self.db[self.config.get('mongo', 'resultCol')].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
+        # 任务队列
+        self.pid = os.getpid()
+        self.tasksQueue = multiprocessing.Queue(5)
+        self.resultQueue = multiprocessing.Queue(5)
+        self.logQueue = multiprocessing.Queue()
+        self.stoped = Event()
+        self.stoped.set()
+
         # 创建任务
-        self.webForever = optweb.ServerThread(self)
+        self.webForever = multiprocessing.Process(
+            target=optweb.run_app,
+            args=(self.pid, self.gitHash, self.salt, self.logQueue, self.tasksQueue, self.resultQueue)
+        )
 
         self.createTaskForever = Thread(name=u'createTask', target=self.__createTaskForever)
         self.saveResultForever = Thread(name=u'saveResult', target=self.__saveResultForever)
+        self.weblogForever = Thread(name=u'logWeb', target=self.__logWebForever)
 
         # 初始化索引
         self.initContractCollection()
@@ -159,6 +168,7 @@ class OptimizeService(object):
     def start(self):
         self.log.warning(u'分布式回测启动')
         self.stoped.clear()
+        self.webForever.start()
 
         # 清除队列信息
         self.clearTaskQueue()
@@ -167,9 +177,9 @@ class OptimizeService(object):
         # 对照已经完成回测的结果
         self.checkResult()
 
-        self.webForever.start()
         self.createTaskForever.start()
         self.saveResultForever.start()
+        self.weblogForever.start()
 
         self.run()
 
@@ -205,35 +215,89 @@ class OptimizeService(object):
             self.argCol.delete_many({'_id': _id})
 
     def run(self):
-        while not self.stoped.wait(30):
+        originInterval = 30
+        errInterval = 10
+        interval = originInterval
+        while not self.stoped.wait(interval):
+            # 检查信号
+            try:
+                self.beatWeb()
+                interval = originInterval
+            except Exception:
+                self.log.error(traceback.format_exc())
+                #  长时间异常，重启web服务
+                self.newWebForever()
+                interval = errInterval
+                continue
             self.slavemReport.heartBeat()
+
         self.slavemReport.endHeartBeat()
+
+    def newWebForever(self):
+        self.log.info(u'重启 web 子进程')
+        self.webForever.join(2)
+        self.webForever.terminate()
+
+        time.sleep(3)
+
+        self.webForever = multiprocessing.Process(
+            target=optweb.run_app,
+            args=(self.pid, self.gitHash, self.salt, self.logQueue, self.tasksQueue, self.resultQueue)
+        )
+        testUrl = self.getTestUrl()
+        while not self.stoped.wait(1):
+            try:
+                if requests.get(testUrl, timeout=1).status_code == 200:
+                    self.log.info(u'web尚未完全关闭')
+                    continue
+            except Exception:
+                break
+        self.webForever.start()
+
+    def beatWeb(self):
+        """
+        定时查看 web 服务是否正常，如果异常则重启web服务
+        :return:
+        """
+        url = self.getBeatUrl()
+        data = optcomment.saltedByHash('test', self.salt)
+        url += '/{}'.format(data)
+        r = requests.get(url, timeout=3)
+        if r.status_code != 200:
+            raise ValueError(u'status:{}'.format(r.status_code))
+
+    def getBeatUrl(self):
+        return self.config.get('web', 'url') + '/beat'
+
+
+    def getTestUrl(self):
+        return self.config.get('web', 'url') + '/test'
+
+
+
 
     def shutdown(self, signalnum, frame):
         self.stop()
 
     def stop(self):
         self.log.info(u'关闭')
+        self.webForever.join(5)
+        self.webForever.terminate()
         self.stoped.set()
 
     def exit(self):
         self.clearTaskQueue()
         self.clearResultQueue()
 
-    def accpetResult(self, result):
-        """
-        返回的结束
-        :param result:
-        :return:
-        """
-        self.resultQueue.put(result)
-
     def __createTaskForever(self):
+        self.log.info(u'开始生成任务')
         self._createTaskForever()
 
         while not self.stoped.wait(60):
             self.checkResult()
             self._createTaskForever()
+
+        self.log.info(u'生成任务停止')
 
     def _createTaskForever(self):
         """
@@ -267,10 +331,25 @@ class OptimizeService(object):
                     pass
 
     def __saveResultForever(self):
+        self.log.info(u'开始保存结果')
         self._saveResultForever()
 
         while not self.stoped.wait(5):
             self._saveResultForever()
+
+        self.log.info(u'保存结果停止')
+
+    def __logWebForever(self):
+        self.log.info(u'weblog 开始')
+        while not self.stoped.wait(0):
+            try:
+                level, text = self.logQueue.get(timeout=1)
+                func = getattr(self.webLog, level)
+                func(text)
+            except queue.Empty:
+                pass
+
+        self.log.info(u'weblog 停止')
 
     def _saveResultForever(self):
         """
@@ -282,9 +361,9 @@ class OptimizeService(object):
             try:
                 r = self.resultQueue.get(timeout=3)
 
-                if r[u'总交易次数'] < 1:
-                    # 总交易次数太少的不保存
-                    continue
+                # if r[u'总交易次数'] < 1:
+                #     # 总交易次数太少的不保存
+                #     continue
                 self.results.append(r)
                 if len(self.results) >= 100:
                     self.insertResult(self.results)
@@ -310,4 +389,3 @@ if __name__ == '__main__':
     optfile = 'optimize.ini'
     server = OptimizeService(optfile)
     server.start()
-    server.run()
