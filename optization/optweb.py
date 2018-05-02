@@ -88,11 +88,16 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
 
         if str(localHash) != originHash:
             logger.warning(u'hash不符合')
-            return ''
+            return
 
         result = pickle.loads(dataPickle.encode('utf-8'))['result']
 
-        resultQueue.put(result)
+        try:
+            resultQueue.put(result, timeout=5)
+        except queue.Full:
+            log.warning(u'缓存回测结果超时')
+            return
+
         return ''
 
     # server = make_server('0.0.0.0', PORT, app)

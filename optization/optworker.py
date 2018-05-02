@@ -152,8 +152,14 @@ class Optimization(object):
         self.lastTime = time.time()
 
         self.log.info(u'回测结束')
-
-        self.sendResult(result)
+        sendInterval = 0
+        while not self.stoped.wait(sendInterval):
+            try:
+                self.sendResult(result)
+                break
+            except Exception:
+                sendInterval = 10
+                self.log.error(traceback.format_exc())
 
     def dropChild(self):
         if self.child:
@@ -241,7 +247,7 @@ class Optimization(object):
                 if sec > 60:
                     sec = 0
                     # 超过5分钟都没完成回测
-                    self.log.error(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
+                    self.log.info(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
                     # 重新生成子进程
                     self.dropChild()
                     self.newChild()
@@ -277,8 +283,7 @@ class Optimization(object):
         url = self.getBtrUrl()
         r = requests.post(url, data=data)
         if r.status_code != 200:
-            self.setLongWait()
-            return
+            raise ValueError(u'返回码异常')
 
         # 正常完成回测，继续下一个
         self.setShortWait()

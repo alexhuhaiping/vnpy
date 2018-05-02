@@ -80,6 +80,7 @@ slave.turtle/logging_test.conf
 logging_test.*
 checkstock.py
 nohup.out
+optization/shell.sh
 optization/optserverdocker.sh
 optization/optserver.sh
 optization/optboss.sh

@@ -102,7 +102,8 @@ class OptimizeService(object):
         # 任务队列
         self.pid = os.getpid()
         self.tasksQueue = multiprocessing.Queue(5)
-        self.resultQueue = multiprocessing.Queue(5)
+        # 尽量避免结果堵塞
+        self.resultQueue = multiprocessing.Queue(1000)
         self.logQueue = multiprocessing.Queue()
         self.stoped = Event()
         self.stoped.set()
@@ -177,6 +178,9 @@ class OptimizeService(object):
         # 对照已经完成回测的结果
         self.checkResult()
 
+        # 开始心跳
+        self.slavemReport.heartBeat()
+
         self.createTaskForever.start()
         self.saveResultForever.start()
         self.weblogForever.start()
@@ -229,7 +233,7 @@ class OptimizeService(object):
                 self.newWebForever()
                 interval = errInterval
                 continue
-            self.slavemReport.heartBeat()
+            # self.slavemReport.heartBeat()
 
         self.slavemReport.endHeartBeat()
 
@@ -238,7 +242,7 @@ class OptimizeService(object):
         self.webForever.join(2)
         self.webForever.terminate()
 
-        time.sleep(3)
+        time.sleep(10)
 
         self.webForever = multiprocessing.Process(
             target=optweb.run_app,
@@ -269,12 +273,8 @@ class OptimizeService(object):
     def getBeatUrl(self):
         return self.config.get('web', 'url') + '/beat'
 
-
     def getTestUrl(self):
         return self.config.get('web', 'url') + '/test'
-
-
-
 
     def shutdown(self, signalnum, frame):
         self.stop()
@@ -310,16 +310,13 @@ class OptimizeService(object):
         count = cursor.count()
         if count == 0:
             # 没有任何任务
-            self.log.info(u'没有回测任务')
+            self.log.warning(u'没有回测任务')
+            # 关闭心跳
+            self.slavemReport.heartBeat()
+            self.slavemReport.endHeartBeat()
             return
         else:
             self.log.info(u'即将开始回测任务 {} 个'.format(count))
-
-        # 优先回测最近的品种
-        # cursor = cursor.sort([
-        #     ('activeEndDate', -1),
-        #     ('vtSymbol', -1)
-        # ])
 
         for setting in cursor:
             # 持续尝试塞入
@@ -357,17 +354,21 @@ class OptimizeService(object):
         :return:
         """
         self.results = []
+        begin = time.time()
         while not self.stoped.wait(0):
             try:
-                r = self.resultQueue.get(timeout=3)
-
-                # if r[u'总交易次数'] < 1:
-                #     # 总交易次数太少的不保存
-                #     continue
+                r = self.resultQueue.get(timeout=1)
+                now = time.time()
+                if now - begin > 30:
+                    begin = now
+                    # 没有拿到数据不进行心跳
+                    # 距离上次心跳已经30秒
+                    self.slavemReport.heartBeat()
                 self.results.append(r)
                 if len(self.results) >= 100:
                     self.insertResult(self.results)
                     self.results = []
+
             except queue.Empty:
                 if self.results:
                     self.insertResult(self.results)
