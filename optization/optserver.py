@@ -103,7 +103,7 @@ class OptimizeService(object):
         self.pid = os.getpid()
         self.tasksQueue = multiprocessing.Queue(5)
         # 尽量避免结果堵塞
-        self.resultQueue = multiprocessing.Queue(1000)
+        self.resultQueue = multiprocessing.Queue(10000)
         self.logQueue = multiprocessing.Queue()
         self.stoped = Event()
         self.stoped.set()
@@ -238,7 +238,7 @@ class OptimizeService(object):
         self.slavemReport.endHeartBeat()
 
     def newWebForever(self):
-        self.log.info(u'重启 web 子进程')
+        self.log.warning(u'尝试重启 web 子进程')
         self.webForever.join(2)
         self.webForever.terminate()
 
@@ -252,10 +252,11 @@ class OptimizeService(object):
         while not self.stoped.wait(1):
             try:
                 if requests.get(testUrl, timeout=1).status_code == 200:
-                    self.log.info(u'web尚未完全关闭')
+                    self.log.warning(u'web尚未完全关闭')
                     continue
             except Exception:
                 break
+        self.log.warning(u'重启 web 子进程完毕')
         self.webForever.start()
 
     def beatWeb(self):
