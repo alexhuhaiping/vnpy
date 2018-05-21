@@ -233,7 +233,7 @@ class OptimizeService(object):
                 self.newWebForever()
                 interval = errInterval
                 continue
-            # self.slavemReport.heartBeat()
+                # self.slavemReport.heartBeat()
 
         self.slavemReport.endHeartBeat()
 
@@ -311,7 +311,7 @@ class OptimizeService(object):
         count = cursor.count()
         if count == 0:
             # 没有任何任务
-            self.log.warning(u'没有回测任务')
+            self.log.info(u'没有回测任务')
             # 关闭心跳
             self.slavemReport.heartBeat()
             self.slavemReport.endHeartBeat()

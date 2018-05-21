@@ -96,8 +96,8 @@ class Optimization(object):
 
     def _run(self):
         # 长时间闲置，关闭子进程
-        if self.child is not None and time.time() - self.lastTime > 60:
-            # 闲置超过1分钟
+        if self.child is not None and time.time() - self.lastTime > 60 * 10:
+            # 闲置超过10分钟
             self.log.info(u'算力闲置，关闭子进程')
             self.dropChild()
 
@@ -246,7 +246,7 @@ class Optimization(object):
             except Empty:
                 if sec > 60:
                     sec = 0
-                    # 超过5分钟都没完成回测
+                    # 超过1分钟都没完成回测
                     self.log.info(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
                     # 重新生成子进程
                     self.dropChild()

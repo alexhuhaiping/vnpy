@@ -555,6 +555,7 @@ class CtaTemplate(vtCtaTemplate):
         dic['datetime'] = arrow.now().datetime
         dic['capital'] = self.capital
         dic['turnover'] = self.turnover
+        dic['rtBalance'] = self.rtBalance
 
         return dic
 
