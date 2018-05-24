@@ -613,6 +613,7 @@ class svtCtpTdApi(TdApi):
         """发单错误（柜台）"""
         # 推送委托信息
         order = VtOrderData()
+        order.rawData = data
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
@@ -1102,6 +1103,7 @@ class svtCtpTdApi(TdApi):
         """发单错误回报（交易所）"""
         # 推送委托信息
         order = VtOrderData()
+        order.rawData = data
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]

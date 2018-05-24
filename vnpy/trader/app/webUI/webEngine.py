@@ -33,7 +33,7 @@ class WebEngine(object):
     def __init__(self, mainEngine, eventEngine):
         self.app = app
         self.app.mainEngine = mainEngine
-        self.log = logging.getLogger('root')
+        self.log = logging.getLogger()
 
         assert isinstance(app.mainEngine, MainEngine)
 
@@ -64,9 +64,11 @@ def showCtaStrategy():
         from vnpy.trader.app.ctaStrategy import CtaEngine
         assert isinstance(ctaApp, CtaEngine)
 
-    dic = {u'策略个数':0, u'总权益': 0}
+    dic = {u'策略个数': 0, u'总权益': 0}
 
-    html = ''
+    html = pd.DataFrame(ctaApp.accountToHtml()).to_html()
+    html += '</br>'
+
     try:
         ctaApp.log.info(u'开始刷新 strategy 页面')
         strategyList = list(ctaApp.strategyDict.items())

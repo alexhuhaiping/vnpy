@@ -49,13 +49,13 @@ def short():
     s = getStrategy(vtSymbol)
     # s.pos = -15
 
-    price = s.bm.bar.close - 1
-    volume = 20
+    price = int(s.bm.bar.close - 1)
+    volume = 1
     stop = False
 
     s.short(price, volume, stop)
 
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
+    s.log.debug(u'下单完成 {}'.format(price))
 
 
 def buy():
@@ -184,8 +184,7 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-# vtSymbol = 'rb1805'
-vtSymbol = 'ag1806'
+vtSymbol = 'rb1810'
 
 
 def run():
@@ -205,7 +204,7 @@ def run():
     # showStopOrder()
     # closeout()
     # sell()
-    # short()
+    short()
     # cover()
     # checkHands(me)
 

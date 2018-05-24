@@ -158,5 +158,8 @@ class MainEngine(VtMaingEngine):
     def sendOrder(self, orderReq, gatewayName):
         self.log.info(u'gateWay: {} 发送报单'.format(gatewayName))
         vtOrderID = super(MainEngine, self).sendOrder(orderReq, gatewayName)
-        self.log.info(u'发送报单成功 vtOrderID:{}'.format(vtOrderID))
+        if not vtOrderID:
+            self.log.warning(u'发送报单失败')
+        else:
+            self.log.info(u'发送报单成功 vtOrderID: {}'.format(vtOrderID))
         return vtOrderID

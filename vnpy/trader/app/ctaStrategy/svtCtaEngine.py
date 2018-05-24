@@ -51,6 +51,7 @@ class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
 
     def __init__(self, mainEngine, eventEngine):
+        self.accounts = {}  # {accountID: vtAccount}
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
         assert isinstance(self.mainEngine, MainEngine)
 
@@ -435,15 +436,19 @@ class CtaEngine(VtCtaEngine):
 
     def _updateQryMarginRate(self):
         strategyList = list(self.strategyDict.values())
+        warning = False
         for s in strategyList:
             # 再从CTP中更新
             count = 1
             while s.isNeedUpdateMarginRate and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
-                    err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
-                    self.log.warning(err)
-                    continue
+                    if not warning:
+                        # 加载超时只提醒1次
+                        warning = True
+                        err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
+                        self.log.warning(err)
+                    break
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
@@ -458,6 +463,7 @@ class CtaEngine(VtCtaEngine):
 
     def _updateQryCommissionRate(self):
         strategyList = list(self.strategyDict.values())
+        warning = False
         for s in strategyList:
             # 再从CTP中更新
             count = 1
@@ -465,8 +471,11 @@ class CtaEngine(VtCtaEngine):
             while s.isNeedUpdateCommissionRate and self.active:
                 if count % 3000 == 0:
                     # 30秒超时
-                    self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
-                    continue
+                    if not warning:
+                        # 加载手续费率超时只提醒一次
+                        warning = True
+                        self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
+                    break
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
@@ -757,6 +766,7 @@ class CtaEngine(VtCtaEngine):
     def registerEvent(self):
         super(CtaEngine, self).registerEvent()
         self.eventEngine.register(EVENT_TIMER, self.checkPositionDetail)
+        self.eventEngine.register(EVENT_ACCOUNT, self.updateAccount)
 
     def processOrderEvent(self, event):
         order = event.dict_['data']
@@ -764,3 +774,14 @@ class CtaEngine(VtCtaEngine):
         dic['datetime'] = arrow.now().datetime
         self.saveOrderback(dic)
         return super(CtaEngine, self).processOrderEvent(event)
+
+    def updateAccount(self, event):
+        account = event.dict_['data']
+        self.accounts[account.vtAccountID] = account
+
+    def accountToHtml(self):
+        datas = []
+        for account in self.accounts.values():
+            datas.append(account.__dict__)
+
+        return datas

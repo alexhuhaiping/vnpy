@@ -24,6 +24,7 @@ class RmEngine(SvtRmEngine):
         self.log.info(u'加载风控模块')
 
     def writeRiskLog(self, content):
+        self.log.warning(u'{}'.format(content))
         super(RmEngine, self).writeRiskLog(content)
 
     def checkRisk(self, orderReq, gatewayName):

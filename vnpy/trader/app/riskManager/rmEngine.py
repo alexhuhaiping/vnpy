@@ -173,7 +173,6 @@ class RmEngine(object):
     def writeRiskLog(self, content):
         """快速发出日志事件"""
         # 发出报警提示音
-
         if platform.uname() == 'Windows':
             import winsound
             winsound.PlaySound("SystemHand", winsound.SND_ASYNC)

@@ -280,7 +280,10 @@ class SvtBollChannelStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
+            for k, v in order.rawData.items():
+                log(u'{} {}'.format(k, v))
         log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
