@@ -761,7 +761,6 @@ class CtaEngine(VtCtaEngine):
     def processOrderEvent(self, event):
         order = event.dict_['data']
         dic = order.__dict__.copy()
-        dic.pop('rawData')
         dic['datetime'] = arrow.now().datetime
         self.saveOrderback(dic)
         return super(CtaEngine, self).processOrderEvent(event)
