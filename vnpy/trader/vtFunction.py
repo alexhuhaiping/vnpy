@@ -112,7 +112,7 @@ def exception(func):
         try:
             return func(*args, **kw)
         except Exception as e:
-            logger = logging.getLogger('root')
+            logger = logging.getLogger()
             logger.error(traceback.format_exc())
             raise
 
