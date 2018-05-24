@@ -239,7 +239,8 @@ class EventEngine2(object):
                 try:
                     handler(event)
                 except Exception as e:
-                    self.log.error(u'{}'.format(e.message))
+                    self.log.error(traceback.format_exc())
+                    # self.log.error(u'{}'.format(e.message))
                     sleep(0.1)
                     raise
 

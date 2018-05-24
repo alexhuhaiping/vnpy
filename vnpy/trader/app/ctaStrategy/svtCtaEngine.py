@@ -772,6 +772,11 @@ class CtaEngine(VtCtaEngine):
         order = event.dict_['data']
         dic = order.__dict__.copy()
         dic['datetime'] = arrow.now().datetime
+        try:
+            # rawData 会导致无法存库
+            dic.pop('rawData')
+        except KeyError:
+            pass
         self.saveOrderback(dic)
         return super(CtaEngine, self).processOrderEvent(event)
 
