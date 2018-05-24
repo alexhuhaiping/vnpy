@@ -345,6 +345,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         if self.capital <= 0:
             self.hands = 0
             return
+        self.hands = 1
+        return
+
 
         # 以下技术指标为0时，不更新手数
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况

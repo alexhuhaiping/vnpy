@@ -184,7 +184,7 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-vtSymbol = 'rb1810'
+vtSymbol = 'ag1812'
 
 
 def run():
