@@ -30,7 +30,14 @@ class RmEngine(SvtRmEngine):
     def checkRisk(self, orderReq, gatewayName):
         # 不至于触发风控的情况，仅发出警报
         self.warningRisk(orderReq, gatewayName)
-        return super(RmEngine, self).checkRisk(orderReq, gatewayName)
+        isOk = super(RmEngine, self).checkRisk(orderReq, gatewayName)
+        if not isOk:
+            # 风控未通过
+            log = u'未通过风控的下单\n'
+            for k, v in orderReq.__dict__.items():
+                log += u'{}\t {}'.format(k, v)
+            self.log.warning(log)
+        return isOk
 
     def warningRisk(self, orderReq, gatewayName):
         """
