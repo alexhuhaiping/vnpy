@@ -158,7 +158,7 @@ class MainEngine(VtMaingEngine):
     def sendOrder(self, orderReq, gatewayName):
         self.log.info(u'gateWay: {} 发送报单'.format(gatewayName))
         orderLog = u''
-        for k, v in orderReq.__dict.__.items():
+        for k, v in orderReq.__dict__.items():
             orderLog += u'{}: {}\t'.format(k, v)
 
         vtOrderID = super(MainEngine, self).sendOrder(orderReq, gatewayName)
