@@ -206,7 +206,10 @@ class CtaTemplate(vtCtaTemplate):
 
     def sendOrder(self, orderType, price, volume, stop=False):
         log = u'orderType {}, price {}, volume {}, stop {}'.format(orderType, price, volume, stop)
-        self.log.info(log)
+        if volume == 0:
+            self.log.warning(u'订单量为0 {}'.format(log))
+        else:
+            self.log.info(log)
         return super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
 

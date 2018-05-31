@@ -378,3 +378,4 @@ class SvtBollChannelStrategy(CtaTemplate):
                     setattr(self, k, document[k])
                 except KeyError:
                     self.log.warning(u'未保存的key {}'.format(k))
+

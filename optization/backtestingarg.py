@@ -211,10 +211,12 @@ class BacktestingArg(object):
         self.log.info(u'共 {} 上市品种'.format(len(onMarketUS)))
 
         sumarization = hisfursum.summarize.Summarization(self.bar1dayCol, self.contractCol)
-        # 日成交量在10亿以上的品种
+        # 日成交量在 n 亿以上的品种
+        n = 5
+        minAmount = n * (10 ** 9)
         amountDF = sumarization.dailyAmountByActive()
         amountSeries = amountDF['amount']
-        amountSeries = amountSeries[amountSeries > 10 ** 9]
+        amountSeries = amountSeries[amountSeries > minAmount]
 
         # 一手保证金在 1万以下
         contractDF = sumarization.marginByActive()
@@ -233,9 +235,9 @@ class BacktestingArg(object):
             if us not in amountSeries.index:
                 # 日成交额在10亿以上的
                 continue
-            if us not in marginSeries.index:
-                # 一手保证金在 1万以下
-                continue
+            # if us not in marginSeries.index:
+            #     # 一手保证金在 1万以下
+            #     continue
             usSet.add(us)
             availbeContracts.append(c)
 
