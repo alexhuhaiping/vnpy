@@ -212,7 +212,6 @@ class CtaTemplate(vtCtaTemplate):
             self.log.info(log)
         return super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
-
     #     """
     #     保存成交单
     #     :return:
@@ -501,7 +500,7 @@ class CtaTemplate(vtCtaTemplate):
             err = u'未知的开平方向 {}'.format(offset)
             self.log.error(err)
             raise ValueError(err)
-        return value
+        return round(value, 2)
 
     @property
     def size(self):
