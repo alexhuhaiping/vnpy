@@ -323,7 +323,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                 self.capital = 0
 
         # 成交后重新下单
-
+        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
