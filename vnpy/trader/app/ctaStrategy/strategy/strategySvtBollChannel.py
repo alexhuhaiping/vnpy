@@ -243,8 +243,13 @@ class SvtBollChannelStrategy(CtaTemplate):
         if not self.trading:
             self.log.warn(u'不能下单 trading: False')
             return
+
         # 判断是否要进行交易
         self.updateHands()
+
+        if self.hands == 0:
+            self.log.info(u'开仓hands==0，不下单')
+            return
 
         # 当前无仓位，发送开仓委托
         if self.pos == 0:
