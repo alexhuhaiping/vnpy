@@ -666,16 +666,11 @@ class CtaTemplate(vtCtaTemplate):
     def updateMarginRate(self, event):
         """更新合约数据"""
         marginRate = event.dict_['data']
-        self.isNeedUpdateMarginRate = False
 
-        for k, v in marginRate.__dict__.items():
-            self.log.info(u'{}\t{}'.format(k, v))
-
-        self.log.info(u'{} {} {}'.format(marginRate.vtSymbol, self.vtSymbol, marginRate.vtSymbol != self.vtSymbol))
         if marginRate.vtSymbol != self.vtSymbol:
             return
 
-        self.log.info(u'新加载保证金{} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
+        self.isNeedUpdateMarginRate = False
 
         self.setMarginRate(marginRate)
 

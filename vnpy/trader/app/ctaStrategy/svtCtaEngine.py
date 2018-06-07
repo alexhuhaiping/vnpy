@@ -452,14 +452,14 @@ class CtaEngine(VtCtaEngine):
 
                 if count % 30 == 0:
                     # 每3秒重新发送一次
-                    # self.log.info(u'尝试加载 {} 保证金率'.format(s.vtSymbol))
+                    # self.log.info(u'查询 {} 保证金率'.format(s.vtSymbol))
                     self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
 
                 # 每0.1秒检查一次返回结果
                 time.sleep(0.1)
                 count += 1
             else:
-                self.log.info(u'加载品种 {} 保证金率成功'.format(s.vtSymbol))
+                self.log.info(u'加载品种 {} 保证金率成功 {}'.format(s.vtSymbol, s.marginRate))
 
     def _updateQryCommissionRate(self):
         strategyList = list(self.strategyDict.values())
