@@ -445,6 +445,8 @@ class DrEngine(object):
 
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+        self.log.info(u'更新保证金 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
+
         collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol},
                                        {'$set': {'marginRate': marginRate.marginRate}})
 
