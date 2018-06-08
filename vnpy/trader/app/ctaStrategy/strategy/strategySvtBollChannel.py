@@ -321,7 +321,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                 u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
             )
 
-            self.log.warning(u'\n'.join(textList))
+            self.log.info(u'\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
