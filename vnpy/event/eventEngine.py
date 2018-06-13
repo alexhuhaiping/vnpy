@@ -232,16 +232,29 @@ class EventEngine2(object):
         # 检查是否存在对该事件进行监听的处理函数
         if event.type_ in self.__handlers:
             # 若存在，则按顺序将事件传递给处理函数执行
-            [handler(event) for handler in self.__handlers[event.type_]]
+            # [handler(event) for handler in self.__handlers[event.type_]]
             
             # 以上语句为Python列表解析方式的写法，对应的常规循环写法为：
-            #for handler in self.__handlers[event.type_]:
-                #handler(event) 
-                
+            for handler in self.__handlers[event.type_]:
+                try:
+                    handler(event)
+                except Exception as e:
+                    self.log.error(traceback.format_exc())
+                    # self.log.error(u'{}'.format(e.message))
+                    sleep(0.1)
+                    raise
+
         # 调用通用处理函数进行处理
         if self.__generalHandlers:
-            [handler(event) for handler in self.__generalHandlers]        
-               
+            # [handler(event) for handler in self.__generalHandlers]
+            for handler in self.__generalHandlers:
+                try:
+                    handler(event)
+                except Exception as e:
+                    self.log.error(u'{}'.format(e.message))
+                    sleep(0.1)
+                    raise
+
     #----------------------------------------------------------------------
     def __runTimer(self):
         """运行在计时器线程中的循环函数"""
@@ -276,13 +289,16 @@ class EventEngine2(object):
     def stop(self):
         """停止引擎"""
         # 将引擎设为停止
+        self.log.info(u'即将关闭 EventEngine')
         self.__active = False
         
         # 停止计时器
+        self.log.info(u'停止计时器')
         self.__timerActive = False
         self.__timer.join()
-        
+
         # 等待事件处理线程退出
+        self.log.info(u'等待事件处理线程退出')
         self.__thread.join()
             
     #----------------------------------------------------------------------
@@ -346,7 +362,7 @@ def test():
     from PyQt4.QtCore import QCoreApplication
     
     def simpletest(event):
-        print u'处理每秒触发的计时器事件：%s' % str(datetime.now())
+        print(u'处理每秒触发的计时器事件：%s' % str(datetime.now()))
     
     app = QCoreApplication(sys.argv)
     

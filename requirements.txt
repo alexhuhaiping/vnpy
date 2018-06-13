@@ -3,7 +3,8 @@ websocket-client
 msgpack-python
 qdarkstyle
 arrow
-log4mongo>=1.6.1
+log4mongo==1.6.2
 flask
 SortedContainers
 matplotlib
+slavem==0.2.2

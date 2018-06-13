@@ -1,15 +1,12 @@
 # coding:utf-8
-import vnpy.trader.app.ctaStrategy.svtCtaBacktesting
-import vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel
-import vnpy.trader.app.ctaStrategy.svtCtaTemplate
-
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
-from vnpy.trader.app.ctaStrategy.ctaBacktesting import MINUTE_DB_NAME
-from vnpy.trader.app.ctaStrategy.strategy.strategyDonchianChannel import DonchianChannelStrategy
-from vnpy.trader.app.ctaStrategy.strategy.strategySvtBollChannel import BollChannelStrategy
+from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
+
+globals().update(STRATEGY_CLASS)
 
 
-def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True, ):
+def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True,
+                   isOutputResult=True):
     """
 
     :param vtSymbol: 合约编号
@@ -32,6 +29,7 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol)  # 设置该次回测使用的合约
     engine.setShowFig(isShowFig)
+    engine.setOutputResult(isOutputResult)
 
     # 在引擎中创建策略对象
     # 策略参数配置
@@ -41,42 +39,26 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'hc1410'
+    vtSymbol = 'rb1810'
+    setting = {
+        'vtSymbol': vtSymbol,
+        'capital': 100000,
+    }
+    setting.update({
+            "atrWindow":30,"barXmin":49,"bollDev":3.2,"bollWindow":16.0,"cciWindow":10,"slMultiplier":3.2
+    })
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
-
-        # setting={
-        #     'unitsNum': 4,
-        #     'vtSymbol': vtSymbol,
-        #     'barPeriod': 9,  # bar 周期
-        #     'atrPeriod': 14,
-        #     'maxCD': 1,
-        #     'sys2Vaild': True,
-        #     'capital': 100000,
-        # },
-        setting={
-            'barXmin': 15,
-            'capital': 100000,
-            'vtSymbol': vtSymbol,
-            # 'bollWindow': 19,  # 布林通道窗口数
-            # 'bollDev': 3.4,  # 布林通道的偏差
-            # 'cciWindow': 10,  # CCI窗口数
-            # 'atrWindow': 30,  # ATR窗口数
-            # 'slMultiplier': 2,  # 计算止损距离的乘数
-            # 'risk': 0.02,
-        },
-        strategyClass='BollChannelStrategy',
+        setting=setting,
+        strategyClass='SvtBollChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
-
+        isOutputResult=True,
     )
 
     # 运行回测
     engine.runBacktesting()  # 运行回测
-
     # 输出回测结果
     engine.showDailyResult()
-    engine.printResult(engine.dailyResult)
     engine.showBacktestingResult()
-    engine.printResult(engine.tradeResult)

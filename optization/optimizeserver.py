@@ -1,7 +1,7 @@
 # coding:utf-8
 
 import os
-from Queue import Empty
+from Queue import Empty, Full
 import threading
 import pytz
 from bson.codec_options import CodecOptions
@@ -11,7 +11,9 @@ import logging.config
 import multiprocessing
 import signal
 import datetime
+import traceback
 
+from slavem import Reporter
 import arrow
 import pymongo
 from pymongo.errors import OperationFailure
@@ -39,14 +41,46 @@ class OptimizeService(object):
         self.log = logging.getLogger('ctabacktesting')
 
         self.cpuCount = multiprocessing.cpu_count()
-
-        # self.cpuCount = 1
+        self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
+
+        # slavem监控
+        self.slavemReport = Reporter(
+            self.config.get('slavem', 'name'),
+            self.config.get('slavem', 'type'),
+            self.config.get('slavem', 'host'),
+            self.config.getint('slavem', 'port'),
+            self.config.get('slavem', 'dbn'),
+            self.config.get('slavem', 'username'),
+            self.config.get('slavem', 'password'),
+            self.config.get('slavem', 'localhost'),
+        )
+
+        # 任务队列
+        self.settingQueue = multiprocessing.Queue(self.cpuCount)
+        self.logQueue = multiprocessing.Queue()
+        self.stopQueue = multiprocessing.Queue()
+        self.logs = {}
+        self.finishTasksIDSet = set()
+        self.finishSettingIDQueue = multiprocessing.Queue()
+
+        self.active = False
+
+        # 进程队列
+        self.wokers = []
+        for i in range(self.cpuCount):
+            name = 'wodker_{}'.format(i)
+            self.logs[name] = logging.getLogger(name)
+
+            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, self.finishSettingIDQueue,
+                             name=name)
+            self.wokers.append(w)
+            self.log.info('woker {}'.format(name))
 
         # 数据库链接
         self.client = pymongo.MongoClient(
@@ -71,25 +105,8 @@ class OptimizeService(object):
         # 初始化索引
         self.initContractCollection()
 
-        # 任务队列
-        self.settingQueue = multiprocessing.Queue(self.cpuCount)
-        self.logQueue = multiprocessing.Queue()
-        self.stopQueue = multiprocessing.Queue()
-        self.logs = {}
-
-        self.active = False
-
-        # 进程队列
-        self.wokers = []
-        for i in range(self.cpuCount):
-            name = 'wodker_{}'.format(i)
-            self.logs[name] = logging.getLogger(name)
-
-            w = Optimization(self.settingQueue, self.logQueue, self.stopQueue, self.config, name=name)
-            self.wokers.append(w)
-            self.log.info('woker {}'.format(name))
-
         self.threadLog = threading.Thread(target=self.logout)
+        self.threadLog.setDaemon(True)
         self.logActive = True
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -114,8 +131,9 @@ class OptimizeService(object):
         indexClassName = IndexModel([('className', ASCENDING)], name='className', background=True)
         indexGroup = IndexModel([('group', ASCENDING)], name='group', background=True)
         indexUnderlyingSymbol = IndexModel([('underlyingSymbol', DESCENDING)], name='underlyingSymbol', background=True)
+        indexOptsv = IndexModel([('optsv', DESCENDING)], name='v', background=True)
 
-        indexes = [indexSymbol, indexClassName, indexGroup, indexUnderlyingSymbol]
+        indexes = [indexSymbol, indexClassName, indexGroup, indexUnderlyingSymbol, indexOptsv]
 
         self._initCollectionIndex(self.argCol, indexes)
         self._initCollectionIndex(self.resultCol, indexes)
@@ -147,15 +165,25 @@ class OptimizeService(object):
 
         for w in self.wokers:
             w.start()
-
-        self.run()
+        try:
+            self.run()
+        except:
+            err = traceback.format_exc()
+            self.log.info('error', err)
+            self.stopQueue.put(self.SIG_STOP)
 
     def run(self):
-        while self.active:
-            try:
-                self._run()
-            except Empty:
-                continue
+        try:
+            self.slavemReport.heartBeat()
+            while self.active:
+                try:
+                    self._run()
+                except Empty:
+                    continue
+        except:
+            err = traceback.format_exc()
+            self.log.critical(err)
+            raise
 
         self.exit()
 
@@ -173,6 +201,7 @@ class OptimizeService(object):
 
         :return:
         """
+
         for w in self.wokers:
             self.log.info('等待 {} 结束'.format(w.name))
             w.join()
@@ -180,6 +209,8 @@ class OptimizeService(object):
         if self.threadLog.isAlive():
             self.logActive = False
             self.threadLog.join()
+
+        self.slavemReport.endHeartBeat()
 
     def _run(self):
 
@@ -195,10 +226,28 @@ class OptimizeService(object):
         cursor = cursor.sort('activeEndDate', -1)
 
         # 每次取出前1000条来进行回测
-        settingList = [s for s in cursor.limit(20)]
+        limitNum = 1000
+        count = 0
+        total = cursor.count()
+        settingList = [s for s in cursor.limit(limitNum)]
         for setting in settingList:
+            count += 1
+            self.log.info(u'{} / {}'.format(count, total))
+            self.finishTasksIDSet.add(setting['_id'])
             # 一次最多只能放8个
-            self.settingQueue.put(setting)
+            while self.active:
+                try:
+                    self.settingQueue.put(setting, timeout=1)
+                    break
+                except Full:
+                    pass
+
+        while self.active and self.finishTasksIDSet:
+            try:
+                _id = self.finishSettingIDQueue.get(timeout=1)
+                self.finishTasksIDSet.remove(_id)
+            except (Empty, KeyError):
+                pass
 
 
 class Optimization(multiprocessing.Process):
@@ -207,7 +256,7 @@ class Optimization(multiprocessing.Process):
     """
     SIG_STOP = 'close_service'
 
-    def __init__(self, settingQueue, logQueue, stopQueue, config, *args, **kwargs):
+    def __init__(self, settingQueue, logQueue, stopQueue, config, finishSettingIDQueue, *args, **kwargs):
         super(Optimization, self).__init__(*args, **kwargs)
 
         for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -220,6 +269,7 @@ class Optimization(multiprocessing.Process):
         self.settingQueue = settingQueue
         self.logQueue = logQueue
         self.stopQueue = stopQueue
+        self.finishSettingIDQueue = finishSettingIDQueue
         self.lastTime = arrow.now().datetime
 
         self.lastSymbol = ''
@@ -227,6 +277,7 @@ class Optimization(multiprocessing.Process):
 
         self.active = False
 
+    def initDB(self):
         # 数据库链接
         self.client = pymongo.MongoClient(
             host=self.config.get('mongo', 'host'),
@@ -254,6 +305,7 @@ class Optimization(multiprocessing.Process):
         self.active = False
 
     def start(self):
+        self.initDB()
         self.active = True
         super(Optimization, self).start()
 
@@ -278,7 +330,7 @@ class Optimization(multiprocessing.Process):
         vtSymbol = setting['vtSymbol']
         # self.log('info', str(setting))
         # 执行回测
-        engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False)
+        engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False, isOutputResult=False)
 
         if self.lastSymbol == vtSymbol and arrow.now().datetime - self.lastTime < datetime.timedelta(minutes=1):
             # 设置成历史数据已经加载
@@ -292,8 +344,13 @@ class Optimization(multiprocessing.Process):
         self.lastTime = arrow.now().datetime
 
         # 输出回测结果
-        engine.showDailyResult()
-        engine.showBacktestingResult()
+        try:
+            engine.showDailyResult()
+            engine.showBacktestingResult()
+        except:
+            print(vtSymbol, setting['optsv'])
+            self.log('error', traceback.format_exc())
+            raise
 
         # 更新回测结果
         # 逐日汇总
@@ -311,9 +368,12 @@ class Optimization(multiprocessing.Process):
                 v = self.localzone.localize(v)
                 setting[k] = v
 
-        self.resultCol.insert_one(setting)
-
-        # 删除掉任务
+        # 是否有至少一笔成交
+        if engine.tradeResult:
+            # 有成交才保存这个，否则不保存回测结果
+            self.resultCol.insert_one(setting)
+        # 无论是否有成交结果，删除掉任务
+        self.finishSettingIDQueue.put(_id)
         self.argCol.delete_one({'_id': _id})
 
     def log(self, level, msg):

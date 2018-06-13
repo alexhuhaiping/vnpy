@@ -90,26 +90,30 @@ class RmEngine(object):
             self.marginRatioLimit = d['marginRatioLimit']
 
     #----------------------------------------------------------------------
+    def toSaveSetting(self):
+        d = {}
+        d['active'] = self.active
+
+        d['orderFlowLimit'] = self.orderFlowLimit
+        d['orderFlowClear'] = self.orderFlowClear
+
+        d['orderSizeLimit'] = self.orderSizeLimit
+
+        d['tradeLimit'] = self.tradeLimit
+
+        d['workingOrderLimit'] = self.workingOrderLimit
+
+        d['orderCancelLimit'] = self.orderCancelLimit
+
+        d['marginRatioLimit'] = self.marginRatioLimit
+
+        return d
+    #----------------------------------------------------------------------
     def saveSetting(self):
         """保存风控参数"""
         with open(self.settingFilePath, 'w') as f:
             # 保存风控参数
-            d = {}
-
-            d['active'] = self.active
-
-            d['orderFlowLimit'] = self.orderFlowLimit
-            d['orderFlowClear'] = self.orderFlowClear
-
-            d['orderSizeLimit'] = self.orderSizeLimit
-
-            d['tradeLimit'] = self.tradeLimit
-
-            d['workingOrderLimit'] = self.workingOrderLimit
-
-            d['orderCancelLimit'] = self.orderCancelLimit
-            
-            d['marginRatioLimit'] = self.marginRatioLimit
+            d = self.toSaveSetting()
 
             # 写入json
             jsonD = json.dumps(d, indent=4)
@@ -169,7 +173,6 @@ class RmEngine(object):
     def writeRiskLog(self, content):
         """快速发出日志事件"""
         # 发出报警提示音
-
         if platform.uname() == 'Windows':
             import winsound
             winsound.PlaySound("SystemHand", winsound.SND_ASYNC)
@@ -226,7 +229,7 @@ class RmEngine(object):
         
         # 检查保证金比例
         if gatewayName in self.marginRatioDict and self.marginRatioDict[gatewayName] >= self.marginRatioLimit:
-            self.writeRiskLog(u'%s接口保证金占比%S，超过限制%s'
+            self.writeRiskLog(u'%s接口保证金占比%s，超过限制%s'
                               %(gatewayName, self.marginRatioDict[gatewayName], self.marginRatioLimit))
             return False
         

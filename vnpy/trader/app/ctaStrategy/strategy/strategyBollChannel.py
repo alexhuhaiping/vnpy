@@ -117,11 +117,13 @@ class BollChannelStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
+        self.bm._preBar = bar
         self.bm.updateBar(bar)
     
     #----------------------------------------------------------------------
     def onXminBar(self, bar):
         """收到X分钟K线"""
+        self.bm._preXminBar = bar
         # 全撤之前发出的委托
         self.cancelAll()
     

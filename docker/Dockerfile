@@ -98,7 +98,8 @@ RUN bash -c 'echo "pip install -e /srv/vnpy" >> ~/.bashrc'
 # 编译安装相关接口库
 #RUN bash -c 'echo "cd /srv/vnpy/vnpy/api/ctp && bash ./build.sh && cp -af ./build/lib/*.so . && cd /srv/vnpy" >> ~/.bashrc'
 
-RUN echo "安装配置结束"
+RUN rm -rf /var/lib/apt/lists/* \
+    && echo "安装配置结束"
 
 
 WORKDIR /srv/vnpy

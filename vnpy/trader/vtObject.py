@@ -149,6 +149,7 @@ class VtTradeData(VtBaseData):
         self.volume = EMPTY_INT  # 成交数量
         self.tradeTime = EMPTY_STRING  # 成交时间
         self.tradingDay = None # 交易日
+        self.datetime = None # 成交时间戳
 
 ########################################################################
 class VtOrderData(VtBaseData):
@@ -299,10 +300,15 @@ class VtMarginRate(VtBaseData):
         self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
         self.marginRate = 1.
 
+    def loadFromContract(self, dic):
+        for k in list(self.__dict__.keys()):
+            if k in dic:
+                setattr(self, k, dic[k])
+
 
 ########################################################################
 class VtCommissionRate(VtBaseData):
-    """保证金率类"""
+    """手续费"""
 
     # ----------------------------------------------------------------------
     def __init__(self):
@@ -319,6 +325,11 @@ class VtCommissionRate(VtBaseData):
         self.openRatioByVolume = EMPTY_FLOAT
         self.closeRatioByVolume = EMPTY_FLOAT
         self.closeTodayRatioByVolume = EMPTY_FLOAT
+
+    def loadFromContract(self, dic):
+        for k in list(self.__dict__.keys()):
+            if k in dic:
+                setattr(self, k, dic[k])
 
 
 ########################################################################

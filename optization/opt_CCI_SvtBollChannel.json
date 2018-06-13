@@ -1,0 +1,24 @@
+{
+  "param": {
+    "group": "布林带密集步长",
+    "name": "20180423",
+    "className": "SvtBollChannelStrategy",
+    "capital": 50000,
+    "barXmin": 15,
+    "bollWindow": 18,
+    "bollDev": 3.4,
+    "cciWindow": 10,
+    "atrWindow": 30,
+    "slMultiplier": 5.2
+  },
+  "opts": {
+    "barXmin":[5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59],
+    "bollWindow": [10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0],
+    "cciWindow": [10],
+    "atrWindow": [30],
+    "slMultiplier": [2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0, 5.2],
+    "bollDev": [3.2]
+  }
+}
+
+

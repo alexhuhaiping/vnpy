@@ -6,6 +6,7 @@
 '''
 from __future__ import division
 
+from itertools import imap
 from collections import OrderedDict
 import time
 import logging
@@ -14,6 +15,11 @@ from bson.codec_options import CodecOptions
 from datetime import datetime, timedelta
 import pytz
 import copy
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import arrow
 import pymongo
@@ -26,14 +32,14 @@ from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.vtObject import VtTickData, VtBarData, VtContractData, VtMarginRate, VtCommissionRate
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import TradingResult, formatNumber, DailyResult
-from vnpy.trader.vtFunction import getTempPath, getJsonPath
+from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
 
 # 读取日志配置文件
-loggingConFile = 'logging.conf'
-loggingConFile = getJsonPath(loggingConFile, __file__)
-logging.config.fileConfig(loggingConFile)
+# loggingConFile = 'logging.conf'
+# loggingConFile = getJsonPath(loggingConFile, __file__)
+# logging.config.fileConfig(loggingConFile)
 
 
 ########################################################################
@@ -48,13 +54,12 @@ class BacktestingEngine(VTBacktestingEngine):
     TICK_MODE = 'tick'
     BAR_MODE = 'bar'
 
-    LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
-
     # ----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
         # 本地停止单
         self.log = logging.getLogger('ctabacktesting')
+
         super(BacktestingEngine, self).__init__()
 
         self.vtContract = None  # 合约详情 VtConcractData
@@ -66,29 +71,14 @@ class BacktestingEngine(VTBacktestingEngine):
         self.marginRate = None  # 保证金比例对象 VtMarginRate()
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
-        self.dailyResult = OrderedDict() # 按日汇总的回测结果
-        self.tradeResult = OrderedDict() # 按笔汇总回测结果
-
-        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
-                                            connectTimeoutMS=500)
-
-        ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
-        ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
-
-        # 1min bar collection
-        self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
-
-        # 日线的 collection
-        self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
-
-        # 合约详情 collection
-        self.ctpColContract = ctpdb['contract'].with_options(
-            codec_options=CodecOptions(tz_aware=True, tzinfo=self.LOCAL_TIMEZONE))
+        self.isOutputResult = True  # 回测后输出结果时是否展示图片
+        self.dailyResult = OrderedDict()  # 按日汇总的回测结果
+        self.tradeResult = OrderedDict()  # 按笔汇总回测结果
 
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
+
+        self.initMongoDB()
 
         logging.Formatter.converter = self.barTimestamp
 
@@ -122,6 +112,27 @@ class BacktestingEngine(VTBacktestingEngine):
     #
     #     self.initData = self._resample(self.barPeriod, self._initData)
     #     self.datas = self._resample(self.barPeriod, self._datas)
+    def initMongoDB(self):
+        self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
+                                            connectTimeoutMS=500)
+
+        ctpdb = self.dbClient[globalSetting['mongoCtpDbn']]
+        ctpdb.authenticate(globalSetting['mongoUsername'], globalSetting['mongoPassword'])
+
+        # 1min bar collection
+        self.ctpCol1minBar = ctpdb['bar_1min'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+        # 日线的 collection
+        self.ctpCol1dayBar = ctpdb['bar_1day'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+        # 合约详情 collection
+        self.ctpColContract = ctpdb['contract'].with_options(
+            codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
+
+    def closeMongoDB(self):
+        self.dbClient.close()
 
     @classmethod
     def _resample(cls, barPeriod, datas):
@@ -203,7 +214,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.startDate = startDate
     #     self.initDays = initDays
     #
-    #     self.dataStartDate = self.LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
+    #     self.dataStartDate = LOCAL_TIMEZONE.localize(datetime.strptime(startDate, '%Y%m%d'))
     #
     #     # initTimeDelta = timedelta(initDays)
     #     # 要获取 initDays 个交易日的数据
@@ -224,6 +235,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #
     #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
+
     def setShowFig(self, isShow):
         """
         回测后是否展示图片
@@ -232,6 +244,13 @@ class BacktestingEngine(VTBacktestingEngine):
         """
         self.isShowFig = isShow
 
+    def setOutputResult(self, isOutputResult):
+        """
+        回测后是否展示图片
+        :param isShow:
+        :return:
+        """
+        self.isOutputResult = isOutputResult
 
     def setStartDate(self, startDate=None, initDays=None):
         """
@@ -318,9 +337,6 @@ class BacktestingEngine(VTBacktestingEngine):
         # 手续费率
         vtCom = VtCommissionRate()
 
-        # 回测时手续费的惩罚性倍率
-        vtCom.backtestingRate = 2
-
         for k, v in contractDic.items():
             if hasattr(vtCon, k):
                 setattr(vtCon, k, v)
@@ -330,6 +346,10 @@ class BacktestingEngine(VTBacktestingEngine):
 
             if hasattr(vtCom, k):
                 setattr(vtCom, k, v)
+
+        if vtCon.exchange == 'SHFE':
+            vtCom.closeTodayRatioByMoney = vtCom.closeRatioByMoney
+            vtCom.closeTodayRatioByVolume = vtCom.closeRatioByVolume
 
         # 设置数据库
         # self.setDatabase(MINUTE_DB_NAME, self.vtSymbol)
@@ -459,7 +479,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 只返回指定数量的 bar
         initDataNum = len(initDatas)
         if initDataNum < needBarNum:
-            self.log.info(u'预加载的 bar 数量 {} != barAmount:{}'.format(initDataNum, needBarNum))
+            self.log.info(u'{} 预加载的 bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
             return initDatas
 
         # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
@@ -517,8 +537,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     orderID = str(self.limitOrderCount)
                     so.vtOrderID = orderID
                     self.strategy.onStopOrder(so)
-                if __debug__:
-                    self.log.debug(u'{}'.format(so))
+
                 # 推送成交数据
                 self.tradeCount += 1  # 成交编号自增1
                 tradeID = str(self.tradeCount)
@@ -587,12 +606,12 @@ class BacktestingEngine(VTBacktestingEngine):
                 if isCrossed:
                     # 出现成交，重新整理停止单队列
 
-                    self.log.info(u'出现成交,重新生成停止单队列')
+                    # self.log.info(u'出现成交,重新生成停止单队列')
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]
-                    if __debug__:
-                        self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
+                    # if __debug__:
+                    #     self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
                     break
             else:
                 # 一次成交都没有
@@ -675,7 +694,8 @@ class BacktestingEngine(VTBacktestingEngine):
             dailyResult.previousClose = previousClose
             previousClose = dailyResult.closePrice
 
-            dailyResult.calculatePnl(openPosition, self.size, self.rate, self.slippage, self.marginRate)
+            dailyResult.calculatePnl(openPosition, self.size, self.strategy.getCommission, self.slippage,
+                                     self.marginRate)
             openPosition = dailyResult.closePosition
 
         # 生成DataFrame
@@ -780,10 +800,14 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'收益标准差'] = returnStd
         self.dailyResult[u'夏普率'] = sharpeRatio
 
+        if self.isOutputResult:
+            self.printResult(self.dailyResult)
+
         # 收益率曲线
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
+        self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
+        self.dailyResult[u'结算日'] = map(lambda d: d.value, pd.to_datetime(df.index))
 
         if not self.isShowFig:
             return
@@ -842,7 +866,6 @@ class BacktestingEngine(VTBacktestingEngine):
                 v = formatNumber(v)
             print(u'%s：\t%s' % (k, v))
 
-
     def calculateBacktestingResult(self):
         """
         计算回测结果
@@ -880,7 +903,7 @@ class BacktestingEngine(VTBacktestingEngine):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt,
                                                exitTrade.price, exitTrade.dt,
-                                               -closedVolume, self.rate, self.slippage, self.size)
+                                               -closedVolume, self.strategy.getCommission, self.slippage, self.size)
                         resultList.append(result)
 
                         posList.extend([-1, 0])
@@ -927,7 +950,7 @@ class BacktestingEngine(VTBacktestingEngine):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt,
                                                exitTrade.price, exitTrade.dt,
-                                               closedVolume, self.rate, self.slippage, self.size)
+                                               closedVolume, self.strategy.getCommission, self.slippage, self.size)
                         resultList.append(result)
 
                         posList.extend([1, 0])
@@ -964,17 +987,17 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for trade in longTrade:
             result = TradingResult(trade.price, trade.dt, endPrice, self.dt,
-                                   trade.volume, self.rate, self.slippage, self.size)
+                                   trade.volume, self.strategy.getCommission, self.slippage, self.size)
             resultList.append(result)
 
         for trade in shortTrade:
             result = TradingResult(trade.price, trade.dt, endPrice, self.dt,
-                                   -trade.volume, self.rate, self.slippage, self.size)
+                                   -trade.volume, self.strategy.getCommission, self.slippage, self.size)
             resultList.append(result)
 
             # 检查是否有交易
         if not resultList:
-            self.output(u'无交易结果')
+            self.log.info(u'无交易结果')
             return {}
 
         # resultList.sort(key=lambda r: r.datetime)
@@ -1031,7 +1054,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 totalLosing += result.pnl
 
         # 计算盈亏相关数据
-        winningRate = winningResult / totalResult # 胜率
+        winningRate = winningResult / totalResult  # 胜率
 
         averageWinning = 0  # 这里把数据都初始化为0
         averageLosing = 0
@@ -1077,6 +1100,9 @@ class BacktestingEngine(VTBacktestingEngine):
         if __debug__:
             self.d = d
         # 输出
+        if not d:
+            self.log.info(u'没有回测结果')
+            return
 
         self.tradeResult[u'第一笔交易'] = d['timeList'][0]
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
@@ -1096,10 +1122,13 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
 
+        if self.isOutputResult:
+            self.printResult(self.tradeResult)
+
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率曲线'] = list(balanceList.values[1:])
+        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
 
         if not self.isShowFig:
             return
