@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import arrow
 import logging
 from threading import Thread
-
+import traceback
 
 from vnpy.api.ctp import MdApi, TdApi, defineDict
 from vnpy.trader.vtGateway import *
@@ -168,11 +168,13 @@ class svtCtpGateway(VtGateway):
     def qryAccount(self):
         """查询账户资金"""
         self.tdApi.qryAccount()
+        self.qryQueue.put(self.qryAccount)
 
     # ----------------------------------------------------------------------
     def qryPosition(self):
         """查询持仓"""
         self.tdApi.qryPosition()
+        self.qryQueue.put(self.qryPosition)
 
     # ----------------------------------------------------------------------
     def close(self):
@@ -188,6 +190,7 @@ class svtCtpGateway(VtGateway):
         if self.qryEnabled:
             # 需要循环的查询函数列表
             self.qryFunctionList = [self.qryAccount, self.qryPosition]
+            map(self.qryQueue.put, (self.qryAccount, self.qryPosition))
 
             self.qryCount = 0  # 查询触发倒计时
             self.qryTrigger = 2  # 查询触发点
@@ -198,12 +201,38 @@ class svtCtpGateway(VtGateway):
     # ----------------------------------------------------------------------
     def query(self, event):
         """注册到事件处理引擎上的查询函数"""
+
         self.qryCount += 1
 
         if self.qryCount > self.qryTrigger:
             # 清空倒计时
             self.qryCount = 0
+            try:
+                qryObject = self.qryQueue.get()
+                args = tuple()
+                kwargs = {}
+                func = lambda: None
+                if isinstance(qryObject, tuple):
+                    # 带了参数，对参数进行解析
+                    for o in qryObject:
+                        if isinstance(o, tuple) or isinstance(o, list):
+                            args = o
+                        elif isinstance(o, dict):
+                            kwargs = o
+                        else:
+                            func = o
+                else:
+                    func = qryObject
+                # 执行
+                func(*args, **kwargs)
 
+            except Empty:
+                pass
+
+            except Exception:
+                self.log.error(traceback.format_exc())
+
+            return
             # 执行查询函数
             function = self.qryFunctionList[self.qryNextFunction]
             function()
