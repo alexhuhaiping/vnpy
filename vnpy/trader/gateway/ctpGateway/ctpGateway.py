@@ -7,7 +7,6 @@ vn.ctp的gateway接入
 vtSymbol直接使用symbol
 '''
 
-
 import os
 import json
 from copy import copy
@@ -252,6 +251,7 @@ class svtCtpGateway(VtGateway):
         """设置是否要启动循环查询"""
         self.qryEnabled = qryEnabled
 
+
 ########################################################################
 class CtpMdApi(MdApi):
     """CTP行情API实现"""
@@ -264,23 +264,23 @@ class CtpMdApi(MdApi):
         self.log = logging.getLogger('root')
         self.gateway = gateway  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
-        self.reqID = EMPTY_INT              # 操作请求编号
+        self.reqID = EMPTY_INT  # 操作请求编号
 
-        self.connectionStatus = False       # 连接状态
-        self.loginStatus = False            # 登录状态
+        self.connectionStatus = False  # 连接状态
+        self.loginStatus = False  # 登录状态
 
-        self.subscribedSymbols = set()      # 已订阅合约代码
+        self.subscribedSymbols = set()  # 已订阅合约代码
 
-        self.userID = EMPTY_STRING          # 账号
-        self.password = EMPTY_STRING        # 密码
-        self.brokerID = EMPTY_STRING        # 经纪商代码
-        self.address = EMPTY_STRING         # 服务器地址
+        self.userID = EMPTY_STRING  # 账号
+        self.password = EMPTY_STRING  # 密码
+        self.brokerID = EMPTY_STRING  # 经纪商代码
+        self.address = EMPTY_STRING  # 服务器地址
 
-        self.tradingDt = None               # 交易日datetime对象
-        self.tradingDate = EMPTY_STRING     # 交易日期字符串
-        self.tickTime = None                # 最新行情time对象
+        self.tradingDt = None  # 交易日datetime对象
+        self.tradingDate = EMPTY_STRING  # 交易日期字符串
+        self.tickTime = None  # 最新行情time对象
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
@@ -387,12 +387,12 @@ class CtpMdApi(MdApi):
 
         tick.symbol = data['InstrumentID']
         tick.exchange = symbolExchangeDict.get(tick.symbol, EXCHANGE_UNKNOWN)
-        tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, tick.exchange])
+        tick.vtSymbol = tick.symbol  # '.'.join([tick.symbol, tick.exchange])
 
         tick.lastPrice = data['LastPrice']
         tick.volume = data['Volume']
         tick.openInterest = data['OpenInterest']
-        tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec']/100)])
+        tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec'] / 100)])
 
         # 上期所和郑商所可以直接使用，大商所需要转换
         tick.date = data['ActionDay']
@@ -413,18 +413,18 @@ class CtpMdApi(MdApi):
 
         # 大商所日期转换
         if tick.exchange is EXCHANGE_DCE:
-            newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()    # 最新tick时间戳
+            newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()  # 最新tick时间戳
 
             # 如果新tick的时间小于夜盘分隔，且上一个tick的时间大于夜盘分隔，则意味着越过了12点
             if (self.tickTime and
-                newTime < NIGHT_TRADING and
-                self.tickTime > NIGHT_TRADING):
-                self.tradingDt += timedelta(1)                          # 日期加1
-                self.tradingDate = self.tradingDt.strftime('%Y%m%d')    # 生成新的日期字符串
+                        newTime < NIGHT_TRADING and
+                        self.tickTime > NIGHT_TRADING):
+                self.tradingDt += timedelta(1)  # 日期加1
+                self.tradingDate = self.tradingDt.strftime('%Y%m%d')  # 生成新的日期字符串
 
-            tick.date = self.tradingDate    # 使用本地维护的日期
+            tick.date = self.tradingDate  # 使用本地维护的日期
 
-            self.tickTime = newTime         # 更新上一个tick时间
+            self.tickTime = newTime  # 更新上一个tick时间
         dt = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
         tick.datetime = arrow.get('{}+08:00'.format(dt)).datetime
         self.gateway.onTick(tick)
@@ -521,21 +521,21 @@ class svtCtpTdApi(TdApi):
         self.gateway = gateway  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
 
-        self.reqID = EMPTY_INT              # 操作请求编号
-        self.orderRef = EMPTY_INT           # 订单编号
+        self.reqID = EMPTY_INT  # 操作请求编号
+        self.orderRef = EMPTY_INT  # 订单编号
 
-        self.connectionStatus = False       # 连接状态
-        self.loginStatus = False            # 登录状态
-        self.authStatus = False             # 验证状态
-        self.loginFailed = False            # 登录失败（账号密码错误）
+        self.connectionStatus = False  # 连接状态
+        self.loginStatus = False  # 登录状态
+        self.authStatus = False  # 验证状态
+        self.loginFailed = False  # 登录失败（账号密码错误）
 
-        self.userID = EMPTY_STRING          # 账号
-        self.password = EMPTY_STRING        # 密码
-        self.brokerID = EMPTY_STRING        # 经纪商代码
-        self.address = EMPTY_STRING         # 服务器地址
+        self.userID = EMPTY_STRING  # 账号
+        self.password = EMPTY_STRING  # 密码
+        self.brokerID = EMPTY_STRING  # 经纪商代码
+        self.address = EMPTY_STRING  # 服务器地址
 
-        self.frontID = EMPTY_INT            # 前置机编号
-        self.sessionID = EMPTY_INT          # 会话编号
+        self.frontID = EMPTY_INT  # 前置机编号
+        self.sessionID = EMPTY_INT  # 会话编号
 
         self.posDict = {}
         self.symbolExchangeDict = {}  # 保存合约代码和交易所的印射关系
@@ -607,9 +607,9 @@ class svtCtpTdApi(TdApi):
             self.gateway.onError(err)
 
             # 标识登录失败，防止用错误信息连续重复登录
-            self.loginFailed =  True
+            self.loginFailed = True
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def onRspUserLogout(self, data, error, n, last):
         """登出回报"""
         # 如果登出成功，推送日志信息
@@ -1124,6 +1124,12 @@ class svtCtpTdApi(TdApi):
         trade.volume = data['Volume']
         trade.tradeTime = data['TradeTime']
 
+        log = u''
+        for k, v in trade.__dict__.items():
+            if k == 'rawData':
+                continue
+            log += u'{} {}\n'.format(k, v)
+        logging.info(log)
         # 推送
         self.gateway.onTrade(trade)
 
@@ -1565,6 +1571,7 @@ class CtpGateway(svtCtpGateway):
         #     self.mdApi.close()
         # if self.tdConnected:
         #     self.tdApi.close()
+
 
 class CtpTdApi(svtCtpTdApi):
     def qryMarginRate(self, symbol):
