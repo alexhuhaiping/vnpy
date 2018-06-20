@@ -310,23 +310,29 @@ class CtaEngine(object):
 
         # 过滤已经收到过的成交回报
         if trade.vtTradeID in self.tradeSet:
+            self.log.warning(u'已经处理过TradeID {}'.format(trade.vtTradeID))
             return
         self.tradeSet.add(trade.vtTradeID)
 
-        # 将成交推送到策略对象中
-        if trade.vtOrderID in self.orderStrategyDict:
-            strategy = self.orderStrategyDict[trade.vtOrderID]
+        try:
+            # 将成交推送到策略对象中
+            if trade.vtOrderID in self.orderStrategyDict:
+                strategy = self.orderStrategyDict[trade.vtOrderID]
 
-            # 计算策略持仓
-            if trade.direction == DIRECTION_LONG:
-                strategy.pos += trade.volume
+                # 计算策略持仓
+                if trade.direction == DIRECTION_LONG:
+                    strategy.pos += trade.volume
+                else:
+                    strategy.pos -= trade.volume
+
+                self.callStrategyFunc(strategy, strategy.onTrade, trade)
+
+                # 保存策略持仓到数据库
+                self.savePosition(strategy)
             else:
-                strategy.pos -= trade.volume
-
-            self.callStrategyFunc(strategy, strategy.onTrade, trade)
-
-            # 保存策略持仓到数据库
-            self.savePosition(strategy)              
+                self.log.warning(u'成交单找不到策略 {}'.format(trade.vtOrderID))
+        except Exception:
+            self.log.error(traceback.format_exc())
     
     #----------------------------------------------------------------------
     def registerEvent(self):
