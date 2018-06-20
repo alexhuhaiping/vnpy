@@ -36,12 +36,6 @@ from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
 
-# 读取日志配置文件
-# loggingConFile = 'logging.conf'
-# loggingConFile = getJsonPath(loggingConFile, __file__)
-# logging.config.fileConfig(loggingConFile)
-
-
 ########################################################################
 class BacktestingEngine(VTBacktestingEngine):
     """
@@ -553,6 +547,8 @@ class BacktestingEngine(VTBacktestingEngine):
                 else:
                     self.strategy.pos -= so.volume
                     trade.price = min(bestCrossPrice, so.price)
+
+                self.log.info(u'{} {} {} {} '.format(so.price, bestCrossPrice, buyCrossPrice, sellCrossPrice))
 
                 self.limitOrderCount += 1
                 trade.orderID = orderID

@@ -360,7 +360,10 @@ class BacktestingEngine(object):
                 self.strategy.onOrder(order)
 
                 # 从字典中删除该限价单
-                del self.workingLimitOrderDict[orderID]
+                try:
+                    del self.workingLimitOrderDict[orderID]
+                except KeyError:
+                    pass
 
     # ----------------------------------------------------------------------
     def crossStopOrder(self):
