@@ -104,6 +104,9 @@ class CtaEngine(VtCtaEngine):
         self.checkPositionInterval = 2  # second
         self.reportPosErrCount = 5  # 连续5次仓位异常则报告
 
+        # 维持心跳的品种
+        self.heatbeatSymbols = []
+
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
@@ -411,18 +414,15 @@ class CtaEngine(VtCtaEngine):
             self.loadCommissionRate(s, dic)
             self.loadMarginRate(s, dic)
 
-        # 查询手续费率
-        t = Thread(target=self._updateQryCommissionRate)
-        t.setDaemon(True)
-        t.start()
-
-        # 加载品种保证金率
-        t = Thread(target=self._updateQryMarginRate)
-        t.setDaemon(True)
-        t.start()
+        strategyList = list(self.strategyDict.values())
+        ctpGatway = self.mainEngine.getGateway('CTP')
+        for s in strategyList:
+            # 更新品种保证金率
+            ctpGatway.qryQueue.put((self._qryMarginFromStrategy, (s,)))
+            # 查询手续费率
+            ctpGatway.qryQueue.put((self._qryCommissionFromStrategy, (s,)))
 
     def loadMarginRate(self, s, dic):
-
         vm = VtMarginRate()
         vm.loadFromContract(dic)
         s.setMarginRate(vm)
@@ -434,59 +434,37 @@ class CtaEngine(VtCtaEngine):
         s.setCommissionRate(vc)
         self.log.debug(u'预加载手续费率 {}'.format(s.vtSymbol))
 
-    def _updateQryMarginRate(self):
-        strategyList = list(self.strategyDict.values())
-        warning = False
-        for s in strategyList:
-            # 再从CTP中更新
-            count = 1
-            while s.isNeedUpdateMarginRate and self.active:
-                if count % 3000 == 0:
-                    # 30秒超时
-                    if not warning:
-                        # 加载超时只提醒1次
-                        warning = True
-                        err = u'加载品种 {} 保证金率失败'.format(s.vtSymbol)
-                        self.log.warning(err)
-                    break
+    def _qryMarginFromStrategy(self, s):
+        """
 
-                if count % 30 == 0:
-                    # 每3秒重新发送一次
-                    # self.log.info(u'查询 {} 保证金率'.format(s.vtSymbol))
-                    self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
+        :param s: strategy
+        :return:
+        """
+        if not s.isNeedUpdateMarginRate:
+            # 不需要更新保证金
+            return
+        self.log.info(u'查询保证金 {}'.format(s.vtSymbol))
+        self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
 
-                # 每0.1秒检查一次返回结果
-                time.sleep(0.1)
-                count += 1
-            else:
-                self.log.info(u'加载品种 {} 保证金率成功 {}'.format(s.vtSymbol, s.marginRate))
+        ctpGatway = self.mainEngine.getGateway('CTP')
 
-    def _updateQryCommissionRate(self):
-        strategyList = list(self.strategyDict.values())
-        warning = False
-        for s in strategyList:
-            # 再从CTP中更新
-            count = 1
+        ctpGatway.qryQueue.put((self._qryMarginFromStrategy, (s,)))
 
-            while s.isNeedUpdateCommissionRate and self.active:
-                if count % 3000 == 0:
-                    # 30秒超时
-                    if not warning:
-                        # 加载手续费率超时只提醒一次
-                        warning = True
-                        self.log.warning(u'加载品种 {} 手续费率超时'.format(str(s.vtSymbol)))
-                    break
+    def _qryCommissionFromStrategy(self, s):
+        """
 
-                if count % 30 == 0:
-                    # 每3秒重新发送一次
-                    # self.log.info(u'尝试加载 {} 手续费率'.format(s.vtSymbol))
-                    self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
+        :param s: strategy
+        :return:
+        """
+        if not s.isNeedUpdateCommissionRate:
+            # 不需要更新手续费
+            return
+        self.log.info(u'查询手续费 {}'.format(s.vtSymbol))
+        self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
-                # 每0.1秒检查一次返回结果
-                time.sleep(0.1)
-                count += 1
-            else:
-                self.log.info(u'加载品种 {} 手续费率成功'.format(str(s.vtSymbol)))
+        ctpGatway = self.mainEngine.getGateway('CTP')
+
+        ctpGatway.qryQueue.put((self._qryCommissionFromStrategy, (s,)))
 
     def stop(self):
         """
@@ -554,19 +532,7 @@ class CtaEngine(VtCtaEngine):
         # 避免因为CTP断掉毫无行情，导致心跳从未开始
         Timer(60 * 10, foo).start()
 
-        # 国债期货可以保证 10:15 ~ 10:30 的心跳
-        # # 10:15 ~ 10:30 的心跳
-        # if arrow.now().datetime.time() < datetime.time(10, 15):
-        #     def shock():
-        #         self.log.info(u'在休市过程中保持心跳')
-        #         while arrow.now().datetime.time() < datetime.time(10, 30):
-        #             self.heartBeat()
-        #             time.sleep(self.heartBeatInterval)
-        #
-        #     breakStartTime = arrow.now().replace(hour=10, minute=15)
-        #     wait = breakStartTime.timestamp - now
-        #     self.log.info(u'设置了 10:15 ~ 10:30 的定时心跳, {} 秒后启动'.format(wait))
-        #     Timer(wait, shock).start()
+        # 国债期货可以保证 10:15 ~ 10:30 的心跳，不需要对这个时间段进行处理
 
     def processTickEvent(self, event):
         """处理行情推送"""
@@ -634,6 +600,7 @@ class CtaEngine(VtCtaEngine):
                 raise ValueError(err)
 
             self.log.info(u'订阅维持心跳的合约 {}'.format(symbol))
+            self.heatbeatSymbols.append(symbol)
 
             req = VtSubscribeReq()
             req.symbol = contract.symbol
@@ -641,6 +608,7 @@ class CtaEngine(VtCtaEngine):
 
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
+
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
         super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)

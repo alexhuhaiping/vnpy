@@ -2,7 +2,10 @@
 
 import logging
 import datetime as dtt
-
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from queue import Queue, Empty
 import arrow
 import tradingtime as tt
 
@@ -162,7 +165,7 @@ class VtGateway(sVtGateway):
         # for h in logger.handlers:
         #     self.log.addHandler(h)
         self.log.info(u'加载 {}'.format(self.gatewayName))
-
+        self.qryQueue = Queue()
 
     def onMraginRate(self, marginRate):
         """
@@ -215,3 +218,10 @@ class VtGateway(sVtGateway):
     def close(self):
         self.log.info(u'即将关闭 gateWay')
         super(VtGateway, self).close()
+
+
+    def initQuery(self):
+        """
+
+        :return:
+        """

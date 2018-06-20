@@ -76,6 +76,10 @@ class CtaTemplate(vtCtaTemplate):
     TRADE_STATUS_INC_SHORT = u'加空'  # # 加空
     TRADE_STATUS_REV_SHORT = u'反空'  # 反空
 
+    def __str__(self):
+        s = super(CtaTemplate, self).__str__()
+        return s.replace(self.__class__.__name__, self.__class__.__name__ + '.{}'.format(self.vtSymbol))
+
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
@@ -670,6 +674,8 @@ class CtaTemplate(vtCtaTemplate):
         if marginRate.vtSymbol != self.vtSymbol:
             return
 
+        self.log.info(u'更新保证金 {}'.format(marginRate.marginRate))
+
         self.isNeedUpdateMarginRate = False
 
         self.setMarginRate(marginRate)
@@ -680,16 +686,22 @@ class CtaTemplate(vtCtaTemplate):
     def updateCommissionRate(self, event):
         """更新合约数据"""
         commissionRate = event.dict_['data']
-        self.isNeedUpdateCommissionRate = False
 
         # commissionRate.vtSymbol 可能为 'rb' 或者 'rb1801' 前者说明合约没改过，后者说明该合约有变动
         if commissionRate.underlyingSymbol == self.vtSymbol:
             # 返回 rb1801, 合约有变动，强制更新
             self.setCommissionRate(commissionRate)
+            self.isNeedUpdateCommissionRate = False
+            log = u'更新手续费 '
+            for k, v in commissionRate.__dict__.items():
+                if k == 'rawData':
+                    continue
+                log += u'{}:{} '.format(k, v)
+                self.log.info(log)
             return
         elif self.vtSymbol.startswith(commissionRate.underlyingSymbol):
             # 返回 rb ,合约没有变动
-            self.setCommissionRate(commissionRate)
+            self.isNeedUpdateCommissionRate = False
             return
         else:
             pass
