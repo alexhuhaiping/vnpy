@@ -989,14 +989,6 @@ class BarManager(VtBarManager):
 
 #########################################################################
 class ArrayManager(VtArrayManager):
-    # ----------------------------------------------------------------------
-    def ma(self, n, array=False):
-        """简单均线"""
-        result = talib.MA(self.close, n)
-        if array:
-            return result
-        return result[-1]
-
     def __init__(self, size=100):
         size += 1
         super(ArrayManager, self).__init__(size)
@@ -1024,3 +1016,20 @@ class ArrayManager(VtArrayManager):
         ])
 
         return pd.DataFrame(od).to_html()
+
+    # ----------------------------------------------------------------------
+    def ma(self, n, array=False):
+        """简单均线"""
+        result = talib.MA(self.close, n)
+        if array:
+            return result
+        return result[-1]
+
+
+    def tr(self, array=False):
+        """TR指标"""
+        result = talib.TRANGE(self.high, self.low, self.close)
+
+        if array:
+            return result
+        return result[-1]

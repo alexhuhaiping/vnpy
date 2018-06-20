@@ -14,7 +14,7 @@ from threading import Timer
 import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtFunction import waitToContinue, exception
+from vnpy.trader.vtFunction import waitToContinue, exception, logDate
 from vnpy.trader.vtObject import VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
 from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
@@ -23,27 +23,23 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class OscillationStrategy(CtaTemplate):
+class OscillationDonchianStrategy(CtaTemplate):
     """震荡策略"""
-    className = 'OscillationStrategy'
+    className = 'OscillationDonchianStrategy'
     author = u'lamter'
 
     # 策略参数
-    stopBar = 2  # 开仓后2个bar没有止盈，则在close止损
     longBar = 20
-    shortBar = 10
     stopProfile = 1
     stopLoss = 4
+    slippageRate = 0.2  # 滑点占盈利空间的比例
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
 
     # 策略变量
-    stopBarCount = 0  # 时间止损倒数
     longHigh = 0  # 大周期高点
-    shortLow = 0  # 小周期低点
     longLow = 0  # 大周期低点
-    shortHigh = 0  # 小周期高点
     middle = 0  # 大周期中线
     atr = 0  # ATR
     stopProfilePrice = None  # 止盈价格
@@ -55,9 +51,7 @@ class OscillationStrategy(CtaTemplate):
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
-        'stopBar',
         'longBar',
-        'shortBar',
         'stopProfile',
         'stopLoss',
         'initDays',
@@ -70,25 +64,21 @@ class OscillationStrategy(CtaTemplate):
         'hands',
         'openTag',
         'openReset',
-        'middle',
         'longHigh',
-        'shortLow',
+        'middle',
         'longLow',
-        'shortHigh',
         'atr',
         'stopProfilePrice',
         'stopLossPrice',
         'stop',
-        'stopBarCount',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(OscillationStrategy, self).__init__(ctaEngine, setting)
+        super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
 
-        self.a = True
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -128,7 +118,7 @@ class OscillationStrategy(CtaTemplate):
             self.loadCtaDB(document)
 
         if self.stop is None:
-            # 要在读库完成后
+            # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
         self.isCloseoutVaild = True
@@ -139,8 +129,6 @@ class OscillationStrategy(CtaTemplate):
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
-
-        # print(','.join(['{} {}'.format(v, getattr(self, v)) for v in self.paramList]))
 
         if not self.isBackTesting():
             if self.xminBar and self.am and self.inited and self.trading:
@@ -200,16 +188,11 @@ class OscillationStrategy(CtaTemplate):
             self.closeout()
 
         if not self.openTag:
+            # 尝试重置开仓标记位
             if self.prePos > 0:
                 self.openTag = bar.close <= self.openReset
             else:
                 self.openTag = bar.close >= self.openReset
-
-            # startDate = arrow.get('2017-03-20 14:20:00+08:00').datetime
-            # endDate = arrow.get('2017-03-24 14:20:00+08:00').datetime
-            # if startDate <= bar.datetime <= endDate:
-            #     self.log.warning(u'{} {} {}'.format(self.prePos, bar.close, self.openReset))
-
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
@@ -233,16 +216,18 @@ class OscillationStrategy(CtaTemplate):
             return
 
         # 计算指标数值
-        highs = am.high[-self.longBar:]
-        highs.sort()
-        self.longHigh = highs[-2]
-        lows = am.low[-self.longBar:]
-        lows.sort()
-        self.longLow = lows[1]
+        # 通道内第二高点
+        # highs = [i for i in am.high[-self.longBar:]]
+        # highs.sort()
+        # self.longHigh = highs[-2]
+        # lows = [i for i in am.low[-self.longBar:]]
+        # lows.sort()
+        # self.longLow = lows[1]
 
-        # self.longHigh, self.longLow = am.donchian(self.longBar)
-        # self.shortHigh, self.shortLow = am.donchian(self.shortBar)
+        # 通道内最高点
+        self.longHigh, self.longLow = am.donchian(self.longBar)
 
+        # 通道中线
         self.middle = (self.longHigh + self.longLow) / 2
         self.atr = am.atr(self.longBar)
 
@@ -257,22 +242,8 @@ class OscillationStrategy(CtaTemplate):
                 self.openReset = min(self.openReset, self.xminBar.low + self.atr * 0.5)
 
         if self.trading:
-            if self.pos != 0:
-                # 有仓位，进行计数
-                self.stopBarCount -= 1
-                self.log.warning(u'时间止损 {} {}'.format(bar.close, self.stopBarCount))
-                if self.stopBarCount <= 0:
-                    # 时间止损
-                    if self.pos > 0:
-                        self.sell(bar.close - self.atr, abs(self.pos), False)
-                        self.log.warning(u'{}'.format(bar.close - self.atr))
-                    else:
-                        self.cover(bar.close + self.atr, abs(self.pos), False)
-                        self.log.warning(u'{}'.format(bar.close + self.atr))
-                else:
-                    self.orderOnXminBar(bar)
-            else:
-                self.orderOnXminBar(bar)
+            # self.log.warning(str(bar.datetime))
+            self.orderOnXminBar(bar)
 
         # 发出状态更新事件
         self.saveDB()
@@ -297,29 +268,25 @@ class OscillationStrategy(CtaTemplate):
             self.log.info(u'开仓hands==0，不下单')
             return
 
-        # 是否处于可开仓状态
-        # self.log.warning(str(bar.datetime) + u' {}'.format(self.openTag))
-        if not self.openTag:
-            self.log.info(u'开仓标记未重置，不下单')
-            return
-
         # 当前无仓位，发送开仓委托
         if self.pos == 0:
-            # 开单
-            self.buy(self.longHigh, self.hands, True)
-            # 空单
-            self.short(self.longLow, self.hands, True)
-
+            if self.openTag:
+                # 滑点占盈利空间的比例要小于slippageRate
+                slippage = self.priceTick * 2
+                profile = self.stopProfile * self.atr
+                if slippage / profile <= self.slippageRate:
+                    # 开单
+                    self.buy(self.longHigh, self.hands, True)
+                    # 空单
+                    self.short(self.longLow, self.hands, True)
         # 持有多头仓位
         elif self.pos > 0:
             if self.stopProfilePrice is None:
                 # 止盈价格
                 self.stopProfilePrice = self.averagePrice + self.stopProfile * self.atr
-                self.log.warning(u'stopProfilePrice {}'.format(int(self.stopProfilePrice)))
             if self.stopLossPrice is None:
                 # 止损价格
                 self.stopLossPrice = self.averagePrice - self.stopLoss * self.atr
-                self.log.warning(u'stopLossPrice {}'.format(int(self.stopLossPrice)))
 
             # 止盈单
             self.sell(self.stopProfilePrice, abs(self.pos), False)
@@ -330,24 +297,15 @@ class OscillationStrategy(CtaTemplate):
         elif self.pos < 0:
             if self.stopProfilePrice is None:
                 self.stopProfilePrice = self.averagePrice - self.stopProfile * self.atr
-                self.log.warning(u'stopProfilePrice {}'.format(int(self.stopProfilePrice)))
+
             if self.stopLossPrice is None:
                 self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
-                self.log.warning(u'stopLossPrice {}'.format(int(self.stopLossPrice)))
-
             # 止盈单
             self.cover(self.stopProfilePrice, abs(self.pos), False)
             # 止损单
             self.cover(self.stopLossPrice, abs(self.pos), True)
 
-        if self.stopLossPrice is not None and self._a:
-            self._a = False
-            # self.log.warning(self.averagePrice, self.stopProfilePrice, self.stopLossPrice)
-        if self.stopLossPrice is None:
-            self._a = True
-
     # ----------------------------------------------------------------------
-
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         log = self.log.info
@@ -379,7 +337,6 @@ class OscillationStrategy(CtaTemplate):
         profile = self.capital - preCapital
 
         if not self.isBackTesting():
-            # if self.isBackTesting():
             textList = [u'{}{}'.format(trade.direction, trade.offset)]
             textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
             textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
@@ -393,6 +350,10 @@ class OscillationStrategy(CtaTemplate):
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
+
+        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
+                                              profile, self.rtBalance)
+        self.log.warning(log)
 
         if self.pos == 0:
             # 重置止盈止损价格
@@ -410,13 +371,6 @@ class OscillationStrategy(CtaTemplate):
                     self.openReset = trade.price - self.atr
                 else:
                     self.openReset = trade.price + self.atr
-
-        if self.pos != 0:
-            self.stopBarCount = self.stopBar
-
-        log = u'{} {} {} {} {}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
-        # self.log.info(log)
-        self.log.warning(log)
 
         # 成交后重新下单
         self.cancelAll()
@@ -459,13 +413,13 @@ class OscillationStrategy(CtaTemplate):
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(OscillationStrategy, self).toSave()
+        dic = super(OscillationDonchianStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
 
     def loadCtaDB(self, document=None):
-        super(OscillationStrategy, self).loadCtaDB(document)
+        super(OscillationDonchianStrategy, self).loadCtaDB(document)
         if document:
             for k in self._varList:
                 try:
@@ -474,5 +428,5 @@ class OscillationStrategy(CtaTemplate):
                     self.log.warning(u'未保存的key {}'.format(k))
 
     def updateStop(self):
-        self.log.warning(u'调整风险投入')
+        self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk

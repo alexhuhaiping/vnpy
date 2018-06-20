@@ -6,10 +6,6 @@ from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 
 globals().update(STRATEGY_CLASS)
 
-# 读取日志配置文件
-loggingConFile = 'logging.conf'
-logging.config.fileConfig(loggingConFile)
-
 
 def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_MODE, isShowFig=True,
                    isOutputResult=True):
@@ -45,25 +41,27 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'rb1710'
+    # 读取日志配置文件
+    loggingConFile = 'logging.conf'
+    logging.config.fileConfig(loggingConFile)
+    vtSymbol = 'rb1805'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
-        'barXmin': 20,
+        'barXmin': 10,
         'risk': 0.1
     }
     setting.update({
+        'slippageRate': 0.2,
         'longBar': 20,
-        'shortBar': 10,
         'stopProfile': 1,
         'stopLoss': 3,
-        'stopBar': 3,
     })
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
         setting=setting,
-        strategyClass='OscillationStrategy',
+        strategyClass='OscillationDonchianStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
         isOutputResult=True,
