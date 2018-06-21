@@ -582,7 +582,11 @@ class CtaTemplate(vtCtaTemplate):
 
             # 保存
             document = self.toSave()
-            self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
+            try:
+                self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
+            except Exception:
+                self.log.error(str(document))
+                raise
 
     def filterSql(self):
         gateWay = self.mainEngine.getGateway('CTP')

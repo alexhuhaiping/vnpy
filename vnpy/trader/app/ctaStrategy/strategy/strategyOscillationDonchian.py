@@ -405,12 +405,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.atr == 0:
             return
 
-        try:
-            minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
-        except OverflowError:
-            self.log.error(u'{} {} {} {} '.format(self.stop, self.atr, self.stopLoss, self.size))
-            self.log.error(traceback.format_exc())
-
+        minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
 
         self.hands = min(minHands, self.maxHands)
 
@@ -428,6 +423,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         dic = super(OscillationDonchianStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
+        dic['openTag'] = int(dic['openTag'])
         return dic
 
     def loadCtaDB(self, document=None):
@@ -438,6 +434,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                     setattr(self, k, document[k])
                 except KeyError:
                     self.log.warning(u'未保存的key {}'.format(k))
+
+        self.openTag = bool(self.openTag)
 
     def updateStop(self):
         self.log.info(u'调整风险投入')
