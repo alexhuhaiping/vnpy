@@ -243,7 +243,8 @@ class CtaEngine(VtCtaEngine):
         orderList = []
         for orderID in self.strategyOrderDict[strategyName]:
             dic = self.vtOrderReqToShow.get(orderID)
-            orderList.append(dic)
+            if dic:
+                orderList.append(dic)
         return orderList
 
     def getAllStopOrdersSorted(self, vtSymbol):
