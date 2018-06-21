@@ -8,6 +8,7 @@
 
 from __future__ import division
 
+import traceback
 from collections import OrderedDict
 import arrow
 from threading import Timer
@@ -270,7 +271,8 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 当前无仓位，发送开仓委托
         if self.pos == 0:
-            if self.openTag:
+            if self.openTag and self.atr != 0:
+                # 封板时 atr 可能为0，此时不入场
                 # 滑点占盈利空间的比例要小于slippageRate
                 slippage = self.priceTick * 2
                 profile = self.stopProfile * self.atr
@@ -398,7 +400,15 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 以下技术指标为0时，不更新手数
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
-        minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+        if self.atr == 0:
+            return
+
+        try:
+            minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+        except OverflowError:
+            self.log.error(u'{} {} {} {} '.format(self.stop, self.atr, self.stopLoss, self.size))
+            self.log.error(traceback.format_exc())
+
 
         self.hands = min(minHands, self.maxHands)
 

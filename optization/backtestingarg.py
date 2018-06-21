@@ -259,8 +259,9 @@ class BacktestingArg(object):
         documents = []
         for c in contracts:
             # TODO 测试代码，先只测试螺纹
-            if c['underlyingSymbol'] != 'rb':
-                self.log.debug(u'只生成 hc 的参数')
+            symbol = 'rb'
+            if c['underlyingSymbol'] != symbol:
+                self.log.debug(u'只生成  {} 的参数'.format(symbol))
                 continue
 
             for a in strategyArgs:
