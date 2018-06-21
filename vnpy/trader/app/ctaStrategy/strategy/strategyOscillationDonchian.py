@@ -281,6 +281,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                     self.buy(self.longHigh, self.hands, True)
                     # 空单
                     self.short(self.longLow, self.hands, True)
+                else:
+                    self.log.info(u'atr过低不开仓')
         # 持有多头仓位
         elif self.pos > 0:
             if self.stopProfilePrice is None:
