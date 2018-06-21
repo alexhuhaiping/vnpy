@@ -611,12 +611,12 @@ class CtaEngine(VtCtaEngine):
 
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        return super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
 
     def saveTrade(self, dic):
         """
