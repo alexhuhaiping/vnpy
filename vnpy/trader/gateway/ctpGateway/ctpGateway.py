@@ -649,7 +649,7 @@ class svtCtpTdApi(TdApi):
         order.vtSymbol = order.symbol
         order.orderID = data['OrderRef']
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
-        order.vtOrderID = self.getVtOrderID(order.orderID)
+        order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
         order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
@@ -1075,7 +1075,7 @@ class svtCtpTdApi(TdApi):
         # 唯一可能出现OrderRef重复的情况是多处登录并在非常接近的时间内（几乎同时发单）
         # 考虑到VtTrader的应用场景，认为以上情况不会构成问题
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
-        order.vtOrderID = self.getVtOrderID(order.orderID)
+        order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
 
         order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
@@ -1111,7 +1111,7 @@ class svtCtpTdApi(TdApi):
 
         trade.orderID = data['OrderRef']
         # trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
-        trade.vtOrderID = self.getVtOrderID(trade.orderID)
+        trade.vtOrderID = self.getVtOrderID(trade.orderID, trade.symbol )
 
         # 方向
         trade.direction = directionMapReverse.get(data['Direction'], '')
@@ -1145,7 +1145,7 @@ class svtCtpTdApi(TdApi):
         order.vtSymbol = order.symbol
         order.orderID = data['OrderRef']
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
-        order.vtOrderID = self.getVtOrderID(order.orderID)
+        order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
         order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
@@ -1515,7 +1515,7 @@ class svtCtpTdApi(TdApi):
 
         # 返回订单号（字符串），便于某些算法进行动态管理
         # vtOrderID = '.'.join([self.gatewayName, str(self.orderRef)])
-        vtOrderID = self.getVtOrderID(str(self.orderRef))
+        vtOrderID = self.getVtOrderID(str(self.orderRef), orderReq.symbol)
         return vtOrderID
 
     # ----------------------------------------------------------------------
@@ -1551,9 +1551,9 @@ class svtCtpTdApi(TdApi):
 
         self.gateway.onLog(log)
 
-    def getVtOrderID(self, orderRef):
+    def getVtOrderID(self, orderRef,symbol):
         t = datetime.now().strftime('%Y-%m-%d %H:%M:%S+08:00')
-        vtOrderID = '.'.join([self.gatewayName, t, str(orderRef)])
+        vtOrderID = '.'.join([self.gatewayName, symbol, t, str(orderRef)])
         return vtOrderID
 
 
