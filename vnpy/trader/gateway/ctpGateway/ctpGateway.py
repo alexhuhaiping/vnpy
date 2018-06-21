@@ -1552,8 +1552,7 @@ class svtCtpTdApi(TdApi):
         self.gateway.onLog(log)
 
     def getVtOrderID(self, orderRef,symbol):
-        t = datetime.now().strftime('%Y-%m-%d %H:%M:%S+08:00')
-        vtOrderID = '.'.join([self.gatewayName, symbol, t, str(orderRef)])
+        vtOrderID = '.'.join([self.gatewayName, symbol, str(orderRef)])
         return vtOrderID
 
 
