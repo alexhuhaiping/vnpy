@@ -209,12 +209,14 @@ class CtaTemplate(vtCtaTemplate):
         super(CtaTemplate, self).onStart()
 
     def sendOrder(self, orderType, price, volume, stop=False):
-        log = u'orderType {}, price {}, volume {}, stop {}'.format(orderType, price, volume, stop)
+        log = u'pos{} orderType {}, price {}, volume {}, stop {}'.format(self.pos, orderType, price, volume, stop)
         if volume == 0:
             self.log.warning(u'订单量为0 {}'.format(log))
         else:
             self.log.info(log)
-        return super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
+        vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
+
+        return vtOrderIDs
 
     #     """
     #     保存成交单

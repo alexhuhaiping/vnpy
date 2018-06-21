@@ -1124,12 +1124,6 @@ class svtCtpTdApi(TdApi):
         trade.volume = data['Volume']
         trade.tradeTime = data['TradeTime']
 
-        log = u''
-        for k, v in trade.__dict__.items():
-            if k == 'rawData':
-                continue
-            log += u'{} {}\n'.format(k, v)
-        logging.info(log)
         # 推送
         self.gateway.onTrade(trade)
 
