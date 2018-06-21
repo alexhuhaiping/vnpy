@@ -282,7 +282,7 @@ class OscillationDonchianStrategy(CtaTemplate):
                     # 空单
                     self.short(self.longLow, self.hands, True)
                 else:
-                    self.log.info(u'atr过低不开仓')
+                    self.log.info(u'atr:{} 过低不开仓'.format(round(self.atr, 2)))
         # 持有多头仓位
         elif self.pos > 0:
             if self.stopProfilePrice is None:
@@ -355,9 +355,9 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        # log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
-        #                                       profile, self.rtBalance)
-        # self.log.warning(log)
+        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
+                                              profile, self.rtBalance)
+        self.log.warning(log)
 
         if self.pos == 0:
             # 重置止盈止损价格
