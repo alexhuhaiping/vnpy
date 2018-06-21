@@ -169,7 +169,7 @@ class CtaEngine(object):
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
         """发停止单（本地实现）"""
         self.stopOrderCount += 1
-        stopOrderID = STOPORDERPREFIX + str(self.stopOrderCount)
+        stopOrderID = STOPORDERPREFIX + u'{}.'.format(vtSymbol) + str(self.stopOrderCount)
 
         so = StopOrder()
         so.vtSymbol = vtSymbol
