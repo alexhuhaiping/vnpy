@@ -209,8 +209,8 @@ class CtaEngine(VtCtaEngine):
             # 遍历等待中的停止单，检查是否会被触发
             for so in self.getAllStopOrdersSorted(vtSymbol):
                 if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
-                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+                    longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 >= so.price  # 多头停止单被触发
+                    shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 <= so.price  # 空头停止单被触发
 
                     if longTriggered or shortTriggered:
                         # 买入和卖出分别以涨停跌停价发单（模拟市价单）
@@ -220,7 +220,11 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, price,
+                                                       so.volume)
+                        self.log.info(u'触发停止单 {}'.format(log))
+                        if so.volume != 0:
+                            self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
 
                         # 从活动停止单字典中移除该停止单
                         del self.workingStopOrderDict[so.stopOrderID]
@@ -625,11 +629,11 @@ class CtaEngine(VtCtaEngine):
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{}停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        self.log.info(u'{} 停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        self.log.info(u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
         vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
 
         contract = self.mainEngine.getContract(vtSymbol)
