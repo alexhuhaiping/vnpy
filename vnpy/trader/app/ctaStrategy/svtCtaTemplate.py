@@ -389,6 +389,10 @@ class CtaTemplate(vtCtaTemplate):
                 orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.preXminBar)
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
 
+            # 限价单 orders 里面是 odic，包含限价单的内容
+            orders = self.ctaEngine.getAllOrderToShow(self.name)
+            orderDic['order'] = pd.DataFrame(orders).to_html()
+
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
             units = [so.toHtml() for so in stopOrders]

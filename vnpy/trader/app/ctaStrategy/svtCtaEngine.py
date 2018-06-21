@@ -24,7 +24,7 @@ import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
 from threading import Thread, Timer
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -106,6 +106,8 @@ class CtaEngine(VtCtaEngine):
 
         # 维持心跳的品种
         self.heatbeatSymbols = []
+
+        self.vtOrderReqToShow = {}  # 用于展示的限价单对象
 
         if __debug__:
             import pymongo.collection
@@ -231,6 +233,18 @@ class CtaEngine(VtCtaEngine):
                         # 更新停止单状态，并通知策略
                         so.status = STOPORDER_TRIGGERED
                         so.strategy.onStopOrder(so)
+
+    def getAllOrderToShow(self, strategyName):
+        """
+
+        :param vtSymbol:
+        :return:
+        """
+        orderList = []
+        for orderID in self.strategyOrderDict[strategyName]:
+            dic = self.vtOrderReqToShow.get(orderID)
+            orderList.append(dic)
+        return orderList
 
     def getAllStopOrdersSorted(self, vtSymbol):
         """
@@ -609,14 +623,23 @@ class CtaEngine(VtCtaEngine):
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
 
-
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
         self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+        for vtOrderID in vtOrderIDList:
+            odic = OrderedDict((
+                ('vtOrderID', vtOrderID),
+                ('vtSymbol', vtSymbol),
+                ('orderType', orderType),
+                ('price', price),
+                ('volume', volume),
+            ))
+            self.vtOrderReqToShow[vtOrderID] = odic
+        return vtOrderIDList
 
     def saveTrade(self, dic):
         """
