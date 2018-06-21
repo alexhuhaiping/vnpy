@@ -110,9 +110,15 @@ class DrEngine(object):
 
         # 检查是否已经存在合约
         oldContract = collection.find_one({'vtSymbol': vtSymbol}, {'_id': 0})
+        is_tradingtime, tradeday = tt.get_tradingday(arrow.now().datetime)
         if not oldContract:
             # 尚未存在新合约,保存
+            data['startDate'] = tradeday
+            data['endDate'] = tradeday
             collection.insert_one(data)
+        else:
+            # 已经存在的合约，更新 endDate
+            collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': tradeday}})
 
         if not oldContract or oldContract.get('marginRate') is None:
             # 尚未更新保证金率
