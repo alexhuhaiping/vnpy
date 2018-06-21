@@ -631,15 +631,20 @@ class CtaEngine(VtCtaEngine):
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
         vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+
+        contract = self.mainEngine.getContract(vtSymbol)
+        _price = self.roundToPriceTick(contract.priceTick, price)
         for vtOrderID in vtOrderIDList:
             odic = OrderedDict((
                 ('vtOrderID', vtOrderID),
                 ('vtSymbol', vtSymbol),
                 ('orderType', orderType),
-                ('price', price),
+                ('price', _price),
                 ('volume', volume),
             ))
+            self.log.info(str(odic))
             self.vtOrderReqToShow[vtOrderID] = odic
+
         return vtOrderIDList
 
     def saveTrade(self, dic):
