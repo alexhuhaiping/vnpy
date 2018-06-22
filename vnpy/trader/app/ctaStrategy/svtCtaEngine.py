@@ -220,7 +220,7 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, price,
+                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, so.price,
                                                        so.volume)
                         self.log.info(u'触发停止单 {}'.format(log))
                         if so.volume != 0:
@@ -634,7 +634,17 @@ class CtaEngine(VtCtaEngine):
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         self.log.info(u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
-        vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+        vtOrderIDList = []
+        count = 0
+        while not vtOrderIDList and count < 5:
+            count += 1
+            vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+            if not vtOrderIDList:
+                self.log.info(u'下限价单失败 {} 次'.format(count))
+                time.sleep(1)
+
+        if not vtOrderIDList:
+            self.log.warning(u'vtOrderID 为空，检查是否有限价单无法自动撤单')
 
         contract = self.mainEngine.getContract(vtSymbol)
         _price = self.roundToPriceTick(contract.priceTick, price)
@@ -646,7 +656,6 @@ class CtaEngine(VtCtaEngine):
                 ('price', _price),
                 ('volume', volume),
             ))
-            self.log.info(str(odic))
             self.vtOrderReqToShow[vtOrderID] = odic
 
         return vtOrderIDList
@@ -794,3 +803,17 @@ class CtaEngine(VtCtaEngine):
             datas.append(dic)
 
         return datas
+
+    def cancelOrder(self, vtOrderID):
+        self.log.info(u'撤限价单 {}'.format(vtOrderID))
+        req = super(CtaEngine, self).cancelOrder(vtOrderID)
+        if req is not None:
+            self.log.info(u'{} orderID:{}'.format(req.symbol, req.orderID))
+        return req
+
+    def cancelStopOrder(self, stopOrderID):
+        """撤销停止单"""
+        self.log.info(u'撤停止单')
+        so = super(CtaEngine, self).cancelStopOrder(stopOrderID)
+        if so:
+            self.log.info(u'{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))

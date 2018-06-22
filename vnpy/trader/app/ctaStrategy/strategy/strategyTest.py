@@ -46,7 +46,7 @@ class TestStrategy(CtaTemplate):
         super(TestStrategy, self).__init__(ctaEngine, setting)
 
     def initMaxBarNum(self):
-        self.maxBarNum = 60
+        self.maxBarNum = 200
 
     # ----------------------------------------------------------------------
 
@@ -90,25 +90,6 @@ class TestStrategy(CtaTemplate):
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
-
-        if self.xminBar and self.am and self.inited and self.trading:
-            if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
-                # 已经进入连续竞价的阶段，直接下单
-                self.log.info(u'已经处于连续竞价阶段')
-                self._orderOnStart()
-            else:  # 还没进入连续竞价，使用一个定时器
-                self.log.info(u'尚未开始连续竞价')
-                moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
-                wait = (moment - arrow.now().datetime).total_seconds()
-                self.log.info(u'{} 后开始下停止单'.format(wait))
-
-        wait = moment - arrow.now().datetime
-        self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
-
-        if not self.isBackTesting():
-            # 实盘，可以存库。
-            self.saving = True
-
         self.putEvent()
 
     # ----------------------------------------------------------------------

@@ -81,6 +81,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
 
+        self.ordering = False # 正处于下单中的标记为
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -137,15 +138,16 @@ class OscillationDonchianStrategy(CtaTemplate):
                 if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
                     # 已经进入连续竞价的阶段，直接下单
                     self.log.info(u'已经处于连续竞价阶段')
-                    self._orderOnStart()
+                    waistSeconds = 5
                 else:  # 还没进入连续竞价，使用一个定时器
                     self.log.info(u'尚未开始连续竞价')
                     moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
                     wait = (moment - arrow.now().datetime)
+                    waistSeconds = wait.total_seconds() - 2
                     self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
-                    # 提前2秒下停止单
-                    Timer(wait.total_seconds() - 2, self._orderOnStart).start()
+                # 提前2秒下停止单
+                Timer(waistSeconds, self._orderOnStart).start()
             else:
                 self.log.warning(
                     u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
@@ -160,7 +162,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         在onStart中的下单
         :return:
         """
-        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
     # ----------------------------------------------------------------------
@@ -205,9 +206,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         :return:
         """
         bar = xminBar
-
-        # 全撤之前发出的委托
-        self.cancelAll()
 
         # 保存K线数据
         am = self.am
@@ -262,6 +260,14 @@ class OscillationDonchianStrategy(CtaTemplate):
         if not self.trading:
             self.log.warn(u'不能下单 trading: False')
             return
+
+        if self.ordering:
+            self.log.info(u'正处于下单中')
+            return
+        self.ordering = True
+
+        # 下单前先撤单
+        self.cancelAll()
 
         # 计算开仓仓位
         self.updateHands()
@@ -378,7 +384,6 @@ class OscillationDonchianStrategy(CtaTemplate):
                     self.openReset = trade.price + self.atr
 
         # 成交后重新下单
-        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件

@@ -21,6 +21,7 @@ from __future__ import division
 import logging
 import json
 import os
+import time
 import traceback
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -163,7 +164,7 @@ class CtaEngine(object):
                 req.sessionID = order.sessionID
                 req.orderID = order.orderID
                 self.mainEngine.cancelOrder(req, order.gatewayName)
-
+                return req
                 # ----------------------------------------------------------------------
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
@@ -226,7 +227,7 @@ class CtaEngine(object):
             
             # 通知策略
             strategy.onStopOrder(so)
-
+            return so
     # ----------------------------------------------------------------------
     def processStopOrder(self, tick):
         """收到行情后处理本地停止单（检查是否要立即发出）"""
@@ -473,6 +474,7 @@ class CtaEngine(object):
                 # 对该策略发出的所有限价单进行撤单
                 for vtOrderID, s in self.orderStrategyDict.items():
                     if s is strategy:
+                        time.sleep(0.2)
                         self.cancelOrder(vtOrderID)
 
                 # 对该策略发出的所有本地停止单撤单

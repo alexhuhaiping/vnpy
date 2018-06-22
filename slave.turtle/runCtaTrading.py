@@ -15,8 +15,8 @@ from vnpy.trader.app import riskManager
 from vnpy.trader.vtFunction import exception, getJsonPath
 
 
-def runChildProcess():
-    """子进程运行函数"""
+def main():
+    """主函数"""
 
     # 读取日志配置文件
     loggingConFile = 'logging.conf'
@@ -72,9 +72,9 @@ def runChildProcess():
 
 if __name__ == '__main__':
     try:
-        runChildProcess()
+        main()
     except Exception:
-        logger = logging.getLogger('root')
+        logger = logging.getLogger()
         err = traceback.format_exc()
         print(err)
         logger.critical(err)

@@ -547,10 +547,6 @@ class CtaTemplate(vtCtaTemplate):
     # def isNewBar(self):
     #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
-    def stop(self):
-        # 执行停止策略
-        self.ctaEngine.stopStrategy(self)
-
     def loadCtaDB(self, document):
         if not document:
             return

@@ -58,33 +58,6 @@ def short():
     s.log.debug(u'下单完成 {}'.format(price))
 
 
-def buy():
-    s = getStrategy(vtSymbol)
-    s.log.debug(u'测试 buy')
-    # s.pos = -15
-
-    price = s.bm.lastTick.lastPrice - 1
-    volume = 1
-    stop = True
-
-    s.buy(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
-
-
-def sell():
-    s = getStrategy(vtSymbol)
-    # s.pos = -15
-    s.sell(s.bm.bar.close, 20, True)
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
-
-
-def showStopOrder():
-    # s = getStrategy(vtSymbol)
-    for os in ce.stopOrderDict.values():
-        print(os.toHtml())
-
-
 def showLastTick():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bm.lastTick.datetime))
@@ -184,7 +157,48 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-vtSymbol = 'rb1810'
+def sell():
+    s = getStrategy(vtSymbol)
+
+    # s.log.info(u'{}'.format(vtSymbol))
+    # s.pos = -15
+    price = s.bm.bar.close + s.priceTick * 2
+    s.sell(price, 2, False)
+    s.log.debug(u'下单完成 {}'.format(price))
+
+
+def buy():
+    s = getStrategy(vtSymbol)
+    s.log.debug(u'测试 buy')
+    # s.pos = -15
+
+    price = s.bm.lastTick.lastPrice - 1
+    volume = 1
+    stop = True
+
+    s.buy(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
+
+
+def showStopOrder():
+    s = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
+    for os in ce.stopOrderDict.values():
+        if os.direction == u'多' and os.status == u'等待中':
+            os.price = 3860
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
+
+def cancelOrder():
+    s = getStrategy(vtSymbol)
+    s.cancelAll()
+
+vtSymbol = 'hc1810'
 
 
 def run():
@@ -192,6 +206,7 @@ def run():
     load()
     me.log.info('====================================================')
 
+    cancelOrder()
     # checkPosition()
     # buy()
 
@@ -204,7 +219,7 @@ def run():
     # showStopOrder()
     # closeout()
     # sell()
-    short()
+    # short()
     # cover()
     # checkHands(me)
 
