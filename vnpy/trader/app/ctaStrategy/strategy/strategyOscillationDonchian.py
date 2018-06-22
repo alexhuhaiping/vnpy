@@ -33,7 +33,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     longBar = 20
     stopProfile = 1
     stopLoss = 4
-    slippageRate = 0.2  # 滑点占盈利空间的比例
+    slippageRate = 1/0.2  # 盈利空间和滑点的比例
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
@@ -271,12 +271,12 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 当前无仓位，发送开仓委托
         if self.pos == 0:
-            if self.openTag and self.atr != 0:
+            if self.openTag:
                 # 封板时 atr 可能为0，此时不入场
                 # 滑点占盈利空间的比例要小于slippageRate
                 slippage = self.priceTick * 2
                 profile = self.stopProfile * self.atr
-                if slippage / profile <= self.slippageRate:
+                if profile / slippage >= self.slippageRate:
                     # 开单
                     self.buy(self.longHigh, self.hands, True)
                     # 空单

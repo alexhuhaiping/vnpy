@@ -52,7 +52,7 @@ if __name__ == '__main__':
         'risk': 0.1
     }
     setting.update({
-        'slippageRate': 0.2,
+        'slippageRate': 1/0.2,
         'longBar': 20,
         'stopProfile': 1,
         'stopLoss': 3,
