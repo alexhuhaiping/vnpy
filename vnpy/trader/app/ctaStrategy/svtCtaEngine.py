@@ -788,6 +788,9 @@ class CtaEngine(VtCtaEngine):
     def accountToHtml(self):
         datas = []
         for account in self.accounts.values():
-            datas.append(account.__dict__)
+            dic = account.__dict__.copy()
+            if dic['balance'] != 0:
+                dic['marginRate'] = dic['margin'] / dic['balance']
+            datas.append(dic)
 
         return datas
