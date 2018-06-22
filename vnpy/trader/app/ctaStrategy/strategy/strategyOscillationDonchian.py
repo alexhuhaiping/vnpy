@@ -52,6 +52,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
+        'slippageRate',
         'longBar',
         'stopProfile',
         'stopLoss',
@@ -282,7 +283,7 @@ class OscillationDonchianStrategy(CtaTemplate):
                     # 空单
                     self.short(self.longLow, self.hands, True)
                 else:
-                    self.log.info(u'atr:{} 过低不开仓'.format(round(self.atr, 2)))
+                    self.log.info(u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
         # 持有多头仓位
         elif self.pos > 0:
             if self.stopProfilePrice is None:
