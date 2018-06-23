@@ -190,7 +190,8 @@ class CtpGateway(VtGateway):
         """初始化连续查询"""
         if self.qryEnabled:
             # 需要循环的查询函数列表
-            self.qryFunctionList = [self.qryAccount, self.qryPosition]
+            # self.qryFunctionList = [self.qryAccount, self.qryPosition]
+            self.qryFunctionList = [lambda :None]
 
             self.qryCount = 0  # 查询触发倒计时
             self.qryTrigger = 2  # 查询触发点
@@ -894,6 +895,7 @@ class CtpTdApi(TdApi):
         contract.underlyingSymbol = data['UnderlyingInstrID']
 
         contract.productClass = productClassMapReverse.get(data['ProductClass'], PRODUCT_UNKNOWN)
+        contract.last = last # 是否最后一条合约
 
         # 期权类型
         if data['OptionsType'] == '1':

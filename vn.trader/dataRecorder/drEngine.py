@@ -60,8 +60,10 @@ class DrEngine(object):
         self.thread = Thread(target=self.run)  # 线程
 
         # 启动标志
-        self._subcribeNum = 0
         self.startReport = False
+
+        # 加载全部合约完毕
+        self.loadContractDone = False
 
         self.threadUpdateContractDetail = Thread(target=self.updateContractDetail)
         # 待更新保证金队列
@@ -81,6 +83,14 @@ class DrEngine(object):
         :return:
         """
         contract = event.dict_['data']
+
+        if contract.last:
+            # 汇报启动
+            self.startReport = True
+            self.mainEngine.slavemReport.lanuchReport()
+            self.loadContractDone = True
+            self.log.info(u'加载合约完成')
+
         if contract.productClass != u'期货':
             return
         vtSymbol = symbol = contract.symbol
@@ -120,18 +130,10 @@ class DrEngine(object):
             # 已经存在的合约，更新 endDate
             collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': tradeday}})
 
-        if not oldContract or oldContract.get('marginRate') is None:
-            # 尚未更新保证金率
-            self.marginRateBySymbol[vtSymbol] = None
-        if not oldContract or oldContract.get('openRatioByMoney') is None:
-            # 尚未更新手续费
-            self.vtCommissionRateBySymbol[vtSymbol] = None
-
-        self._subcribeNum += 1
-        if not self.startReport and self._subcribeNum > 400:
-            # 汇报启动
-            self.startReport = True
-            self.mainEngine.slavemReport.lanuchReport()
+        # 尚未更新保证金率
+        self.marginRateBySymbol[vtSymbol] = None
+        # 尚未更新手续费
+        self.vtCommissionRateBySymbol[vtSymbol] = None
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
@@ -267,11 +269,11 @@ class DrEngine(object):
                 #     self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
                 barText = text.BAR_LOGGING_MESSAGE.format(symbol=bar.vtSymbol,
-                                                time=bar.time,
-                                                open=bar.open,
-                                                high=bar.high,
-                                                low=bar.low,
-                                                close=bar.close)
+                                                          time=bar.time,
+                                                          open=bar.open,
+                                                          high=bar.high,
+                                                          low=bar.low,
+                                                          close=bar.close)
                 self.log.debug(barText)
                 self.writeDrLog(barText)
             bar.tickNew(drTick)
@@ -373,7 +375,6 @@ class DrEngine(object):
             # colleciton contract 还未创建,先创建
             self.mainEngine.dbClient[MINUTE_DB_NAME].create_collection(CONTRACT_INFO_COLLECTION_NAME)
 
-
         collection = self.mainEngine.dbClient[MINUTE_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
 
         indexDic = collection.index_information()
@@ -414,31 +415,20 @@ class DrEngine(object):
         将保证金率更新到合约中
         :return:
         """
-        beginTime = datetime.datetime.now()
-        turn = 1
+        self.log.info(u'开始更新保证金')
         while self.active:
-            while not self.marginRateBySymbol:
+            while not self.loadContractDone:
                 time.sleep(1)
-                now = datetime.datetime.now()
-                if now - beginTime > datetime.timedelta(minutes=1):
-                    # 超过10分钟没有新增合约，退出
-                    return
 
-            self.log.info(u'更新保证金率第 {} 轮 {} 个合约'.format(turn, len(self.marginRateBySymbol)))
-            turn += 1
+            self.log.info(u'更新保证金率 {} 个合约'.format(len(self.marginRateBySymbol)))
             for symbol, marginRate in list(self.marginRateBySymbol.items()):
-                if marginRate is not None:
-                    # 已经获取到了保证金率
-                    self.marginRateBySymbol.pop(symbol)
-                    continue
-
-                count = 0
-                while self.marginRateBySymbol[symbol] is None:
-                    if count % 12 == 0:
-                        self.log.info(u'尝试获取 {} 的保证金率'.format(symbol))
-                        self.mainEngine.qryMarginRate('CTP', symbol)
-                    count += 1
-                    time.sleep(0.1)
+                if marginRate is None:
+                    time.sleep(1.1)
+                    self.log.info(u'尝试获取 {} 的保证金率'.format(symbol))
+                    self.mainEngine.qryMarginRate('CTP', symbol)
+            else:
+                # 全部品种都已经获得保证金
+                break
 
     def updateMariginRate(self, event):
         """
@@ -453,8 +443,8 @@ class DrEngine(object):
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
         self.log.info(u'更新保证金 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
 
-        collection.find_one_and_update({'vtSymbol': marginRate.vtSymbol},
-                                       {'$set': {'marginRate': marginRate.marginRate}})
+        collection.update_one({'vtSymbol': marginRate.vtSymbol},
+                              {'$set': {'marginRate': marginRate.marginRate}})
 
     def updateCommissionRate(self, event):
         """
@@ -471,7 +461,8 @@ class DrEngine(object):
                 return
             elif vtSymbol.startswith(vtCr.underlyingSymbol):
                 # 返回 rb ,合约没有变动
-                self.vtCommissionRateBySymbol[vtSymbol] = vtCr
+                if self.vtCommissionRateBySymbol[vtSymbol] is None:
+                    self.vtCommissionRateBySymbol[vtSymbol] = vtCr
                 return
             else:
                 pass
@@ -481,53 +472,41 @@ class DrEngine(object):
         将向后续费率更新到合约中
         :return:
         """
-        beginTime = datetime.datetime.now()
-        turn = 1
-
         while self.active:
-            while not self.vtCommissionRateBySymbol:
+            self.log.info(u'更新手续费率')
+
+            while not self.loadContractDone:
                 time.sleep(1)
-                now = datetime.datetime.now()
-                if now - beginTime > datetime.timedelta(minutes=1):
-                    # 超过10分钟没有新增合约，退出
-                    return
 
-            self.log.info(u'更新手续费率第 {} 轮'.format(turn))
-            turn += 1
-            for symbol, marginRate in list(self.vtCommissionRateBySymbol.items()):
-                if marginRate is not None:
-                    # 已经获取到了保证金率
-                    self.vtCommissionRateBySymbol.pop(symbol)
-                    continue
+            for symbol, rate in list(self.vtCommissionRateBySymbol.items()):
+                if rate is None:
+                    self.log.info(u'尝试获取 {} 的手续费率'.format(symbol))
+                    self.mainEngine.qryCommissionRate('CTP', symbol)
+                    time.sleep(1.1)
+            else:
+                # 已经全部获取到了手续费
+                break
 
-                count = 0
-                # 由于手续费率返回的值可能会更新到其他同品种合约，所以加载之前需要重置
-                self.vtCommissionRateBySymbol[symbol] = None
+        self.log.info(u'更新保证金到数据库')
+        collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
+        for symbol, vtCr in self.vtCommissionRateBySymbol.items():
+            if vtCr is None:
+                # 为什么而这里会是None
+                continue
+            # TODO 将手续费保存到合约中
+            setting = {
+                'openRatioByMoney': vtCr.openRatioByMoney,
+                'closeRatioByMoney': vtCr.closeRatioByMoney,
+                'closeTodayRatioByMoney': vtCr.closeTodayRatioByMoney,
 
-                while self.vtCommissionRateBySymbol[symbol] is None:
-                    if count % 12 == 0:
-                        self.log.info(u'尝试获取 {} 的手续费率'.format(symbol))
-                        self.mainEngine.qryCommissionRate('CTP', symbol)
-                    count += 1
-                    time.sleep(0.1)
+                'openRatioByVolume': vtCr.openRatioByVolume,
+                'closeRatioByVolume': vtCr.closeRatioByVolume,
+                'closeTodayRatioByVolume': vtCr.closeTodayRatioByVolume,
 
-                # 将手续费保存到合约中
-                vtCr = self.vtCommissionRateBySymbol.pop(symbol)
-                # 保存到数据库
-                collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
-                setting = {
-                    'openRatioByMoney': vtCr.openRatioByMoney,
-                    'closeRatioByMoney': vtCr.closeRatioByMoney,
-                    'closeTodayRatioByMoney': vtCr.closeTodayRatioByMoney,
-
-                    'openRatioByVolume': vtCr.openRatioByVolume,
-                    'closeRatioByVolume': vtCr.closeRatioByVolume,
-                    'closeTodayRatioByVolume': vtCr.closeTodayRatioByVolume,
-
-                }
-
-                collection.find_one_and_update({'vtSymbol': symbol}, {'$set': setting})
+            }
+            # 将手续费保存到合约中
+            collection.update_one({'vtSymbol': symbol}, {'$set': setting})
 
     def updateContractDetail(self):
-        self.getMarginRate()
         self.getCommissionRate()
+        self.getMarginRate()
