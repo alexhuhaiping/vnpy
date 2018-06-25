@@ -135,6 +135,8 @@ class CtaEngine(object):
             return vtOrderIDList
         
         for convertedReq in reqList:
+            if convertedReq.volume == 0:
+                continue
             vtOrderID = self.mainEngine.sendOrder(convertedReq, contract.gatewayName)    # 发单
             self.orderStrategyDict[vtOrderID] = strategy                                 # 保存vtOrderID和策略的映射关系
             self.strategyOrderDict[strategy.name].add(vtOrderID)                         # 添加到策略委托号集合中
