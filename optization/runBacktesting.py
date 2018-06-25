@@ -47,21 +47,20 @@ if __name__ == '__main__':
     vtSymbol = 'rb1805'
     setting = {
         'vtSymbol': vtSymbol,
-        'capital': 100000,
-        'barXmin': 10,
-        'risk': 0.1
+        'capital': 50000,
+        'risk': 0.1,
+
     }
     setting.update({
-        'slippageRate': 1/0.2,
-        'longBar': 20,
-        'stopProfile': 1,
-        'stopLoss': 3,
+        'barXmin': 30,
+        'atrNum':15,
+        'atrChannel':2,
     })
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
         setting=setting,
-        strategyClass='OscillationDonchianStrategy',
+        strategyClass='OscillationAtrChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
         isOutputResult=True,

@@ -24,38 +24,27 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class OscillationDonchianStrategy(CtaTemplate):
+class OscillationAtrChannelStrategy(CtaTemplate):
     """震荡策略"""
-    className = 'OscillationDonchianStrategy'
+    className = 'OscillationAtrChannelStrategy'
     author = u'lamter'
 
     # 策略参数
-    longBar = 20
-    stopProfile = 1
-    stopLoss = 4
-    slippageRate = 1/0.2  # 盈利空间和滑点的比例
+    atrNum = 14  # atr 长度
+    atrOpenChannel = 1.5  # 通道大小
+    atrCloseChannel = 2  # 通道大小
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
 
     # 策略变量
-    longHigh = 0  # 大周期高点
-    longLow = 0  # 大周期低点
-    middle = 0  # 大周期中线
-    atr = 0  # ATR
-    stopProfilePrice = None  # 止盈价格
-    stopLossPrice = None  # 止损价格
-    stop = None  # 止损投入
-    openTag = True  # 是否可以开仓
-    openReset = None  # 开仓重置信号
+    atr = 0  # atr指标
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
-        'slippageRate',
-        'longBar',
-        'stopProfile',
-        'stopLoss',
+        'atrNum',
+        'atrChannel',
         'initDays',
         'fixedSize',
         'risk',
@@ -64,29 +53,22 @@ class OscillationDonchianStrategy(CtaTemplate):
     # 变量列表，保存了变量的名称
     _varList = [
         'hands',
-        'openTag',
-        'openReset',
-        'longHigh',
-        'middle',
-        'longLow',
         'atr',
-        'stopProfilePrice',
-        'stopLossPrice',
-        'stop',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
+        super(OscillationAtrChannelStrategy, self).__init__(ctaEngine, setting)
 
-        self.ordering = False # 正处于下单中的标记为
+        self.stop = None # 止损额度
+        self.light = False # 轻仓
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
     def initMaxBarNum(self):
-        self.maxBarNum = self.longBar * 2
+        self.maxBarNum = self.atrNum * 2
 
     # ----------------------------------------------------------------------
     def onInit(self):
@@ -190,13 +172,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.closeout()
 
-        if not self.openTag:
-            # 尝试重置开仓标记位
-            if self.prePos > 0:
-                self.openTag = bar.close <= self.openReset
-            else:
-                self.openTag = bar.close >= self.openReset
-
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
         """
@@ -215,31 +190,11 @@ class OscillationDonchianStrategy(CtaTemplate):
         if not am.inited:
             return
 
-        # 计算指标数值
-        # 通道内第二高点
-        # highs = [i for i in am.high[-self.longBar:]]
-        # highs.sort()
-        # self.longHigh = highs[-2]
-        # lows = [i for i in am.low[-self.longBar:]]
-        # lows.sort()
-        # self.longLow = lows[1]
-
         # 通道内最高点
-        self.longHigh, self.longLow = am.donchian(self.longBar)
+        self.atr = am.atr(self.atrNum)
 
-        # 通道中线
-        self.middle = (self.longHigh + self.longLow) / 2
-        self.atr = am.atr(self.longBar)
-
-        if not self.openTag:
-            if self.prePos > 0:
-                if bar.close < bar.open and bar.high - bar.low > self.atr * 0.5:
-                    self.openTag = True
-                self.openReset = max(self.openReset, self.xminBar.high - self.atr * 0.5)
-            else:
-                if bar.close > bar.open and bar.high - bar.low > self.atr * 0.5:
-                    self.openTag = True
-                self.openReset = min(self.openReset, self.xminBar.low + self.atr * 0.5)
+        self.atrUpper = bar.close + self.atr * self.atrOpenChannel
+        self.atrDowner = bar.close - self.atr * self.atrOpenChannel
 
         if self.trading:
             # self.log.warning(str(bar.datetime))
@@ -261,11 +216,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.warn(u'不能下单 trading: False')
             return
 
-        if self.ordering:
-            self.log.info(u'正处于下单中')
-            return
-        self.ordering = True
-
         # 下单前先撤单
         self.cancelAll()
 
@@ -277,46 +227,19 @@ class OscillationDonchianStrategy(CtaTemplate):
             return
 
         # 当前无仓位，发送开仓委托
-        if self.pos == 0:
-            if self.openTag:
-                # 封板时 atr 可能为0，此时不入场
-                # 滑点占盈利空间的比例要小于slippageRate
-                slippage = self.priceTick * 2
-                profile = self.stopProfile * self.atr
-                if profile / slippage >= self.slippageRate:
-                    # 开单
-                    self.buy(self.longHigh, self.hands, True)
-                    # 空单
-                    self.short(self.longLow, self.hands, True)
-                else:
-                    self.log.info(u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
+        if self.pos == 0 :
+            self.buy(self.atrUpper, self.hands, stop=True)
+            self.short(self.atrDowner, self.hands, stop=True)
+
         # 持有多头仓位
         elif self.pos > 0:
-            if self.stopProfilePrice is None:
-                # 止盈价格
-                self.stopProfilePrice = self.averagePrice + self.stopProfile * self.atr
-            if self.stopLossPrice is None:
-                # 止损价格
-                self.stopLossPrice = self.averagePrice - self.stopLoss * self.atr
-
-            # 止盈单
-            self.sell(self.stopProfilePrice, abs(self.pos), False)
-            # 止损单
-            self.sell(self.stopLossPrice, abs(self.pos), True)
+            self.sell(self.atrDowner, abs(self.pos), True)
+            self.short(self.atrDowner, self.hands, stop=True)
 
         # 持有空头仓位
         elif self.pos < 0:
-            if self.stopProfilePrice is None:
-                self.stopProfilePrice = self.averagePrice - self.stopProfile * self.atr
-
-            if self.stopLossPrice is None:
-                self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
-            # 止盈单
-            self.cover(self.stopProfilePrice, abs(self.pos), False)
-            # 止损单
-            self.cover(self.stopLossPrice, abs(self.pos), True)
-
-        self.ordering = False
+            self.cover(self.atrUpper, abs(self.pos), True)
+            self.buy(self.atrUpper, self.hands, stop=True)
 
     # ----------------------------------------------------------------------
     def onOrder(self, order):
@@ -364,26 +287,15 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
+        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), self.pos, trade.direction, trade.offset, trade.price, trade.volume,
                                               profile, self.rtBalance)
         self.log.warning(log)
-
         if self.pos == 0:
-            # 重置止盈止损价格
-            self.stopLossPrice = None
-            self.stopProfilePrice = None
-
-            if profile < 0:
-                self.updateStop()
-
             if profile > 0:
-                # 盈利，设置信号
-                self.openTag = False
-                # 计算重置开仓信号
-                if self.prePos > 0:
-                    self.openReset = trade.price - self.atr
-                else:
-                    self.openReset = trade.price + self.atr
+                # 盈利，轻仓
+                self.light = True
+            else:
+                self.light = False
 
         # 成交后重新下单
         self.orderOnXminBar(self.xminBar)
@@ -413,9 +325,11 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.atr == 0:
             return
 
-        minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+        self.hands = int(self.capital * .6 / self.bar.close)
 
-        self.hands = min(minHands, self.maxHands)
+        if self.light:
+            self.hands = 1
+            return
 
     @property
     def maxHands(self):
@@ -428,14 +342,14 @@ class OscillationDonchianStrategy(CtaTemplate):
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(OscillationDonchianStrategy, self).toSave()
+        dic = super(OscillationAtrChannelStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         dic['openTag'] = int(dic['openTag'])
         return dic
 
     def loadCtaDB(self, document=None):
-        super(OscillationDonchianStrategy, self).loadCtaDB(document)
+        super(OscillationAtrChannelStrategy, self).loadCtaDB(document)
         if document:
             for k in self._varList:
                 try:

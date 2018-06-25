@@ -352,7 +352,7 @@ if __name__ == '__main__':
     optfile = 'optimize.ini'
 
     # home 配置
-    # argFileName = 'opt_CCI_SvtBollChannel.json'
+    # argFileName = 'opt_oscillationDonchian.json'
     # optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))

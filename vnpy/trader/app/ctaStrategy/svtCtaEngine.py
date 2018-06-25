@@ -806,6 +806,10 @@ class CtaEngine(VtCtaEngine):
 
     def cancelOrder(self, vtOrderID):
         self.log.info(u'撤限价单 {}'.format(vtOrderID))
+        try:
+            self.vtOrderReqToShow.pop(vtOrderID)
+        except KeyError:
+            pass
         req = super(CtaEngine, self).cancelOrder(vtOrderID)
         if req is not None:
             self.log.info(u'{} orderID:{}'.format(req.symbol, req.orderID))

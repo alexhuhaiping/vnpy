@@ -198,6 +198,16 @@ def cancelOrder():
     s = getStrategy(vtSymbol)
     s.cancelAll()
 
+
+def orderToShow():
+    for order in ce.vtOrderReqToShow.values():
+        log = u''
+        for k, v in order.__dict__.items():
+            log += u'{}:{} '.format(k, v)
+
+        print(log)
+
+
 vtSymbol = 'hc1810'
 
 
@@ -205,8 +215,8 @@ def run():
     return
     load()
     me.log.info('====================================================')
-
-    cancelOrder()
+    orderToShow()
+    # cancelOrder()
     # checkPosition()
     # buy()
 
