@@ -6,6 +6,7 @@
 使用DR_setting.json来配置需要收集的合约，以及主力合约代码。
 '''
 
+import traceback
 import logging
 import copy
 import json
@@ -417,8 +418,9 @@ class DrEngine(object):
         """
         self.log.info(u'开始更新保证金')
         while self.active:
-            while not self.loadContractDone:
+            if not self.loadContractDone:
                 time.sleep(1)
+                continue
 
             self.log.info(u'更新保证金率 {} 个合约'.format(len(self.marginRateBySymbol)))
             for symbol, marginRate in list(self.marginRateBySymbol.items()):
@@ -428,7 +430,11 @@ class DrEngine(object):
                     self.mainEngine.qryMarginRate('CTP', symbol)
             else:
                 # 全部品种都已经获得保证金
+                self.log.info(u'全部品种都已经获得保证金')
                 break
+        else:
+            self.log.info(u'服务停止')
+            return
 
     def updateMariginRate(self, event):
         """
@@ -454,46 +460,45 @@ class DrEngine(object):
         """
         vtCr = event.dict_['data']
 
-        for vtSymbol in list(self.vtCommissionRateBySymbol.keys()):
-            if vtCr.underlyingSymbol == vtSymbol:
-                # 返回 rb1801, 合约有变动，强制更新
-                self.vtCommissionRateBySymbol[vtSymbol] = vtCr
-                return
-            elif vtSymbol.startswith(vtCr.underlyingSymbol):
-                # 返回 rb ,合约没有变动
-                if self.vtCommissionRateBySymbol[vtSymbol] is None:
+        if vtCr.underlyingSymbol in self.vtCommissionRateBySymbol:
+            # 手续费有变动，强制更新
+            self.vtCommissionRateBySymbol[vtCr.underlyingSymbol] = vtCr
+        else:
+            # 手续费没有变动，全部该品种更新
+            for vtSymbol, rate in list(self.vtCommissionRateBySymbol.items()):
+                if rate is None and vtSymbol.startswith(vtCr.underlyingSymbol):
+                    # 对于有变动的品种，不做更新
                     self.vtCommissionRateBySymbol[vtSymbol] = vtCr
-                return
-            else:
-                pass
 
     def getCommissionRate(self):
         """
         将向后续费率更新到合约中
         :return:
         """
-        while self.active:
-            self.log.info(u'更新手续费率')
+        self.log.info(u'等待手续费率')
+        while not self.loadContractDone and self.active:
+            time.sleep(1)
+        self.log.info(u'开始更新手续费')
 
-            while not self.loadContractDone:
-                time.sleep(1)
-
-            for symbol, rate in list(self.vtCommissionRateBySymbol.items()):
-                if rate is None:
-                    self.log.info(u'尝试获取 {} 的手续费率'.format(symbol))
-                    self.mainEngine.qryCommissionRate('CTP', symbol)
-                    time.sleep(1.1)
+        dic = self.vtCommissionRateBySymbol
+        for symbol in list(dic.keys()):
+            if self.active:
+                self.log.info(u'查询 {} 手续费'.format(symbol))
+                self.mainEngine.qryCommissionRate('CTP', symbol)
+                time.sleep(1.1)
             else:
-                # 已经全部获取到了手续费
-                break
+                # 服务停止了
+                self.log.info(u'服务停止了')
+                return
 
         self.log.info(u'更新保证金到数据库')
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
         for symbol, vtCr in self.vtCommissionRateBySymbol.items():
             if vtCr is None:
                 # 为什么而这里会是None
+                self.log.info(u'{} 未获得保证金更新'.format(symbol))
                 continue
-            # TODO 将手续费保存到合约中
+
             setting = {
                 'openRatioByMoney': vtCr.openRatioByMoney,
                 'closeRatioByMoney': vtCr.closeRatioByMoney,
@@ -508,5 +513,5 @@ class DrEngine(object):
             collection.update_one({'vtSymbol': symbol}, {'$set': setting})
 
     def updateContractDetail(self):
-        self.getCommissionRate()
         self.getMarginRate()
+        self.getCommissionRate()
