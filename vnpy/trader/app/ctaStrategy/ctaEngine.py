@@ -313,8 +313,8 @@ class CtaEngine(object):
 
         # 过滤已经收到过的成交回报
         if trade.vtTradeID in self.tradeSet:
-            self.log.warning(u'已经处理过TradeID {}'.format(trade.vtTradeID))
             return
+
         self.tradeSet.add(trade.vtTradeID)
 
         # 将成交推送到策略对象中
