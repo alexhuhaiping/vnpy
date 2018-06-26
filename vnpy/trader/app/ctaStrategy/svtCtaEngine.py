@@ -633,7 +633,8 @@ class CtaEngine(VtCtaEngine):
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+        self.log.info(log )
         vtOrderIDList = []
         count = 0
         while not vtOrderIDList and count < 5:
@@ -644,7 +645,7 @@ class CtaEngine(VtCtaEngine):
                 time.sleep(1)
 
         if not vtOrderIDList:
-            self.log.warning(u'vtOrderID 为空，检查是否有限价单无法自动撤单')
+            self.log.warning(u'vtOrderID 为空，检查是否有限价单无法自动撤单\n{}'.format(log))
 
         contract = self.mainEngine.getContract(vtSymbol)
         _price = self.roundToPriceTick(contract.priceTick, price)

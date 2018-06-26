@@ -861,6 +861,7 @@ class PositionDetail(object):
                 
             # 平仓量超过总可用，拒绝，返回空列表
             if req.volume > posAvailable:
+                logging.warning(u'平仓量超过总可用 {} {}'.format(req.volume, posAvailable))
                 return []
             # 平仓量小于今可用，全部平今
             elif req.volume <= tdAvailable:
