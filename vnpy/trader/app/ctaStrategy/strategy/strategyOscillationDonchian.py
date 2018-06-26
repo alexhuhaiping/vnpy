@@ -364,9 +364,10 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
-                                              profile, self.rtBalance)
-        self.log.warning(log)
+        if not self.isBackTesting():
+            log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
+                                                  profile, self.rtBalance)
+            self.log.warning(log)
 
         if self.pos == 0:
             # 重置止盈止损价格
