@@ -1529,7 +1529,8 @@ class svtCtpTdApi(TdApi):
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
 
-        self.reqOrderAction(req, self.reqID)
+        r = self.reqOrderAction(req, self.reqID)
+        logging.info(u'撤单结果 {} {} {}'.format(r, cancelOrderReq.symbol, cancelOrderReq.orderID))
 
     # ----------------------------------------------------------------------
     def close(self):

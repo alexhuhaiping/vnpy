@@ -33,10 +33,11 @@ class OscillationDonchianStrategy(CtaTemplate):
     longBar = 20
     stopProfile = 1
     stopLoss = 4
-    slippageRate = 1/0.2  # 盈利空间和滑点的比例
+    slippageRate = 1 / 0.2  # 盈利空间和滑点的比例
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
+    flinch = 3  # 连胜 flinch 次后畏缩1次
 
     # 策略变量
     longHigh = 0  # 大周期高点
@@ -48,10 +49,12 @@ class OscillationDonchianStrategy(CtaTemplate):
     stop = None  # 止损投入
     openTag = True  # 是否可以开仓
     openReset = None  # 开仓重置信号
+    flinchCount = 0  # 连胜计数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
+        'flinch',
         'slippageRate',
         'longBar',
         'stopProfile',
@@ -63,6 +66,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
     # 变量列表，保存了变量的名称
     _varList = [
+        'flinchCount',
         'hands',
         'openTag',
         'openReset',
@@ -81,7 +85,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
 
-        self.ordering = False # 正处于下单中的标记为
+        self.ordering = False  # 正处于下单中的标记为
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -289,7 +293,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                     # 空单
                     self.short(self.longLow, self.hands, True)
                 else:
-                    self.log.info(u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
+                    self.log.info(
+                        u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
         # 持有多头仓位
         elif self.pos > 0:
             if self.stopProfilePrice is None:
@@ -365,7 +370,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.capital = 0
 
         if not self.isBackTesting():
-            log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price, trade.volume,
+            log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
+                                                  trade.volume,
                                                   profile, self.rtBalance)
             self.log.warning(log)
 
@@ -376,8 +382,10 @@ class OscillationDonchianStrategy(CtaTemplate):
 
             if profile < 0:
                 self.updateStop()
+                self.flinchCount = 0
 
             if profile > 0:
+                self.flinchCount += 1
                 # 盈利，设置信号
                 self.openTag = False
                 # 计算重置开仓信号
@@ -415,6 +423,9 @@ class OscillationDonchianStrategy(CtaTemplate):
             return
 
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+
+        if self.flinchCount >= self.flinch:
+            minHands = 1
 
         self.hands = min(minHands, self.maxHands)
 
