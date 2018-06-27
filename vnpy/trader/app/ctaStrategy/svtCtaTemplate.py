@@ -82,20 +82,21 @@ class CtaTemplate(vtCtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
-        loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
-        logger = logging.getLogger(loggerName)
-        # 定制 logger.name
+        # loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
+        # logger = logging.getLogger(loggerName)
+        # # 定制 logger.name
+        # self.log = logging.getLogger(self.vtSymbol)
+        # # self.log.parent = logger
+        # self.log.propagate = 0
+        #
+        # for f in logger.filters:
+        #     self.log.addFilter(f)
+        # for h in logger.handlers:
+        #     self.log.addHandler(h)
+        # if self.isBackTesting():
+        #     self.log.setLevel(logger.level)
         self.log = logging.getLogger(self.vtSymbol)
-        # self.log.parent = logger
-        self.log.propagate = 0
 
-        for f in logger.filters:
-            self.log.addFilter(f)
-        for h in logger.handlers:
-            self.log.addHandler(h)
-
-        if self.isBackTesting():
-            self.log.setLevel(logger.level)
 
         # 复制成和原来的 Logger 配置一样
 

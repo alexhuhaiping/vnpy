@@ -239,11 +239,13 @@ class OscillationDonchianStrategy(CtaTemplate):
             if self.prePos > 0:
                 if bar.close < bar.open and bar.high - bar.low > self.atr * 0.5:
                     self.openTag = True
-                self.openReset = max(self.openReset, self.xminBar.high - self.atr * 0.5)
+                _high = max(self.longHigh, self.xminBar.high)
+                self.openReset = max(self.openReset, _high - self.atr * 0.5)
             else:
                 if bar.close > bar.open and bar.high - bar.low > self.atr * 0.5:
                     self.openTag = True
-                self.openReset = min(self.openReset, self.xminBar.low + self.atr * 0.5)
+                _low = min(self.longLow, self.xminBar.load())
+                self.openReset = min(self.openReset, _low + self.atr * 0.5)
 
         if self.trading:
             # self.log.warning(str(bar.datetime))

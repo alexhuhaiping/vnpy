@@ -653,7 +653,6 @@ class PositionDetail(object):
     def __init__(self, vtSymbol):
         """Constructor"""
         self.vtSymbol = vtSymbol
-        logging.debug(u'141414, {}'.format(vtSymbol))
         self.log = logging.getLogger(self.vtSymbol)
         
         self.longPos = EMPTY_INT

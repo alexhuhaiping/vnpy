@@ -157,8 +157,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-
-
 def showStopOrder():
     s = getStrategy(vtSymbol)
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
@@ -170,15 +168,6 @@ def showStopOrder():
             for k, v in os.toHtml().items():
                 log += u'{}:{} '.format(k, v)
             me.log.info(log)
-
-
-def orderToShow():
-    for order in ce.vtOrderReqToShow.values():
-        log = u''
-        for k, v in order.__dict__.items():
-            log += u'{}:{} '.format(k, v)
-
-        print(log)
 
 
 def cancelOrder():
@@ -199,6 +188,7 @@ def buy():
 
     s.log.debug(u'下单完成 {}'.format(price))
 
+
 def sell():
     s = getStrategy(vtSymbol)
 
@@ -210,18 +200,31 @@ def sell():
     s.sell(price, 1, stop)
     s.log.debug(u'下单完成 {}'.format(price))
 
+
+def orderToShow():
+    print(ce.vtOrderReqToShow)
+    for order in ce.vtOrderReqToShow.values():
+        log = u''
+        for k, v in order.__dict__.items():
+            log += u'{}:{} '.format(k, v)
+
+        print(log)
+
+
 vtSymbol = 'hc1810'
 import logging
+
 
 def run():
     return
     load()
     me.log.info('====================================================')
+    orderToShow()
+
     # buy()
     # cancelOrder()
-    sell()
+    # sell()
 
-    # orderToShow()
     # checkPosition()
 
     # toHtml()
