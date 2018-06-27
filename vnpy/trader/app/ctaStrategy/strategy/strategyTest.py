@@ -152,13 +152,13 @@ class TestStrategy(CtaTemplate):
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         assert isinstance(order, VtOrderData)
-        t = u'报单回报\n'
-        for k, v in order.__dict__.items():
-            if k == 'rawData':
-                t += u'{}: {}\n'.format(k, str(v))
-                continue
-            t += u'{}: {}\n'.format(k, v)
-        self.log.info(t)
+        # t = u'报单回报\n'
+        # for k, v in order.__dict__.items():
+        #     if k == 'rawData':
+        #         t += u'{}: {}\n'.format(k, str(v))
+        #         continue
+        #     t += u'{}: {}\n'.format(k, v)
+        # self.log.info(t)
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):

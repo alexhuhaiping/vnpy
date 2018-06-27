@@ -157,19 +157,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def showStopOrder():
-    s = getStrategy(vtSymbol)
-    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
-    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
-    for os in ce.stopOrderDict.values():
-        if os.direction == u'多' and os.status == u'等待中':
-            os.price = 3860
-            log = u''
-            for k, v in os.toHtml().items():
-                log += u'{}:{} '.format(k, v)
-            me.log.info(log)
-
-
 def cancelOrder():
     s = getStrategy(vtSymbol)
     s.cancelAll()
@@ -195,7 +182,7 @@ def sell():
     # s.log.info(u'{}'.format(vtSymbol))
     # s.pos = -15
 
-    price = s.bm.bar.close + 10
+    price = s.bm.bar.close + 200
     stop = False
     s.sell(price, 1, stop)
     s.log.debug(u'下单完成 {}'.format(price))
@@ -211,7 +198,26 @@ def orderToShow():
         print(log)
 
 
-vtSymbol = 'hc1810'
+def showStopOrder():
+    s = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
+    for os in ce.stopOrderDict.values():
+        if os.direction == u'多' and os.status == u'等待中':
+            os.price = 116700
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
+
+def checkPositionDetail():
+    for k, detail in me.dataEngine.detailDict.items():
+        print(k)
+        print(detail.output())
+
+
+vtSymbol = 'ni1809'
 import logging
 
 
@@ -219,11 +225,13 @@ def run():
     return
     load()
     me.log.info('====================================================')
-    orderToShow()
+    # checkPositionDetail()
+    # showStopOrder()
+    # orderToShow()
 
     # buy()
-    # cancelOrder()
-    # sell()
+    cancelOrder()
+    sell()
 
     # checkPosition()
 

@@ -529,8 +529,11 @@ class DataEngine(object):
 
         del self.workingOrderDict[cancelOrderReq.vtOrderID]
         detail = self.getPositionDetail(cancelOrderReq.vtSymbol)
+
+        del detail.workingOrderDict[cancelOrderReq.vtOrderID]
         detail.calculateFrozen()
-        
+        detail.log.debug(detail.output())
+
 ########################################################################
 class LogEngine(object):
     """日志引擎"""
@@ -776,7 +779,7 @@ class PositionDetail(object):
         
         # 计算冻结量
         self.calculateFrozen()
-    
+
     #----------------------------------------------------------------------
     def calculatePosition(self):
         """计算持仓情况"""
@@ -873,7 +876,8 @@ class PositionDetail(object):
                 
             # 平仓量超过总可用，拒绝，返回空列表
             if req.volume > posAvailable:
-                logging.warning(u'平仓量超过总可用 {} {}'.format(req.volume, posAvailable))
+                self.log.warning(self.output())
+                self.log.warning(u'平仓量超过总可用 {} {}'.format(req.volume, posAvailable))
                 return []
             # 平仓量小于今可用，全部平今
             elif req.volume <= tdAvailable:
