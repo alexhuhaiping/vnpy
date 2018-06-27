@@ -387,6 +387,7 @@ class VtCancelOrderReq(object):
         self.symbol = EMPTY_STRING              # 代码
         self.exchange = EMPTY_STRING            # 交易所
         self.vtSymbol = EMPTY_STRING            # VT合约代码
+        self.vtOrderID = EMPTY_STRING           # VT订单编号
         
         # 以下字段主要和CTP、LTS类接口相关
         self.orderID = EMPTY_STRING  # 报单号

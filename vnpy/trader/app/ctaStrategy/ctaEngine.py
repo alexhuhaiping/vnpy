@@ -161,13 +161,17 @@ class CtaEngine(object):
             if not orderFinished:
                 req = VtCancelOrderReq()
                 req.symbol = order.symbol
+                req.vtSymbol = order.vtSymbol
+                req.vtOrderID = vtOrderID
                 req.exchange = order.exchange
                 req.frontID = order.frontID
                 req.sessionID = order.sessionID
                 req.orderID = order.orderID
                 self.mainEngine.cancelOrder(req, order.gatewayName)
                 return req
-                # ----------------------------------------------------------------------
+            else:
+                self.log.info(u'报单不可撤单')
+    # ----------------------------------------------------------------------
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
         """发停止单（本地实现）"""

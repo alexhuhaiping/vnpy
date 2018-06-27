@@ -149,9 +149,11 @@ class MainEngine(object):
         gateway = self.getGateway(gatewayName)
 
         if gateway:
-            gateway.cancelOrder(cancelOrderReq)
+            result = gateway.cancelOrder(cancelOrderReq)
+            if result == 0:
+                self.dataEngine.cancelOrder(cancelOrderReq)
 
-            # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     def qryAccount(self, gatewayName):
         """查询特定接口的账户"""
@@ -160,7 +162,7 @@ class MainEngine(object):
         if gateway:
             gateway.qryAccount()
 
-            # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     def qryPosition(self, gatewayName):
         """查询特定接口的持仓"""
@@ -517,7 +519,17 @@ class DataEngine(object):
             return [req]
         else:
             return detail.convertOrderReq(req)
-        
+
+    def cancelOrder(self, cancelOrderReq):
+        """
+        撤单操作
+        :param cancelOrderReq:
+        :return:
+        """
+
+        del self.workingOrderDict[cancelOrderReq.vtOrderID]
+        detail = self.getPositionDetail(cancelOrderReq.vtSymbol)
+        detail.calculateFrozen()
         
 ########################################################################
 class LogEngine(object):
@@ -641,6 +653,8 @@ class PositionDetail(object):
     def __init__(self, vtSymbol):
         """Constructor"""
         self.vtSymbol = vtSymbol
+        logging.debug(u'141414, {}'.format(vtSymbol))
+        self.log = logging.getLogger(self.vtSymbol)
         
         self.longPos = EMPTY_INT
         self.longYd = EMPTY_INT
@@ -720,12 +734,12 @@ class PositionDetail(object):
         # 将活动委托缓存下来
         if order.status in self.WORKING_STATUS:
             self.workingOrderDict[order.vtOrderID] = order
-            
+
         # 移除缓存中已经完成的委托
         else:
             if order.vtOrderID in self.workingOrderDict:
                 del self.workingOrderDict[order.vtOrderID]
-                
+
         # 计算冻结
         self.calculateFrozen()
     
@@ -740,8 +754,8 @@ class PositionDetail(object):
             self.shortPos = pos.position
             self.shortYd = pos.ydPosition
             self.shortTd = self.shortPos - self.shortYd
-            
-        self.output()
+
+        # self.output()
     
     #----------------------------------------------------------------------
     def updateOrderReq(self, req, vtOrderID):
@@ -769,8 +783,8 @@ class PositionDetail(object):
         """计算持仓情况"""
         self.longPos = self.longTd + self.longYd
         self.shortPos = self.shortTd + self.shortYd      
-        
-        self.output()
+
+        # self.output()
         
     #----------------------------------------------------------------------
     def calculateFrozen(self):
@@ -781,13 +795,13 @@ class PositionDetail(object):
         self.longTdFrozen = EMPTY_INT
         self.shortPosFrozen = EMPTY_INT
         self.shortYdFrozen = EMPTY_INT
-        self.shortTdFrozen = EMPTY_INT     
-        
+        self.shortTdFrozen = EMPTY_INT
+
         # 遍历统计
         for order in self.workingOrderDict.values():
             # 计算剩余冻结量
             frozenVolume = order.totalVolume - order.tradedVolume
-            
+
             # 多头委托
             if order.direction is DIRECTION_LONG:
                 # 平今
@@ -799,7 +813,7 @@ class PositionDetail(object):
                 # 平仓
                 elif order.offset is OFFSET_CLOSE:
                     self.shortTdFrozen += frozenVolume
-                    
+
                     if self.shortTdFrozen > self.shortTd:
                         self.shortYdFrozen += (self.shortTdFrozen - self.shortTd)
                         self.shortTdFrozen = self.shortTd
@@ -814,26 +828,25 @@ class PositionDetail(object):
                 # 平仓
                 elif order.offset is OFFSET_CLOSE:
                     self.longTdFrozen += frozenVolume
-                    
+
                     if self.longTdFrozen > self.longTd:
                         self.longYdFrozen += (self.longTdFrozen - self.longTd)
                         self.longTdFrozen = self.longTd
-                        
+
             # 汇总今昨冻结
             self.longPosFrozen = self.longYdFrozen + self.longTdFrozen
             self.shortPosFrozen = self.shortYdFrozen + self.shortTdFrozen
-        
-        self.output()
-            
+
+        # logging.info(self.output())
+
     #----------------------------------------------------------------------
     def output(self):
         """"""
-        return
-        print self.vtSymbol, '-'*30
-        print 'long, total:%s, td:%s, yd:%s' %(self.longPos, self.longTd, self.longYd)
-        print 'long frozen, total:%s, td:%s, yd:%s' %(self.longPosFrozen, self.longTdFrozen, self.longYdFrozen)
-        print 'short, total:%s, td:%s, yd:%s' %(self.shortPos, self.shortTd, self.shortYd)
-        print 'short frozen, total:%s, td:%s, yd:%s' %(self.shortPosFrozen, self.shortTdFrozen, self.shortYdFrozen)        
+        log = 'long, total:%s, td:%s, yd:%s' %(self.longPos, self.longTd, self.longYd)
+        log += '\nlong frozen, total:%s, td:%s, yd:%s' %(self.longPosFrozen, self.longTdFrozen, self.longYdFrozen)
+        log += '\nshort, total:%s, td:%s, yd:%s' %(self.shortPos, self.shortTd, self.shortYd)
+        log += '\nshort frozen, total:%s, td:%s, yd:%s' %(self.shortPosFrozen, self.shortTdFrozen, self.shortYdFrozen)
+        return log
     
     #----------------------------------------------------------------------
     def convertOrderReq(self, req):

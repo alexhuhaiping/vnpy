@@ -220,9 +220,8 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
-                                                          so.price,
-                                                          so.volume)
+                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, so.price,
+                                                       so.volume)
                         self.log.info(u'触发停止单 {}'.format(log))
                         if so.volume != 0:
                             self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
@@ -635,14 +634,13 @@ class CtaEngine(VtCtaEngine):
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
-        self.log.info(log)
+        self.log.info(log )
         vtOrderIDList = []
         count = 0
         while not vtOrderIDList and count <= 2:
             count += 1
             vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
             if not vtOrderIDList:
-                self.log.info(u'下限价单失败 {} 次'.format(count))
                 time.sleep(3)
 
         if not vtOrderIDList:

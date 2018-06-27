@@ -157,28 +157,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def sell():
-    s = getStrategy(vtSymbol)
-
-    # s.log.info(u'{}'.format(vtSymbol))
-    # s.pos = -15
-    price = s.bm.bar.close + s.priceTick * 2
-    s.sell(price, 2, False)
-    s.log.debug(u'下单完成 {}'.format(price))
-
-
-def buy():
-    s = getStrategy(vtSymbol)
-    s.log.debug(u'测试 buy')
-    # s.pos = -15
-
-    price = s.bm.lastTick.lastPrice - 1
-    volume = 1
-    stop = True
-
-    s.buy(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
 def showStopOrder():
@@ -194,11 +172,6 @@ def showStopOrder():
             me.log.info(log)
 
 
-def cancelOrder():
-    s = getStrategy(vtSymbol)
-    s.cancelAll()
-
-
 def orderToShow():
     for order in ce.vtOrderReqToShow.values():
         log = u''
@@ -208,17 +181,48 @@ def orderToShow():
         print(log)
 
 
-vtSymbol = 'hc1810'
+def cancelOrder():
+    s = getStrategy(vtSymbol)
+    s.cancelAll()
 
+
+def buy():
+    s = getStrategy(vtSymbol)
+    s.log.debug(u'测试 buy')
+    # s.pos = -15
+
+    price = s.bm.bar.close - 0
+    volume = 1
+    stop = False
+
+    s.buy(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(price))
+
+def sell():
+    s = getStrategy(vtSymbol)
+
+    # s.log.info(u'{}'.format(vtSymbol))
+    # s.pos = -15
+
+    price = s.bm.bar.close + 10
+    stop = False
+    s.sell(price, 1, stop)
+    s.log.debug(u'下单完成 {}'.format(price))
+
+vtSymbol = 'hc1810'
+import logging
 
 def run():
     return
     load()
     me.log.info('====================================================')
-    orderToShow()
-    # cancelOrder()
-    # checkPosition()
     # buy()
+    # cancelOrder()
+    sell()
+
+    # orderToShow()
+    # checkPosition()
 
     # toHtml()
     # testToStatus()
