@@ -331,8 +331,10 @@ class OscillationDonchianStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
+            message = u''
             for k, v in order.rawData.items():
-                log(u'{} {}'.format(k, v))
+                message += u'{}:{}\n'.format(k, v)
+            log(message)
         log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
