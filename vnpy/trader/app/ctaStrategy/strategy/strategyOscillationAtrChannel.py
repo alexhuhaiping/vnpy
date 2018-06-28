@@ -62,8 +62,8 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationAtrChannelStrategy, self).__init__(ctaEngine, setting)
 
-        self.stop = None # 止损额度
-        self.light = False # 轻仓
+        self.stop = None  # 止损额度
+        self.light = False  # 轻仓
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -227,18 +227,18 @@ class OscillationAtrChannelStrategy(CtaTemplate):
             return
 
         # 当前无仓位，发送开仓委托
-        if self.pos == 0 :
+        if self.pos == 0:
             self.buy(self.atrUpper, self.hands, stop=True)
             self.short(self.atrDowner, self.hands, stop=True)
 
         # 持有多头仓位
         elif self.pos > 0:
-            self.sell(self.atrDowner, abs(self.pos), True)
-            self.short(self.atrDowner, self.hands, stop=True)
+            self.sell(self.atrDowner, abs(self.pos), stop=True)
+            self.short(self.atrDowner, self.hands, True)
 
         # 持有空头仓位
         elif self.pos < 0:
-            self.cover(self.atrUpper, abs(self.pos), True)
+            self.cover(self.atrUpper, abs(self.pos), stop=True)
             self.buy(self.atrUpper, self.hands, stop=True)
 
     # ----------------------------------------------------------------------
@@ -287,8 +287,9 @@ class OscillationAtrChannelStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), self.pos, trade.direction, trade.offset, trade.price, trade.volume,
-                                              profile, self.rtBalance)
+        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), self.pos, trade.direction, trade.offset, trade.price,
+                                                 trade.volume,
+                                                 profile, self.rtBalance)
         self.log.warning(log)
         if self.pos == 0:
             if profile > 0:
@@ -345,7 +346,10 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         dic = super(OscillationAtrChannelStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
-        dic['openTag'] = int(dic['openTag'])
+        try:
+            dic['openTag'] = int(dic['openTag'])
+        except KeyError:
+            pass
         return dic
 
     def loadCtaDB(self, document=None):
