@@ -346,10 +346,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         dic = super(OscillationAtrChannelStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
-        try:
-            dic['openTag'] = int(dic['openTag'])
-        except KeyError:
-            pass
+
         return dic
 
     def loadCtaDB(self, document=None):
@@ -360,8 +357,6 @@ class OscillationAtrChannelStrategy(CtaTemplate):
                     setattr(self, k, document[k])
                 except KeyError:
                     self.log.warning(u'未保存的key {}'.format(k))
-
-        self.openTag = bool(self.openTag)
 
     def updateStop(self):
         self.log.info(u'调整风险投入')
