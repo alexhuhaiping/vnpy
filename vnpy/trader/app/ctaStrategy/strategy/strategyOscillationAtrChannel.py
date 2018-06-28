@@ -31,8 +31,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
 
     # 策略参数
     atrNum = 14  # atr 长度
-    atrOpenChannel = 1.5  # 通道大小
-    atrCloseChannel = 2  # 通道大小
+    atrChannel = 1.5  # 通道大小
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
@@ -193,8 +192,8 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         # 通道内最高点
         self.atr = am.atr(self.atrNum)
 
-        self.atrUpper = bar.close + self.atr * self.atrOpenChannel
-        self.atrDowner = bar.close - self.atr * self.atrOpenChannel
+        self.atrUpper = bar.close + self.atr * self.atrChannel
+        self.atrDowner = bar.close - self.atr * self.atrChannel
 
         if self.trading:
             # self.log.warning(str(bar.datetime))
