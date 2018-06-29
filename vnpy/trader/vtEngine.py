@@ -526,11 +526,12 @@ class DataEngine(object):
         :param cancelOrderReq:
         :return:
         """
+        if cancelOrderReq.vtOrderID in self.workingOrderDict:
+            del self.workingOrderDict[cancelOrderReq.vtOrderID]
 
-        del self.workingOrderDict[cancelOrderReq.vtOrderID]
         detail = self.getPositionDetail(cancelOrderReq.vtSymbol)
-
-        del detail.workingOrderDict[cancelOrderReq.vtOrderID]
+        if cancelOrderReq.vtOrderID in detail.workingOrderDict:
+            del detail.workingOrderDict[cancelOrderReq.vtOrderID]
         detail.calculateFrozen()
         detail.log.debug(detail.output())
 

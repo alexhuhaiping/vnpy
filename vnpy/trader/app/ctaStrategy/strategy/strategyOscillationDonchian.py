@@ -13,6 +13,7 @@ from collections import OrderedDict
 import arrow
 from threading import Timer
 import tradingtime as tt
+import time
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
@@ -267,9 +268,15 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.warn(u'不能下单 trading: False')
             return
 
-        if self.ordering:
+        orderCount = 0
+        while self.ordering:
             self.log.info(u'正处于下单中')
-            return
+            orderCount += 1
+            time.sleep(1)
+            if orderCount > 5:
+                self.log.warning(u'下单状态无法解除')
+                return
+
         self.ordering = True
 
         # 下单前先撤单
