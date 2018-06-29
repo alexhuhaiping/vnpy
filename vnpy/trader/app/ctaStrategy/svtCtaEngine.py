@@ -34,7 +34,7 @@ from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtObject import VtTickData, VtBarData
+from vnpy.trader.vtObject import VtTickData, VtBarData, VtErrorData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
 from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
@@ -777,6 +777,7 @@ class CtaEngine(VtCtaEngine):
         super(CtaEngine, self).registerEvent()
         self.eventEngine.register(EVENT_TIMER, self.checkPositionDetail)
         self.eventEngine.register(EVENT_ACCOUNT, self.updateAccount)
+        self.eventEngine.register(EVENT_ERROR, self.processOrderError)
 
     def processOrderEvent(self, event):
         order = event.dict_['data']
@@ -821,3 +822,22 @@ class CtaEngine(VtCtaEngine):
         so = super(CtaEngine, self).cancelStopOrder(stopOrderID)
         if so:
             self.log.info(u'{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))
+
+
+    def processOrderError(self, event):
+        """
+
+        :param event:
+        :return:
+        """
+        err = event.dict_['data']
+        assert isinstance(err, VtErrorData)
+
+        log = u'报单错误\n'
+        log += u'errorID:{}\n'.format(err.errorID)
+        log += u'errorMsg:{}\n'.format(err.errorMsg)
+        log += u'additionalInfo:{}\n'.format(err.additionalInfo)
+        log += u'errorTime:{}\n'.format(err.errorTime)
+        self.log.error(log)
+
+

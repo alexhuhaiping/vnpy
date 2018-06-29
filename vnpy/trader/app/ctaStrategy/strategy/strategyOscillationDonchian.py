@@ -281,6 +281,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 下单前先撤单
         self.cancelAll()
+        time.sleep(0.5)
 
         # 计算开仓仓位
         self.updateHands()
@@ -342,7 +343,12 @@ class OscillationDonchianStrategy(CtaTemplate):
             for k, v in order.rawData.items():
                 message += u'{}:{}\n'.format(k, v)
             log(message)
+
+            # 补发
+            self.orderOnXminBar(self.bm.xminBar)
+
         log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):

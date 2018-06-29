@@ -217,7 +217,13 @@ def checkPositionDetail():
         print(detail.output())
 
 
-vtSymbol = 'ni1809'
+
+def strategyOrder():
+    s = getStrategy(vtSymbol)
+    s.orderOnXminBar(s.bm.xminBar)
+
+
+vtSymbol = 'hc1810'
 import logging
 
 
@@ -225,13 +231,14 @@ def run():
     return
     load()
     me.log.info('====================================================')
+    strategyOrder()
     # checkPositionDetail()
     # showStopOrder()
     # orderToShow()
 
     # buy()
-    cancelOrder()
-    sell()
+    # cancelOrder()
+    # sell()
 
     # checkPosition()
 
