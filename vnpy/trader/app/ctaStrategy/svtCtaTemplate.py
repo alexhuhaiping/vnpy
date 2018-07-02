@@ -836,6 +836,11 @@ class CtaTemplate(vtCtaTemplate):
     def positionErrReport(self, err):
         self.log.error(err)
 
+    @property
+    def maxHands(self):
+        return max(0, int(
+            self.capital / (
+                self.size * self.bar.close * self.marginRate)))
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

@@ -35,7 +35,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     stopProfile = 1
     stopLoss = 4
     slippageRate = 1 / 0.2  # 盈利空间和滑点的比例
-    initDays = 10  # 初始化数据所用的天数
+    # initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
     flinch = 3  # 连胜 flinch 次后畏缩1次
@@ -60,7 +60,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         'longBar',
         'stopProfile',
         'stopLoss',
-        'initDays',
         'fixedSize',
         'risk',
     ])
@@ -245,7 +244,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             else:
                 if bar.close > bar.open and bar.high - bar.low > self.atr * 0.5:
                     self.openTag = True
-                _low = min(self.longLow, self.xminBar.load())
+                _low = min(self.longLow, self.xminBar.low)
                 self.openReset = min(self.openReset, _low + self.atr * 0.5)
 
         if self.trading:
@@ -281,7 +280,8 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 下单前先撤单
         self.cancelAll()
-        time.sleep(0.5)
+        if not self.isBackTesting():
+            time.sleep(0.5)
 
         # 计算开仓仓位
         self.updateHands()
@@ -386,11 +386,10 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        if not self.isBackTesting():
-            log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
-                                                  trade.volume,
-                                                  profile, self.rtBalance)
-            self.log.warning(log)
+        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
+                                              trade.volume,
+                                              profile, self.rtBalance)
+        self.log.warning(log)
 
         if self.pos == 0:
             # 重置止盈止损价格
@@ -442,15 +441,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
 
         if self.flinchCount >= self.flinch:
-            minHands = 1
+            minHands = min(1, minHands)
 
         self.hands = min(minHands, self.maxHands)
-
-    @property
-    def maxHands(self):
-        return max(0, int(
-            self.capital / (
-                self.size * self.bar.close * self.marginRate)))
 
     def toSave(self):
         """
