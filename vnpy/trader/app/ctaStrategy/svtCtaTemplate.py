@@ -100,6 +100,8 @@ class CtaTemplate(vtCtaTemplate):
         self.marginList = []
         self._positionDetail = None  # 仓位详情
 
+        self.tradingDay = None # 当前所处的交易日
+
         # K线管理器
         self.maxBarNum = 0
         self.initMaxBarNum()
@@ -122,7 +124,7 @@ class CtaTemplate(vtCtaTemplate):
 
         self.winCount = 0  # 连胜计数
         self.loseCount = 0  # 连败计数
-        self.slight = False # 轻重仓标记
+        self.slight = False  # 轻重仓标记
 
     @property
     def floatProfile(self):
@@ -826,17 +828,6 @@ class CtaTemplate(vtCtaTemplate):
     def maxHands(self):
         return int(self.capital / (self.bar.close * self.size * self.marginRate))
 
-    def winLoseCount(self, win):
-        """
-        连胜、负计数
-        :param win:
-        :return:
-        """
-        if win:
-            self.winCount += 1
-        else:
-            self.loseCount += 1
-
     def orderUntilTradingTime(self):
         """
         使用子线程在等待进入连续交易时再下单
@@ -875,7 +866,6 @@ class CtaTemplate(vtCtaTemplate):
         """
         raise NotImplementedError(u'尚未定义')
 
-
     def isOrderInContinueCaution(self):
         """
         是否处于可下单的连续竞价中
@@ -889,6 +879,8 @@ class CtaTemplate(vtCtaTemplate):
                 if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
                     return True
         return False
+
+
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):

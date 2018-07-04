@@ -117,7 +117,6 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
-            # TOOD 测试代码
             self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
@@ -234,7 +233,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
+        log = u'up:{} down:{} cci:{} atr:{}'.format(*[int(d) for d in (
+        self.bollUp, self.bollDown, self.cciValue, self.atrValue)])
+        self.log.info(u'更新 XminBar {} {}'.format(xminBar.datetime, log))
 
     def orderOnXminBar(self, bar):
         """
@@ -330,14 +331,13 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if self.pos == 0:
             if profile > 0:
-                # 亏损后计数
-                self.flinchCount += 1
-                if self.flinchCount >= self.flinch:
-                    self.slight = False
-
+                # 盈利
+                self.winCount += 1
+                if self.winCount >= self.flinch:
+                    self.slight = True  # 轻仓
             else:
-                self.flinchCount = 0
-                self.slight = False
+                # 亏损
+                self.slight = False  # 重仓
 
         if self.isBackTesting():
             if self.capital <= 0:

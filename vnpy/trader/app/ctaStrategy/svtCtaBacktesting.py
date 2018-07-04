@@ -444,7 +444,6 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for data in self.datas:
             td = data.tradingDay
-
             if self.endDate and self.endDate < td:
                 # 要回测的时间段结束
                 break
@@ -455,7 +454,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     self.log.error(u'异常 bar: {}'.format(data.datetime))
                     raise
 
-        self.log.info(u'数据回放结束 ')
+        self.log.info(u'数据回放结束')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
