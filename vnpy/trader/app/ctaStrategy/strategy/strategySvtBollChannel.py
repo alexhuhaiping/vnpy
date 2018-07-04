@@ -77,7 +77,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     varList = CtaTemplate.varList[:]
     _varList = [
         'hands',
-        'light',
+        'slight',
         'bollUp',
         'bollDown',
         'cciValue',
