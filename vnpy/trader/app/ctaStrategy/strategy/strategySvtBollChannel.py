@@ -76,7 +76,6 @@ class SvtBollChannelStrategy(CtaTemplate):
     # 变量列表，保存了变量的名称
     varList = CtaTemplate.varList[:]
     _varList = [
-        'flinchCount',
         'hands',
         'light',
         'bollUp',
