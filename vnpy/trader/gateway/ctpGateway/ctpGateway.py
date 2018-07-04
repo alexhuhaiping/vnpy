@@ -1549,7 +1549,7 @@ class svtCtpTdApi(TdApi):
 
     def getVtOrderID(self, orderRef,symbol):
         vtOrderID = '.'.join([self.gatewayName, symbol, str(orderRef)])
-        return vtOrderID
+        return vtOrderID.strip(' ')
 
 
 class CtpGateway(svtCtpGateway):

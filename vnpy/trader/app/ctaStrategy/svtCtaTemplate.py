@@ -7,17 +7,18 @@
 import copy
 import traceback
 import time
+from threading import Timer
 import talib
 import logging
 import pymongo
 import datetime
-import functools
 
 import pandas as pd
 import arrow
 import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
+from vnpy.trader.vtFunction import waitToContinue
 from vnpy.trader.vtEvent import *
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
@@ -82,23 +83,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
-        # loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
-        # logger = logging.getLogger(loggerName)
-        # # 定制 logger.name
-        # self.log = logging.getLogger(self.vtSymbol)
-        # # self.log.parent = logger
-        # self.log.propagate = 0
-        #
-        # for f in logger.filters:
-        #     self.log.addFilter(f)
-        # for h in logger.handlers:
-        #     self.log.addHandler(h)
-        # if self.isBackTesting():
-        #     self.log.setLevel(logger.level)
         self.log = logging.getLogger(self.vtSymbol)
-
-
-        # 复制成和原来的 Logger 配置一样
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
@@ -107,9 +92,6 @@ class CtaTemplate(vtCtaTemplate):
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
-        # self.bar1min = None  # 1min bar
-        # self.bar = None  # 根据 barXmin 聚合的 bar
-        # self.bar1minCount = 0
 
         self._pos = 0
         self.posList = []
@@ -137,6 +119,10 @@ class CtaTemplate(vtCtaTemplate):
 
         self.isNeedUpdateMarginRate = True
         self.isNeedUpdateCommissionRate = True
+
+        self.winCount = 0  # 连胜计数
+        self.loseCount = 0  # 连败计数
+        self.slight = False # 轻重仓标记
 
     @property
     def floatProfile(self):
@@ -840,6 +826,48 @@ class CtaTemplate(vtCtaTemplate):
     def maxHands(self):
         return int(self.capital / (self.bar.close * self.size * self.marginRate))
 
+    def winLoseCount(self, win):
+        """
+        连胜、负计数
+        :param win:
+        :return:
+        """
+        if win:
+            self.winCount += 1
+        else:
+            self.loseCount += 1
+
+    def orderUntilTradingTime(self):
+        """
+        使用子线程在等待进入连续交易时再下单
+        :return:
+        """
+        if self.xminBar and self.am and self.inited and self.trading:
+            if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
+                # 已经进入连续竞价的阶段，直接下单
+                self.log.info(u'已经处于连续竞价阶段')
+                waistSeconds = 0
+            else:  # 还没进入连续竞价，使用一个定时器
+                self.log.info(u'尚未开始连续竞价')
+                moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
+                wait = (moment - arrow.now().datetime)
+                # 提前2秒下停止单
+                waistSeconds = wait.total_seconds() - 2
+                self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+
+            # 至少要等待5秒以上，等待其他策略的 onStart 完成
+            waistSeconds = max(5, waistSeconds)
+            Timer(waistSeconds, self._orderOnThreading).start()
+        else:
+            self.log.warning(
+                u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
+
+    def _orderOnThreading(self):
+        """
+        在 orderOnTradingTime 中调用该函数，在子线程中下单
+        :return:
+        """
+        raise NotImplementedError(u'尚未定义')
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):
@@ -1034,7 +1062,6 @@ class ArrayManager(VtArrayManager):
         if array:
             return result
         return result[-1]
-
 
     def tr(self, array=False):
         """TR指标"""

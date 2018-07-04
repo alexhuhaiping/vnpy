@@ -46,11 +46,10 @@ class SvtBollChannelStrategy(CtaTemplate):
     slMultiplier = 5.2  # 计算止损距离的乘数
     initDays = 10  # 初始化数据所用的天数
     risk = slMultiplier / 100.  # 每笔风险投入
-    flinch = 1  # 连胜几次后畏缩
+    flinch = 100  # 连胜几次后畏缩，默认设为100，几乎不会畏缩
 
     # 策略变量
     slight = True  # 畏缩轻仓
-    flinchCount = 0  # 畏缩计数
     bollUp = 0  # 布林通道上轨
     bollDown = 0  # 布林通道下轨
     cciValue = 0  # CCI指标数值

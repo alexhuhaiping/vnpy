@@ -44,23 +44,21 @@ if __name__ == '__main__':
     # 读取日志配置文件
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
-    vtSymbol = 'rb1805'
+
+    vtSymbol = 'ni1809'
     setting = {
         'vtSymbol': vtSymbol,
-        'capital': 50000,
+        'capital': 100000,
         'risk': 0.1,
 
+        'flinch': 100,
+        "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10, "slMultiplier": 2.8
     }
-    setting.update({
-        'barXmin': 30,
-        'atrNum':15,
-        'atrChannel':2,
-    })
 
     engine = runBacktesting(
         vtSymbol=vtSymbol,
         setting=setting,
-        strategyClass='OscillationAtrChannelStrategy',
+        strategyClass='SvtBollChannelStrategy',
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
         isOutputResult=True,

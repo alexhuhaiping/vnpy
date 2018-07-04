@@ -10,9 +10,6 @@ from __future__ import division
 
 import traceback
 from collections import OrderedDict
-import arrow
-from threading import Timer
-import tradingtime as tt
 import time
 
 from vnpy.trader.vtConstant import *
@@ -138,32 +135,18 @@ class OscillationDonchianStrategy(CtaTemplate):
         self.log.info(u'%s策略启动' % self.name)
 
         if not self.isBackTesting():
-            if self.xminBar and self.am and self.inited and self.trading:
-                if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
-                    # 已经进入连续竞价的阶段，直接下单
-                    self.log.info(u'已经处于连续竞价阶段')
-                    waistSeconds = 5
-                else:  # 还没进入连续竞价，使用一个定时器
-                    self.log.info(u'尚未开始连续竞价')
-                    moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
-                    wait = (moment - arrow.now().datetime)
-                    waistSeconds = wait.total_seconds() - 2
-                    self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
-
-                # 提前2秒下停止单
-                Timer(waistSeconds, self._orderOnStart).start()
-            else:
-                self.log.warning(
-                    u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
-
             # 实盘，可以存库。
             self.saving = True
 
+            # 开盘下单逻辑
+            self.orderUntilTradingTime()
+
         self.putEvent()
 
-    def _orderOnStart(self):
+
+    def _orderOnThreading(self):
         """
-        在onStart中的下单
+        在 orderOnTradingTime 中调用该函数，在子线程中下单
         :return:
         """
         self.orderOnXminBar(self.xminBar)
@@ -345,10 +328,9 @@ class OscillationDonchianStrategy(CtaTemplate):
             log(message)
 
             # 补发
-            self.orderOnXminBar(self.bm.xminBar)
+            self.orderUntilTradingTime()
 
         log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
-
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
