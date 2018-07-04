@@ -45,20 +45,19 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'ni1809'
+    vtSymbol = 'hc1810'
     setting = {
         'vtSymbol': vtSymbol,
-        'capital': 100000,
+        'capital': 50000,
         'risk': 0.1,
 
-        'flinch': 100,
-        "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10, "slMultiplier": 2.8
+        "flinch": 2, "barXmin": 30, "slippageRate": 4, "longBar": 20, "stopProfile": 1, "stopLoss": 3
     }
-
+    strategyClass = 'OscillationDonchianStrategy'
     engine = runBacktesting(
         vtSymbol=vtSymbol,
         setting=setting,
-        strategyClass='SvtBollChannelStrategy',
+        strategyClass=strategyClass,
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
         isOutputResult=True,

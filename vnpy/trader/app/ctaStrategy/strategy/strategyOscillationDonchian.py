@@ -11,6 +11,10 @@ from __future__ import division
 import traceback
 from collections import OrderedDict
 import time
+import datetime
+
+import tradingtime as tt
+import arrow
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
@@ -231,8 +235,18 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.openReset = min(self.openReset, _low + self.atr * 0.5)
 
         if self.trading:
-            # self.log.warning(str(bar.datetime))
-            self.orderOnXminBar(bar)
+            if not self.isBackTesting():
+            # 实盘中，要对是否处于连续交易时间段进行检测
+                if self.isOrderInContinueCaution():
+                    # 处于连续竞价可直接下单
+                    self.orderOnXminBar(bar)
+                else:
+                    # 子线程等待下单
+                    self.orderUntilTradingTime()
+            else:
+                # 回测中直接下单
+                self.orderOnXminBar(bar)
+
 
         # 发出状态更新事件
         self.saveDB()

@@ -843,14 +843,20 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         if self.xminBar and self.am and self.inited and self.trading:
-            if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
+            if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
+                _now = self.bm.lastTick.datetime
+            else:
+                _now = arrow.now().datetime
+
+            _futures = _now + datetime.timedelta(seconds=2)
+            if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
                 # 已经进入连续竞价的阶段，直接下单
                 self.log.info(u'已经处于连续竞价阶段')
                 waistSeconds = 0
             else:  # 还没进入连续竞价，使用一个定时器
                 self.log.info(u'尚未开始连续竞价')
-                moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
-                wait = (moment - arrow.now().datetime)
+                moment = waitToContinue(self.vtSymbol, _futures)
+                wait = moment - _now
                 # 提前2秒下停止单
                 waistSeconds = wait.total_seconds() - 2
                 self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
@@ -868,6 +874,21 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         raise NotImplementedError(u'尚未定义')
+
+
+    def isOrderInContinueCaution(self):
+        """
+        是否处于可下单的连续竞价中
+        :return:
+        """
+        if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
+            _now = self.bm.lastTick.datetime
+            # 当前和未来2秒都要处于连续竞价阶段
+            if tt.get_trading_status(self.vtSymbol, _now) == tt.continuous_auction:
+                _futures = _now + datetime.timedelta(seconds=2)
+                if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
+                    return True
+        return False
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):

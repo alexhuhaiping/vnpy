@@ -1027,6 +1027,8 @@ class BacktestingEngine(VTBacktestingEngine):
             pos += result.volume
             margin = abs(pos * self.size * result.entryPrice * self.marginRate.marginRate / capital)
             capital += result.pnl
+            capital -= result.slippage
+            capital -= result.commission
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
 

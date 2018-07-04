@@ -239,8 +239,11 @@ def strategyOrder():
         self.hands = 1
         return
 
+def checkContinueCaution():
+    s = getStrategy(vtSymbol)
+    print(s.isOrderInContinueCaution())
 
-vtSymbol = 'ni1809'
+vtSymbol = 'hc1810'
 import logging
 
 
@@ -248,7 +251,9 @@ def run():
     return
     load()
     me.log.info('====================================================')
-    strategyOrder()
+    checkContinueCaution()
+
+    # strategyOrder()
     # checkPositionDetail()
     # showStopOrder()
     # orderToShow()
