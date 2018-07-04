@@ -812,17 +812,18 @@ class BacktestingEngine(VTBacktestingEngine):
         fig = plt.figure(figsize=(10, 16))
 
         subPlotNum = 6
-
         pBalance = plt.subplot(subPlotNum, 1, 1)
-        pBalance.set_title('Balance')
-        df['balance'].plot(legend=True)
+        pBalance.set_title('Balance {}'.format(self.symbol))
+        df['balance'].plot(legend=True, grid=True)
 
         pDrawdown = plt.subplot(subPlotNum, 1, 2)
         pDrawdown.set_title('Drawdown')
+        pDrawdown.grid(True, color='gray')
         pDrawdown.fill_between(range(len(df)), df['drawdown'].values)
 
         pDrawdownPer = plt.subplot(subPlotNum, 1, 3)
         pDrawdownPer.set_title('DrawdownPer')
+        pDrawdownPer.grid(True, color='gray')
         pDrawdownPer.fill_between(range(len(df)), df['drawdownPer'].values)
 
         pPnl = plt.subplot(subPlotNum, 1, 4)
@@ -1065,7 +1066,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 返回回测结果
         d = {}
-        d['capital'] = capital
+        d['capital'] = capital - self.capital
         d['maxCapital'] = maxCapital
         d['drawdown'] = drawdown
         d['maxDrawdownPer'] = abs(min(drawdownPerList))
@@ -1136,10 +1137,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         pCapital = plt.subplot(subplotNum, 1, 1)
         pCapital.set_ylabel("capital")
+        pCapital.grid(True, color='gray')
         pCapital.plot(d['capitalList'], color='r', lw=0.8)
 
         pDD = plt.subplot(subplotNum, 1, 2)
         pDD.set_ylabel("DD")
+        pDD.grid(True, color='gray')
         pDD.bar(range(len(d['drawdownList'])), d['drawdownList'], color='g')
 
         pDDp = plt.subplot(subplotNum, 1, 3)

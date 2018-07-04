@@ -420,6 +420,7 @@ class CtaEngine(VtCtaEngine):
         indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
         indexDatetime = IndexModel([('timestamp', DESCENDING)], name='timestamp', background=True)
 
+
         indexes = [indexSymbol, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
 
@@ -830,6 +831,7 @@ class CtaEngine(VtCtaEngine):
         :param event:
         :return:
         """
+        return
         err = event.dict_['data']
         assert isinstance(err, VtErrorData)
 

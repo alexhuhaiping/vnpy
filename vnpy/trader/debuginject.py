@@ -220,10 +220,27 @@ def checkPositionDetail():
 
 def strategyOrder():
     s = getStrategy(vtSymbol)
-    s.orderOnXminBar(s.bm.xminBar)
+    # s.orderOnXminBar(s.bm.xminBar)
+
+    self = s
+    if self.capital <= 0:
+        self.hands = 0
+        return
+    print(1212, self.capital)
+    # 以下技术指标为0时，不更新手数
+    # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
+    if self.atr == 0:
+        return
+    print(13131, self.atr)
+    self.hands = int(self.capital * .6 / self.bar.close)
+
+    print(14141, self.hands)
+    if self.light:
+        self.hands = 1
+        return
 
 
-vtSymbol = 'hc1810'
+vtSymbol = 'ni1809'
 import logging
 
 

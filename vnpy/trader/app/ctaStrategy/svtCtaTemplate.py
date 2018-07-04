@@ -838,9 +838,7 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def maxHands(self):
-        return max(0, int(
-            self.capital / (
-                self.size * self.bar.close * self.marginRate)))
+        return int(self.capital / (self.bar.close * self.size * self.marginRate))
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

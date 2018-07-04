@@ -45,10 +45,12 @@ class SvtBollChannelStrategy(CtaTemplate):
     atrWindow = 30  # ATR窗口数
     slMultiplier = 5.2  # 计算止损距离的乘数
     initDays = 10  # 初始化数据所用的天数
-    fixedSize = 1  # 每次交易的数量
     risk = slMultiplier / 100.  # 每笔风险投入
+    flinch = 1  # 连胜几次后畏缩
 
     # 策略变量
+    slight = True  # 畏缩轻仓
+    flinchCount = 0  # 畏缩计数
     bollUp = 0  # 布林通道上轨
     bollDown = 0  # 布林通道下轨
     cciValue = 0  # CCI指标数值
@@ -62,19 +64,22 @@ class SvtBollChannelStrategy(CtaTemplate):
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
+        'flinch',
         'bollWindow',
         'bollDev',
         'cciWindow',
         'atrWindow',
         'slMultiplier',
         'initDays',
-        'fixedSize',
         'risk',
     ])
 
     # 变量列表，保存了变量的名称
     varList = CtaTemplate.varList[:]
     _varList = [
+        'flinchCount',
+        'hands',
+        'light',
         'bollUp',
         'bollDown',
         'cciValue',
@@ -83,7 +88,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         'intraTradeLow',
         'longStop',
         'shortStop',
-        'hands'
     ]
     varList.extend(_varList)
 
@@ -91,7 +95,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         """Constructor"""
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
 
-        self.hands = self.fixedSize
+        self.hands = 0
         self.balanceList = OrderedDict()
         self.a = 0
 
@@ -289,7 +293,6 @@ class SvtBollChannelStrategy(CtaTemplate):
                 log(u'{} {}'.format(k, v))
         log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
-
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
@@ -322,6 +325,21 @@ class SvtBollChannelStrategy(CtaTemplate):
             )
 
             self.log.info(u'\n'.join(textList))
+
+        log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
+        self.log.warning(log)
+
+        if self.pos == 0:
+            if profile > 0:
+                # 亏损后计数
+                self.flinchCount += 1
+                if self.flinchCount >= self.flinch:
+                    self.slight = False
+
+            else:
+                self.flinchCount = 0
+                self.slight = False
+
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
@@ -359,11 +377,10 @@ class SvtBollChannelStrategy(CtaTemplate):
             return
 
         minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
-        maxHands = max(0, int(
-            self.capital * 0.95 / (
-                self.size * self.bar.close * self.marginRate)))
+        if self.slight:
+            minHands = min(1, minHands)
 
-        self.hands = min(minHands, maxHands)
+        self.hands = min(minHands, self.maxHands)
 
     def toSave(self):
         """
@@ -383,4 +400,3 @@ class SvtBollChannelStrategy(CtaTemplate):
                     setattr(self, k, document[k])
                 except KeyError:
                     self.log.warning(u'未保存的key {}'.format(k))
-

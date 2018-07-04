@@ -30,18 +30,23 @@ class OscillationAtrChannelStrategy(CtaTemplate):
     author = u'lamter'
 
     # 策略参数
+    flinch = 2  # 连胜 flinch 次后使用轻仓
     atrNum = 14  # atr 长度
     atrChannel = 1.5  # 通道大小
     initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
-    risk = 0.05  # 每笔风险投入
+    risk = 0.05  # 要使用的风险度，根据保证金比例计算
 
     # 策略变量
+    light = False  # 轻仓状态
+    stop = None  # 风险投入
+    flinchCount = 0  # 连胜次数
     atr = 0  # atr指标
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
+        'flinch',
         'atrNum',
         'atrChannel',
         'initDays',
@@ -51,8 +56,11 @@ class OscillationAtrChannelStrategy(CtaTemplate):
 
     # 变量列表，保存了变量的名称
     _varList = [
-        'hands',
+        'light',
+        'stop',
+        'flinchCount',
         'atr',
+        'hands',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
@@ -61,8 +69,6 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationAtrChannelStrategy, self).__init__(ctaEngine, setting)
 
-        self.stop = None  # 止损额度
-        self.light = False  # 轻仓
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -102,7 +108,6 @@ class OscillationAtrChannelStrategy(CtaTemplate):
             self.loadCtaDB(document)
 
         if self.stop is None:
-            # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
         self.isCloseoutVaild = True
@@ -286,16 +291,24 @@ class OscillationAtrChannelStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), self.pos, trade.direction, trade.offset, trade.price,
-                                                 trade.volume,
-                                                 profile, self.rtBalance)
+        log = u'{} {} {} {} {} {} {} {}'.format(round(self.atr, 2), self.pos, trade.direction, trade.offset, trade.price,
+                                                 trade.volume, profile, self.rtBalance)
         self.log.warning(log)
+
         if self.pos == 0:
             if profile > 0:
                 # 盈利，轻仓
-                self.light = True
+                self.flinchCount += 1
             else:
+                # 重置连胜计数
+                self.flinchCount = 0
+                # 出现亏损后加仓
+                self.updateStop()
+                # 使用重仓
                 self.light = False
+
+            if self.flinchCount >= self.flinch:
+                self.light = True
 
         # 成交后重新下单
         self.orderOnXminBar(self.xminBar)
@@ -325,11 +338,13 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         if self.atr == 0:
             return
 
-        self.hands = int(self.capital * .6 / self.bar.close)
+        # 最大开仓手数
+        minHands = int(self.stop / (self.atr * self.atrChannel * 2 * self.size))
 
         if self.light:
-            self.hands = 1
-            return
+            minHands = min(minHands, 1)
+
+        self.hands = min(minHands, self.maxHands)
 
     @property
     def maxHands(self):
