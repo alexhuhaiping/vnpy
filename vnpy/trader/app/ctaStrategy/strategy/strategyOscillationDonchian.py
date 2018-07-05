@@ -52,7 +52,6 @@ class OscillationDonchianStrategy(CtaTemplate):
     stop = None  # 止损投入
     openTag = True  # 是否可以开仓
     openReset = None  # 开仓重置信号
-    flinchCount = 0  # 连胜计数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -68,7 +67,8 @@ class OscillationDonchianStrategy(CtaTemplate):
 
     # 变量列表，保存了变量的名称
     _varList = [
-        'flinchCount',
+        'winCount',
+        'loseCount',
         'hands',
         'openTag',
         'openReset',
@@ -87,6 +87,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
 
+        self.reOrder = False # 是否重新下单
         self.ordering = False  # 正处于下单中的标记为
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
@@ -236,6 +237,11 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.openReset = min(self.openReset, _low + self.atr * 0.5)
 
         if self.trading:
+            # 下单前先撤单
+            self.cancelAll()
+            if not self.isBackTesting():
+                time.sleep(0.5)
+
             if not self.isBackTesting():
                 # 实盘中，要对是否处于连续交易时间段进行检测
                 if self.isOrderInContinueCaution():
@@ -265,15 +271,9 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.warn(u'不能下单 trading: False')
             return
 
-        if not self.isBackTesting():
-            if not self.waitOrdingTag():
-                # 下单状态无法释放
-                return
-
-        # 下单前先撤单
-        self.cancelAll()
-        if not self.isBackTesting():
-            time.sleep(0.5)
+        if not self.waitOrdingTag():
+            # 下单状态无法释放
+            return
 
         # 计算开仓仓位
         self.updateHands()
@@ -282,29 +282,32 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.info(u'开仓hands==0，不下单')
             return
 
-        # 当前无仓位，发送开仓委托
-        if self.pos == 0:
-            if self.openTag:
-                # 封板时 atr 可能为0，此时不入场
-                # 滑点占盈利空间的比例要小于slippageRate
-                slippage = self.priceTick * 2
-                profile = self.stopProfile * self.atr
-                if profile / slippage >= self.slippageRate:
-                    # 开单
+        # 发送开仓委托
+        if self.openTag:
+            # 封板时 atr 可能为0，此时不入场
+            # 滑点占盈利空间的比例要小于slippageRate
+            slippage = self.priceTick * 2
+            profile = self.stopProfile * self.atr
+            if profile / slippage >= self.slippageRate:
+                if self.pos == 0 or self.pos < 0:
+                    # 空仓或者持有空头，下多单
                     self.buy(self.longHigh, self.hands, True)
-                    # 空单
+                if self.pos == 0 or self.pos > 0:
+                    # 空仓或者持有多头，下空单
                     self.short(self.longLow, self.hands, True)
-                else:
-                    self.log.info(
-                        u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
+            else:
+                self.log.info(
+                    u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
+
         # 持有多头仓位
-        elif self.pos > 0:
+        if self.pos > 0:
             if self.stopProfilePrice is None:
                 # 止盈价格
                 self.stopProfilePrice = self.averagePrice + self.stopProfile * self.atr
             if self.stopLossPrice is None:
                 # 止损价格
                 self.stopLossPrice = self.averagePrice - self.stopLoss * self.atr
+            self.stopLossPrice = max(self.stopLossPrice, self.longLow)
 
             # 止盈单
             self.sell(self.stopProfilePrice, abs(self.pos), False)
@@ -312,12 +315,14 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.sell(self.stopLossPrice, abs(self.pos), True)
 
         # 持有空头仓位
-        elif self.pos < 0:
+        if self.pos < 0:
             if self.stopProfilePrice is None:
                 self.stopProfilePrice = self.averagePrice - self.stopProfile * self.atr
 
             if self.stopLossPrice is None:
                 self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
+            self.stopLossPrice = min(self.stopLossPrice, self.longHigh)
+
             # 止盈单
             self.cover(self.stopProfilePrice, abs(self.pos), False)
             # 止损单
@@ -382,9 +387,9 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
+        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
                                               trade.volume,
-                                              profile, self.rtBalance)
+                                              profile, int(self.rtBalance))
         self.log.warning(log)
 
         if self.pos == 0:
@@ -394,10 +399,12 @@ class OscillationDonchianStrategy(CtaTemplate):
 
             if profile < 0:
                 self.updateStop()
-                self.flinchCount = 0
+                self.loseCount += 1
+                self.winCount = 0
 
             if profile > 0:
-                self.flinchCount += 1
+                self.winCount += 1
+                self.loseCount = 0
                 # 盈利，设置信号
                 self.openTag = False
                 # 计算重置开仓信号
@@ -406,8 +413,21 @@ class OscillationDonchianStrategy(CtaTemplate):
                 else:
                     self.openReset = trade.price + self.atr
 
-        # 成交后重新下单
-        self.orderOnXminBar(self.xminBar)
+        count = 0
+        vtOrder = self.getOrder(trade.vtOrderID)
+        while vtOrder is None:
+            count += 1
+            if count >= 10:
+                self.log.warning(u'找不到订单对象{}'.format(trade.vtOrderID))
+                return
+
+        if vtOrder.totalVolume == trade.volume:
+            # 完全成交
+            if self.pos != 0:
+                # 撤掉开仓单
+                self.cancelAll()
+                # 下平仓单
+                self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
         self.saveDB()
@@ -436,7 +456,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
 
-        if self.flinchCount >= self.flinch:
+        if self.loseCount < self.flinch:
             minHands = min(1, minHands)
 
         self.hands = min(minHands, self.maxHands)
@@ -468,6 +488,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         self.stop = self.capital * self.risk
 
     def waitOrdingTag(self):
+        if self.isBackTesting():
+            # 回测中，无需等待
+           return True
         orderCount = 0
         waitSeconds = 0.5 * 20
         while self.ordering:
@@ -482,7 +505,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         return True
 
     def setOrdering(self):
-        self.ordering = True
+        if not self.isBackTesting():
+            self.ordering = True
 
     def clearOrdering(self):
-        self.ordering = False
+        if not self.isBackTesting():
+            self.ordering = False

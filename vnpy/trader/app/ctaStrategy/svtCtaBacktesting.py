@@ -700,6 +700,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         return resultDf
 
+    def getOrder(self, vtOrderID):
+        vtOrder = self.limitOrderDict.get(vtOrderID)
+        if vtOrder is None:
+            vtOrder = self.stopOrderDict.get(vtOrderID)
+        return vtOrder
+
     # ----------------------------------------------------------------------
     def showDailyResult(self, df=None):
         """显示按日统计的交易结果"""

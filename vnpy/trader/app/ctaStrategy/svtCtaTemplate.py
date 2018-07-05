@@ -536,6 +536,14 @@ class CtaTemplate(vtCtaTemplate):
     # def isNewBar(self):
     #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
+    def getOrder(self, vtOrderID):
+        if self.isBackTesting():
+            # 回测模式中取回订单对象
+            return self.ctaEngine.getOrder(vtOrderID)
+        else:
+            # 实盘中取回订单对象
+            return self.mainEngine.getOrder(vtOrderID)
+
     def loadCtaDB(self, document):
         if not document:
             return
@@ -879,6 +887,13 @@ class CtaTemplate(vtCtaTemplate):
                 if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
                     return True
         return False
+
+    def backhand(self):
+        """
+
+        :return:
+        """
+
 
 
 ########################################################################
