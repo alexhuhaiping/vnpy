@@ -112,6 +112,12 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.initContract()
 
+        # 从数据库加载策略数据
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
         for bar in initData:
             self.bm.bar = bar
             # TOOD 测试代码
@@ -125,12 +131,6 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.log.info(u'初始化完成')
         else:
             self.log.info(u'初始化数据不足!')
-
-        # 从数据库加载策略数据
-        if not self.isBackTesting():
-            # 需要等待保证金加载完毕
-            document = self.fromDB()
-            self.loadCtaDB(document)
 
         self.isCloseoutVaild = True
 
