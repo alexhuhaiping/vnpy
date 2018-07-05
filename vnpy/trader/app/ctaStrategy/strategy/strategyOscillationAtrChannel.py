@@ -87,6 +87,12 @@ class OscillationAtrChannelStrategy(CtaTemplate):
 
         self.initContract()
 
+        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
         for bar in initData:
             self.bm.bar = bar
             # TOOD 测试代码
@@ -100,12 +106,6 @@ class OscillationAtrChannelStrategy(CtaTemplate):
             self.log.info(u'初始化完成')
         else:
             self.log.info(u'初始化数据不足!')
-
-        # 从数据库加载策略数据
-        if not self.isBackTesting():
-            # 需要等待保证金加载完毕
-            document = self.fromDB()
-            self.loadCtaDB(document)
 
         if self.stop is None:
             self.updateStop()

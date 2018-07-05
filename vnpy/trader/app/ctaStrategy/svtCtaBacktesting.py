@@ -509,9 +509,6 @@ class BacktestingEngine(VTBacktestingEngine):
             buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
             sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
 
-            # if arrow.get('2017-08-04 09:00:00+08:00').datetime < self.dt < arrow.get('2017-08-04 09:02:00+08:00').datetime:
-            #     self.log.info(u'{} {} {} {} {}'.format(so, buyCrossPrice, buyCross, sellCrossPrice, sellCross))
-
             # 如果发生了成交
             if not (buyCross or sellCross):
                 return False
@@ -601,12 +598,9 @@ class BacktestingEngine(VTBacktestingEngine):
                 if isCrossed:
                     # 出现成交，重新整理停止单队列
 
-                    # self.log.info(u'出现成交,重新生成停止单队列')
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]
-                    # if __debug__:
-                    #     self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
                     break
             else:
                 # 一次成交都没有

@@ -8,6 +8,7 @@
 
 from __future__ import division
 
+from threading import Timer
 import traceback
 from collections import OrderedDict
 import time
@@ -105,6 +106,12 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         self.initContract()
 
+        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
         for bar in initData:
             self.bm.bar = bar
             # TOOD 测试代码
@@ -118,12 +125,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.info(u'初始化完成')
         else:
             self.log.info(u'初始化数据不足!')
-
-        # 从数据库加载策略数据
-        if not self.isBackTesting():
-            # 需要等待保证金加载完毕
-            document = self.fromDB()
-            self.loadCtaDB(document)
 
         if self.stop is None:
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
@@ -241,8 +242,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                     # 处于连续竞价可直接下单
                     self.orderOnXminBar(bar)
                 else:
-                    # 子线程等待下单
-                    self.orderUntilTradingTime()
+                    # j
+                    self.orderUntilTradingTime(bar)
             else:
                 # 回测中直接下单
                 self.orderOnXminBar(bar)
@@ -264,16 +265,10 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.log.warn(u'不能下单 trading: False')
             return
 
-        orderCount = 0
-        while self.ordering:
-            self.log.info(u'正处于下单中')
-            orderCount += 1
-            time.sleep(1)
-            if orderCount > 5:
-                self.log.warning(u'下单状态无法解除')
+        if not self.isBackTesting():
+            if not self.waitOrdingTag():
+                # 下单状态无法释放
                 return
-
-        self.ordering = True
 
         # 下单前先撤单
         self.cancelAll()
@@ -328,7 +323,12 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 止损单
             self.cover(self.stopLossPrice, abs(self.pos), True)
 
-        self.ordering = False
+        if not self.isBackTesting():
+            # 下单完毕后3秒才释放订单状态
+            def foo():
+                self.ordering = False
+            Timer(3, foo).start()
+
 
     # ----------------------------------------------------------------------
     def onOrder(self, order):
@@ -466,3 +466,17 @@ class OscillationDonchianStrategy(CtaTemplate):
     def updateStop(self):
         self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk
+
+    def waitOrdingTag(self):
+        orderCount = 0
+        while self.ordering:
+            self.log.info(u'正处于下单中')
+            orderCount += 1
+            time.sleep(1)
+            if orderCount > 5:
+                self.log.warning(u'5秒内下单状态无法解除')
+                return True
+
+        self.ordering = True
+
+
