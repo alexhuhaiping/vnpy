@@ -45,13 +45,13 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'rb1810'
+    vtSymbol = 'ni1609'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
         'risk': 0.1,
 
-        "atrWindow": 30, "barXmin": 21, "bollDev": 3.2, "bollWindow": 14.0, "cciWindow": 10, "slMultiplier": 3.8
+        'flinch':1, "atrWindow":30,"barXmin":7,"bollDev":3.2,"bollWindow":28.0,"cciWindow":10,"slMultiplier":2.8
     }
     strategyClass = 'SvtBollChannelStrategy'
     engine = runBacktesting(

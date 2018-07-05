@@ -130,6 +130,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
+        self.ordering = False
         self.isCloseoutVaild = True
         self.putEvent()
 
@@ -243,7 +244,7 @@ class OscillationDonchianStrategy(CtaTemplate):
                     self.orderOnXminBar(bar)
                 else:
                     # j
-                    self.orderUntilTradingTime(bar)
+                    self.orderUntilTradingTime()
             else:
                 # 回测中直接下单
                 self.orderOnXminBar(bar)
@@ -254,6 +255,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         self.putEvent()
         self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
+    @exception
     def orderOnXminBar(self, bar):
         """
         在 onXminBar 中的的指标计算和下单逻辑
@@ -472,11 +474,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         while self.ordering:
             self.log.info(u'正处于下单中')
             orderCount += 1
-            time.sleep(1)
-            if orderCount > 5:
+            time.sleep(0.5)
+            if orderCount > 0.5 * 10:
                 self.log.warning(u'5秒内下单状态无法解除')
                 return True
 
         self.ordering = True
-
-
