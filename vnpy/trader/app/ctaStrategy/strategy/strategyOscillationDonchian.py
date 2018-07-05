@@ -130,7 +130,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
-        self.ordering = False
+        self.clearOrdering()
         self.isCloseoutVaild = True
         self.putEvent()
 
@@ -148,7 +148,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.orderUntilTradingTime()
 
         self.putEvent()
-
 
     def _orderOnThreading(self):
         """
@@ -238,7 +237,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         if self.trading:
             if not self.isBackTesting():
-            # 实盘中，要对是否处于连续交易时间段进行检测
+                # 实盘中，要对是否处于连续交易时间段进行检测
                 if self.isOrderInContinueCaution():
                     # 处于连续竞价可直接下单
                     self.orderOnXminBar(bar)
@@ -248,7 +247,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             else:
                 # 回测中直接下单
                 self.orderOnXminBar(bar)
-
 
         # 发出状态更新事件
         self.saveDB()
@@ -328,9 +326,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         if not self.isBackTesting():
             # 下单完毕后3秒才释放订单状态
             def foo():
-                self.ordering = False
-            Timer(3, foo).start()
+                self.clearOrdering()
 
+            Timer(0.5, foo).start()
 
     # ----------------------------------------------------------------------
     def onOrder(self, order):
@@ -471,12 +469,20 @@ class OscillationDonchianStrategy(CtaTemplate):
 
     def waitOrdingTag(self):
         orderCount = 0
+        waitSeconds = 0.5 * 20
         while self.ordering:
             self.log.info(u'正处于下单中')
             orderCount += 1
             time.sleep(0.5)
-            if orderCount > 0.5 * 10:
-                self.log.warning(u'5秒内下单状态无法解除')
-                return True
+            if orderCount > waitSeconds:
+                self.log.warning(u'{}秒内下单状态无法解除'.format(waitSeconds))
+                return False
 
+        self.setOrdering()
+        return True
+
+    def setOrdering(self):
         self.ordering = True
+
+    def clearOrdering(self):
+        self.ordering = False
