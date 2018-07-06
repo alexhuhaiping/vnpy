@@ -857,7 +857,7 @@ class CtaTemplate(vtCtaTemplate):
                 moment = waitToContinue(self.vtSymbol, _futures)
                 wait = moment - _now
                 # 提前2秒下停止单
-                waistSeconds = wait.total_seconds() - 2
+                waistSeconds = wait.total_seconds()
                 self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
             # 至少要等待5秒以上，等待其他策略的 onStart 完成
