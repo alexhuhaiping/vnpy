@@ -45,7 +45,7 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'hc1805'
+    vtSymbol = 'hc1705'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
@@ -53,6 +53,7 @@ if __name__ == '__main__':
 
         "flinch": 2, "barXmin": 15, "slippageRate": 5, "longBar": 20, "stopProfile": 1, "stopLoss": 2.5
     }
+
     strategyClass = 'OscillationDonchianStrategy'
     engine = runBacktesting(
         vtSymbol=vtSymbol,

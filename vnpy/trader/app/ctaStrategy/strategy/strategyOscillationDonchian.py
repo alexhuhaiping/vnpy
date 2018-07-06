@@ -190,6 +190,16 @@ class OscillationDonchianStrategy(CtaTemplate):
             else:
                 self.openTag = bar.close >= self.openReset
 
+        if self.reOrder:
+            self.reOrder = False
+            # 撤掉开仓单
+            self.cancelAll()
+            if not self.isBackTesting():
+                time.sleep(0.5)
+            # 下平仓单
+            self.orderOnXminBar(self.xminBar)
+            # self.log.warning(u'onBar 重新下单 l:{} w:{} h:{}'.format(self.loseCount, self.winCount, self.hands))
+
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
         """
@@ -281,6 +291,9 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.hands == 0:
             self.log.info(u'开仓hands==0，不下单')
             return
+
+        if self.reOrder:
+            self.reOrder = False
 
         # 发送开仓委托
         if self.openTag:
@@ -387,12 +400,11 @@ class OscillationDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
-                                              trade.volume,
-                                              profile, int(self.rtBalance))
-        self.log.warning(log)
-
         if self.pos == 0:
+            log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
+                                                     trade.volume,
+                                                     profile, int(self.rtBalance))
+            self.log.warning(log)
             # 重置止盈止损价格
             self.stopLossPrice = None
             self.stopProfilePrice = None
@@ -423,13 +435,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         if vtOrder.totalVolume == trade.volume:
             # 完全成交
-            if self.pos != 0:
-                # 撤掉开仓单
-                self.cancelAll()
-                if not self.isBackTesting():
-                    time.sleep(0.5)
-                # 下平仓单
-                self.orderOnXminBar(self.xminBar)
+            self.reOrder = True
 
         # 发出状态更新事件
         self.saveDB()
@@ -460,7 +466,10 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 2连败后重仓，盈利后立即轻仓
         if self.loseCount < self.flinch:
-            minHands = min(1, minHands)
+            minHands = min(int(minHands * self.loseCount /self.flinch), minHands)
+            minHands = max(1, minHands)
+
+            # minHands = min(1, minHands)
 
         # 连胜逐渐建仓，连败后逐渐加仓
         # if self.winCount:
