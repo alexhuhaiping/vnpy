@@ -100,7 +100,10 @@ class CtaTemplate(vtCtaTemplate):
         self.marginList = []
         self._positionDetail = None  # 仓位详情
 
-        self.tradingDay = None # 当前所处的交易日
+        self._commisionAmonut = 0  # 回测统计用的手续费总数
+        self._splipageAmonut = 0  # 回测统计用的滑点总数
+
+        self.tradingDay = None  # 当前所处的交易日
 
         # K线管理器
         self.maxBarNum = 0
@@ -303,6 +306,7 @@ class CtaTemplate(vtCtaTemplate):
         commission = self.getCommission(price, volume, offset)
         self.log.info(u'手续费 {}'.format(commission))
         self.capital -= commission
+        self._commisionAmonut += commission
 
     def chargeSplipage(self, volume):
         """
@@ -313,6 +317,7 @@ class CtaTemplate(vtCtaTemplate):
         if self.isBackTesting():
             slippage = volume * self.size * self.ctaEngine.slippage
             self.capital -= slippage
+            self._splipageAmonut += slippage
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -893,7 +898,6 @@ class CtaTemplate(vtCtaTemplate):
 
         :return:
         """
-
 
 
 ########################################################################

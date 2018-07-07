@@ -1087,7 +1087,9 @@ class VtTradingResult(object):
         turnover = self.turnover
 
         assert isinstance(rate, VtCommissionRate)
+        # 平仓手续费
         commission = turnover * (rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
+        # 开仓手续费
         commission += self.volume * (
             rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
         # 惩罚性的手续费倍率
@@ -1129,9 +1131,9 @@ class TradingResult(VtTradingResult):
         self.turnover = (self.entryPrice + self.exitPrice) * size * abs(volume)  # 成交金额
 
         # 开仓
-        commission = rate(entryPrice, volume, OFFSET_OPEN)
+        commission = rate(entryPrice, abs(volume), OFFSET_OPEN)
         # 平仓
-        commission += rate(exitPrice, volume, closeOffset)
+        commission += rate(exitPrice, abs(volume), closeOffset)
         self.commission = commission
 
         self.slippage = slippage * 2 * size * abs(volume)  # 滑点成本

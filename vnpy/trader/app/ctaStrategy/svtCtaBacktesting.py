@@ -23,6 +23,7 @@ except ImportError:
 
 import arrow
 import pymongo
+import pymongo.errors
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -862,6 +863,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 v = formatNumber(v)
             print(u'%s：\t%s' % (k, v))
 
+
     def calculateBacktestingResult(self):
         """
         计算回测结果
@@ -1026,8 +1028,6 @@ class BacktestingEngine(VTBacktestingEngine):
             pos += result.volume
             margin = abs(pos * self.size * result.entryPrice * self.marginRate.marginRate / capital)
             capital += result.pnl
-            capital -= result.slippage
-            capital -= result.commission
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
 
@@ -1081,6 +1081,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['drawdownList'] = drawdownList
         d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
+        d['winLoseRate'] = - totalWinning / totalLosing
         d['averageWinning'] = averageWinning
         d['averageLosing'] = averageLosing
         d['profitLossRatio'] = profitLossRatio
@@ -1119,6 +1120,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
+        self.tradeResult[u'总盈亏比'] = d['winLoseRate']
 
         if self.isOutputResult:
             self.printResult(self.tradeResult)

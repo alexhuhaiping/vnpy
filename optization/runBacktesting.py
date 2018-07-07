@@ -45,7 +45,7 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'hc1705'
+    vtSymbol = 'hc1810'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
