@@ -1,21 +1,16 @@
 {
   "param": {
-    "group": "疏松唐奇安震荡",
-    "name": "20180622",
+    "group": "初步唐奇安震荡",
+    "name": "20180707",
     "className": "OscillationDonchianStrategy",
     "capital": 50000,
-    "barXmin": 15,
-    "slippageRate": 5,
-    "longBar": 20,
-    "stopProfile": 1,
-    "stopLoss": 3
+
+    "flinch": 2, "barXmin": 15, "slippageRate": 5, "longBar": 20, "stopProfile": 1, "stopLoss": 2.5
   },
   "opts": {
-    "barXmin":[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
-    "slippageRate": [5, 4.5, 4, 3.5, 3],
-    "stopProfile": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-    "stopLoss": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    "barXmin": [5, 10, 15, 30, 45, 60],
+    "longBar": [15, 20, 30, 40],
+    "stopProfile": [0.5, 1, 1.5, 2, 2.5],
+    "stopLoss": [1, 1.5, 2, 2.5, 3, 3.5, 4]
   }
 }
-
-

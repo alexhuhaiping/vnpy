@@ -1081,7 +1081,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['drawdownList'] = drawdownList
         d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
-        d['winLoseRate'] = - totalWinning / totalLosing
+        d['winLoseRate'] = - totalWinning / totalLosing if 0 != totalLosing else 0
         d['averageWinning'] = averageWinning
         d['averageLosing'] = averageLosing
         d['profitLossRatio'] = profitLossRatio
