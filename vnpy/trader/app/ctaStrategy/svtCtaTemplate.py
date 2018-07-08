@@ -84,6 +84,9 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger(self.vtSymbol)
+        if self.isBackTesting():
+            self.log.info(u'批量回测，不输出日志')
+            self.log.propagate = False
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')

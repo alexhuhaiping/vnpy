@@ -19,6 +19,7 @@ class WorkService(object):
     def __init__(self, config=None):
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
+        self.cpuCount = 4
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
     # print(1414141)
 
-    optfile = 'optimize.ini'
-    # optfile = 'optimizeHome.ini'
+    # optfile = 'optimize.ini'
+    optfile = 'optimizeHome.ini'
     server = WorkService(optfile)
     server.start()
