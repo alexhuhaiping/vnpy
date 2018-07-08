@@ -174,6 +174,9 @@ class CtaTemplate(vtCtaTemplate):
             except TypeError:
                 if self.marginRate is None:
                     pass
+            except ZeroDivisionError:
+                # 可用资金为0
+                self.marginList.append(1)
 
     @property
     def bar(self):
