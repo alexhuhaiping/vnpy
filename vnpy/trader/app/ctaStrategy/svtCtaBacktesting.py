@@ -545,8 +545,6 @@ class BacktestingEngine(VTBacktestingEngine):
                     self.strategy.pos -= so.volume
                     trade.price = min(bestCrossPrice, so.price)
 
-                self.log.info(u'{} {} {} {} '.format(so.price, bestCrossPrice, buyCrossPrice, sellCrossPrice))
-
                 self.limitOrderCount += 1
                 trade.orderID = orderID
                 trade.vtOrderID = orderID
