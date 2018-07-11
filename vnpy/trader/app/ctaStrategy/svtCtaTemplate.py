@@ -214,6 +214,9 @@ class CtaTemplate(vtCtaTemplate):
             self.log.info(log)
         vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
+        # 下单后保存策略数据
+        self.saveDB()
+
         return vtOrderIDs
 
     #     """
@@ -560,6 +563,18 @@ class CtaTemplate(vtCtaTemplate):
             return
         self.capital = document['capital']
         self.turnover = document['turnover']
+        orderIDs = document.get('orderIDs')
+
+        tradingDay = tt.get_tradingday(arrow.now().datetime)[1]
+
+        if orderIDs and tradingDay == document['tradingDay']:
+            # 同一交易日，加载缓存的订单ID
+            _orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+            if _orderIDs is None:
+                self.ctaEngine.strategyOrderDict[self.name] = set(orderIDs)
+            else:
+                _orderIDs |= set(orderIDs)
+                self.ctaEngine.strategyOrderDict[self.name] = _orderIDs
 
     def toSave(self):
         """
@@ -569,9 +584,17 @@ class CtaTemplate(vtCtaTemplate):
         dic = self.filterSql()
 
         dic['datetime'] = arrow.now().datetime
+        dic['tradingDay'] = self.tradingDay or tt.get_tradingday(dic['datetime'])[1]
         dic['capital'] = self.capital
         dic['turnover'] = self.turnover
         dic['rtBalance'] = self.rtBalance
+
+        orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+        if orderIDs is None:
+            orderIDs = []
+        else:
+            orderIDs = list(orderIDs)
+        dic['orderIDs'] = orderIDs
 
         return dic
 

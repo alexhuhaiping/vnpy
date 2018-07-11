@@ -40,7 +40,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     # initDays = 10  # 初始化数据所用的天数
     fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
-    flinch = 3  # 连胜 flinch 次后畏缩1次
+    flinch = 3  # 畏缩指标
 
     # 策略变量
     longHigh = 0  # 大周期高点
@@ -87,7 +87,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
 
-        self.reOrder = False # 是否重新下单
+        self.reOrder = False  # 是否重新下单
         self.ordering = False  # 正处于下单中的标记为
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
@@ -115,7 +115,6 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
-            # TOOD 测试代码
             self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
@@ -146,6 +145,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.saving = True
 
             # 开盘下单逻辑
+            self.cancelAll()
             self.orderUntilTradingTime()
 
         self.putEvent()
@@ -401,10 +401,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.capital = 0
 
         if self.pos == 0:
-            # log = u'atr:{} {} {} {} {} {} {}'.format(int(self.atr), trade.direction, trade.offset, trade.price,
-            #                                          trade.volume,
-            #                                          profile, int(self.rtBalance))
-            # self.log.warning(log)
+            log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile, int(self.rtBalance))
+            self.log.warning(log)
 
             # 重置止盈止损价格
             self.stopLossPrice = None
@@ -463,12 +461,20 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.atr == 0:
             return
 
+        # 理论仓位
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
 
-        # 2连败后重仓，盈利后立即轻仓
         if self.loseCount < self.flinch:
-            minHands = min(int(minHands * self.loseCount /self.flinch), minHands)
+            # 按照连败计数来使用仓位，每多败1次，就多1点仓位，最大不超过1
+            pct = min(1, (self.loseCount / self.flinch))
+            minHands = int(minHands * pct)
+            # 最少要有1手仓位
             minHands = max(1, minHands)
+
+            # # 2连败后重仓，盈利后立即轻仓
+            # if self.loseCount < self.flinch:
+            #     minHands = min(int(minHands * self.loseCount /self.flinch), minHands)
+            #     minHands = max(1, minHands)
 
             # minHands = min(1, minHands)
 
@@ -513,7 +519,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     def waitOrdingTag(self):
         if self.isBackTesting():
             # 回测中，无需等待
-           return True
+            return True
         orderCount = 0
         waitSeconds = 0.5 * 20
         while self.ordering:

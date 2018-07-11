@@ -411,7 +411,10 @@ class DataEngine(object):
         # 否则则更新字典中的数据        
         else:
             self.workingOrderDict[order.vtOrderID] = order
-            
+            # log = u'{} {} {} {} {} {} {}'.format(order.vtOrderID, order.vtSymbol, order.direction, order.offset, order.price,
+            #                              order.totalVolume, order.status)
+            # print(log)
+
         # 更新到持仓细节中
         detail = self.getPositionDetail(order.vtSymbol)
         detail.updateOrder(order)            

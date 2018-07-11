@@ -45,19 +45,6 @@ def cover():
     s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
-def short():
-    s = getStrategy(vtSymbol)
-    # s.pos = -15
-
-    price = int(s.bm.bar.close - 1)
-    volume = 1
-    stop = False
-
-    s.short(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(price))
-
-
 def showLastTick():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bm.lastTick.datetime))
@@ -157,11 +144,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def cancelOrder():
-    s = getStrategy(vtSymbol)
-    s.cancelAll()
-
-
 def buy():
     s = getStrategy(vtSymbol)
     s.log.debug(u'测试 buy')
@@ -217,34 +199,74 @@ def checkPositionDetail():
         print(detail.output())
 
 
+def checkContinueCaution():
+    s = getStrategy(vtSymbol)
+    s.ctaEngine.get()
+
+
+def short():
+    s = getStrategy(vtSymbol)
+    # s.pos = -15
+
+    price = s.bm.bar.close + s.priceTick * 30
+    volume = 1
+    stop = False
+
+    s.short(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(price))
+
 
 def strategyOrder():
     s = getStrategy(vtSymbol)
-    s.orderOnXminBar(s.bm.xminBar)
 
-def checkContinueCaution():
+
+def sendOrder():
     s = getStrategy(vtSymbol)
-    print(s.isOrderInContinueCaution())
+    from vnpy.trader.app.ctaStrategy.ctaBase import CTAORDER_BUY
+    orderType = CTAORDER_BUY
+    volume = 1
+    stop = False
+    price = s.bm.bar.close - s.priceTick * 30
+    s.sendOrder(orderType, price, volume, stop)
 
-vtSymbol = 'hc1810'
+
+def checkDataEngineOrder():
+    print(me.dataEngine.orderDict)
+
+
+def cancelOrder():
+    s = getStrategy(vtSymbol)
+    # print(s.ctaEngine.strategyOrderDict)
+    s.cancelAll()
+
+
+vtSymbol = 'ni1809'
 import logging
-
 
 def run():
     return
     load()
     me.log.info('====================================================')
-    strategyOrder()
+
+    # cancelOrder()
+    # checkDataEngineOrder()
+    sendOrder()
+    # short()
+
+
+    # cover()
+    # sell()
+    # buy()
+
+
+    # strategyOrder()
 
     # checkContinueCaution()
 
     # checkPositionDetail()
     # showStopOrder()
     # orderToShow()
-
-    # buy()
-    # cancelOrder()
-    # sell()
 
     # checkPosition()
 
@@ -256,9 +278,6 @@ def run():
     # showBar()
     # showStopOrder()
     # closeout()
-    # sell()
-    # short()
-    # cover()
     # checkHands(me)
 
     me.log.debug('====================================================')

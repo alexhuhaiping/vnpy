@@ -1107,6 +1107,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
         self.tradeResult[u'总交易次数'] = d['totalResult']
 
+        self.tradeResult[u'初始金'] = self.capital
         self.tradeResult[u'总盈亏'] = d['capital']
         self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
         self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
