@@ -84,9 +84,6 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger(self.vtSymbol)
-        # if self.isBackTesting():
-        #     self.log.info(u'批量回测，不输出日志')
-        #     self.log.propagate = False
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
@@ -207,11 +204,6 @@ class CtaTemplate(vtCtaTemplate):
         super(CtaTemplate, self).onStart()
 
     def sendOrder(self, orderType, price, volume, stop=False):
-        log = u'pos{} orderType {}, price {}, volume {}, stop {}'.format(self.pos, orderType, price, volume, stop)
-        if volume == 0:
-            self.log.warning(u'订单量为0 {}'.format(log))
-        else:
-            self.log.info(log)
         vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
 
         # 下单后保存策略数据

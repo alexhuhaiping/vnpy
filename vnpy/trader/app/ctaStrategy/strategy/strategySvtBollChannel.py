@@ -46,7 +46,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     slMultiplier = 5.2  # 计算止损距离的乘数
     initDays = 10  # 初始化数据所用的天数
     risk = slMultiplier / 100.  # 每笔风险投入
-    flinch = 100  # 连胜几次后畏缩，默认设为100，几乎不会畏缩
+    flinch = 0  # 连胜、连败后轻重仓的指标
 
     # 策略变量
     loseCount = 0 # 连败统计
@@ -93,6 +93,10 @@ class SvtBollChannelStrategy(CtaTemplate):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
+
+        if self.isBackTesting():
+            self.log.info(u'批量回测，不输出日志')
+            self.log.propagate = False
 
         self.hands = 0
         self.balanceList = OrderedDict()
@@ -327,8 +331,8 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.log.info(u'\n'.join(textList))
 
         if self.pos == 0:
-            log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
-            self.log.warning(log)
+            # log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
+            # self.log.warning(log)
             if profile > 0:
                 # 盈利
                 self.winCount += 1

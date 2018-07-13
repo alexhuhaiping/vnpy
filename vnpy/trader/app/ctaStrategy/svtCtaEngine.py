@@ -630,12 +630,19 @@ class CtaEngine(VtCtaEngine):
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{} 停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        log = u'{} 停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+        if volume == 0:
+            self.log.warning(log)
+        else:
+            self.log.info(log)
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
-        self.log.info(log )
+        if volume == 0:
+            self.log.warning(log)
+        else:
+            self.log.info(log)
         vtOrderIDList = []
         count = 0
         while not vtOrderIDList and count <= 2:
