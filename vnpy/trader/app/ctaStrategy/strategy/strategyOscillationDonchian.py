@@ -401,7 +401,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.capital = 0
 
         if self.pos == 0:
-            log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile, int(self.rtBalance))
+            log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile,
+                                                      int(self.rtBalance))
             self.log.warning(log)
 
             # 重置止盈止损价格
@@ -463,32 +464,10 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 理论仓位
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+        hands = min(minHands, self.maxHands)
 
-        if self.loseCount < self.flinch:
-            # 按照连败计数来使用仓位，每多败1次，就多1点仓位，最大不超过1
-            pct = min(1, (self.loseCount / self.flinch))
-            minHands = int(minHands * pct)
-            # 最少要有1手仓位
-            minHands = max(1, minHands)
-
-            # # 2连败后重仓，盈利后立即轻仓
-            # if self.loseCount < self.flinch:
-            #     minHands = min(int(minHands * self.loseCount /self.flinch), minHands)
-            #     minHands = max(1, minHands)
-
-            # minHands = min(1, minHands)
-
-        # 连胜逐渐建仓，连败后逐渐加仓
-        # if self.winCount:
-        #     # 连胜后削减仓位
-        #     decrRate = 1 - self.winCount * 1/self.flinch
-        #     minHands = max(1, minHands * decrRate)
-        # if self.loseCount:
-        #     # 连败后增加仓位
-        #     incrRate = self.loseCount * 0.3
-        #     minHands = max(minHands * incrRate, minHands)
-
-        self.hands = min(minHands, self.maxHands)
+        # 随着连败后逐渐加仓
+        self.hands = self._calHandsByLoseCount(hands, self.flinch)
 
     def toSave(self):
         """

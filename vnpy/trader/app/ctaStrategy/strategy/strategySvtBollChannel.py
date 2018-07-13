@@ -49,6 +49,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     flinch = 100  # 连胜几次后畏缩，默认设为100，几乎不会畏缩
 
     # 策略变量
+    loseCount = 0 # 连败统计
     slight = True  # 畏缩轻仓
     bollUp = 0  # 布林通道上轨
     bollDown = 0  # 布林通道下轨
@@ -77,7 +78,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     varList = CtaTemplate.varList[:]
     _varList = [
         'hands',
-        'slight',
+        'loseCount',
         'bollUp',
         'bollDown',
         'cciValue',
@@ -233,7 +234,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
         log = u'up:{} down:{} cci:{} atr:{}'.format(*[int(d) for d in (
-        self.bollUp, self.bollDown, self.cciValue, self.atrValue)])
+            self.bollUp, self.bollDown, self.cciValue, self.atrValue)])
         self.log.info(u'更新 XminBar {} {}'.format(xminBar.datetime, log))
 
     def orderOnXminBar(self, bar):
@@ -332,11 +333,11 @@ class SvtBollChannelStrategy(CtaTemplate):
             if profile > 0:
                 # 盈利
                 self.winCount += 1
-                if self.winCount >= self.flinch:
-                    self.slight = True  # 轻仓
+                self.loseCount = 0
             else:
                 # 亏损
-                self.slight = False  # 重仓
+                self.loseCount += 1
+                self.winCount = 0
 
         if self.isBackTesting():
             if self.capital <= 0:
@@ -375,10 +376,13 @@ class SvtBollChannelStrategy(CtaTemplate):
             return
 
         minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
-        if self.slight:
-            minHands = min(1, minHands)
 
-        self.hands = min(minHands, self.maxHands)
+        hands = min(minHands, self.maxHands)
+
+        # 随着连败按照比例加仓
+        # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
+        # 保持轻仓，连败 flinch 次之后满仓
+        self.hands = self._calHandsByLoseCount(hands, self.flinch)
 
     def toSave(self):
         """

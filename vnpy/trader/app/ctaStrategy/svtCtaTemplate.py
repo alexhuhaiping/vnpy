@@ -84,9 +84,9 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger(self.vtSymbol)
-        if self.isBackTesting():
-            self.log.info(u'批量回测，不输出日志')
-            self.log.propagate = False
+        # if self.isBackTesting():
+        #     self.log.info(u'批量回测，不输出日志')
+        #     self.log.propagate = False
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
@@ -922,11 +922,28 @@ class CtaTemplate(vtCtaTemplate):
                     return True
         return False
 
-    def backhand(self):
+    def _calHandsByLoseCountPct(self, hands, flinch):
         """
-
+        随着连败按照比例加仓
+        :param flinch:
         :return:
         """
+        # 按照连败计数来使用仓位，每多败1次，就多1点仓位，最大不超过1
+        pct = min(1, self.loseCount / flinch)
+        # 最少要有1手仓位
+        return max(1, int(hands * pct))
+
+    def _calHandsByLoseCount(self, hands, flinch):
+        """
+        保持轻仓，连败 flinch 次之后满仓
+        :param hands:
+        :param flinch:
+        :return:
+        """
+        if self.loseCount < flinch:
+            hands = min(1, hands)
+
+        return hands
 
 
 ########################################################################
