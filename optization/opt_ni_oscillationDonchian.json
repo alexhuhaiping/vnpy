@@ -1,7 +1,7 @@
 {
   "param": {
-    "group": "唐奇安震荡",
-    "name": "镍密集穷举",
+    "group": "镍唐奇安震荡",
+    "name": "镍密集穷举比例加仓",
     "className": "OscillationDonchianStrategy",
     "capital": 100000,
     "risk": 0.05,

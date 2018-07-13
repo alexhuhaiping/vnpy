@@ -1,0 +1,20 @@
+{
+  "param": {
+    "group": "镍布林带通道",
+    "name": "20180713",
+    "className": "SvtBollChannelStrategy",
+    "capital": 100000,
+    "risk": 0.05,
+
+    "flinch":3, "atrWindow":30,"barXmin":7,"bollDev":3.2,"bollWindow":28.0,"cciWindow":10,"slMultiplier":2.8
+  },
+  "opts": {
+    "flinch":[0,1,2,3],
+    "atrWindow":[10, 20, 30, 40],
+    "barXmin":[5, 7, 10, 15, 30, 60],
+    "bollDev":[2.5, 3, 3.5, 4],
+    "bollWindow":[20, 25, 30, 35, 40],
+    "cciWindow":[5, 10, 15, 20],
+    "slMultiplier":[1, 1.5, 2, 2.5, 3, 3.5, 4]
+  }
+}

@@ -326,10 +326,9 @@ class SvtBollChannelStrategy(CtaTemplate):
 
             self.log.info(u'\n'.join(textList))
 
-        log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
-        self.log.warning(log)
-
         if self.pos == 0:
+            log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
+            self.log.warning(log)
             if profile > 0:
                 # 盈利
                 self.winCount += 1

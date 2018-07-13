@@ -464,10 +464,14 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         # 理论仓位
         minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
+
         hands = min(minHands, self.maxHands)
 
+        # n 连败前轻仓1手，之后满仓
+        # self.hands = self._calHandsByLoseCount(hands, self.flinch)
+
         # 随着连败后逐渐加仓
-        self.hands = self._calHandsByLoseCount(hands, self.flinch)
+        self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
 
     def toSave(self):
         """

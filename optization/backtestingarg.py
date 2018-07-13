@@ -150,6 +150,11 @@ class BacktestingArg(object):
         # 取出需要回测的合约
         contracts = self.getContractAvaible()
 
+        # # TODO 测试代码，先只测试螺纹
+        symbol = 'ni'
+        contracts = [c for c in contracts if c['underlyingSymbol'] == symbol]
+        self.log.debug(u'只生成  {} 的参数'.format(symbol))
+
         # 生成最终用于回测的参数组合, 稍后保存到数据库
         documents = self.createBacktestingArgs(contracts, strategyArgs)
 
@@ -258,12 +263,6 @@ class BacktestingArg(object):
         # 每个品种的回测参数
         documents = []
         for c in contracts:
-            # # TODO 测试代码，先只测试螺纹
-            # symbol = 'hc'
-            # if c['underlyingSymbol'] != symbol:
-            #     self.log.debug(u'只生成  {} 的参数'.format(symbol))
-            #     continue
-
             for a in strategyArgs:
                 d = a.copy()
                 d['optsv'] = '{},{}'.format(c['underlyingSymbol'], d['optsv'])
@@ -352,7 +351,7 @@ if __name__ == '__main__':
     # optfile = 'optimize.ini'
 
     # home 配置
-    argFileName = 'opt_oscillationDonchian.json'
+    argFileName = 'opt_ni_oscillationDonchian.json'
     optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))
