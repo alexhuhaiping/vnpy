@@ -86,6 +86,9 @@ class OscillationDonchianStrategy(CtaTemplate):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
+        if self.isBackTesting():
+            self.log.info(u'批量回测，不输出日志')
+            self.log.propagate = False
 
         self.reOrder = False  # 是否重新下单
         self.ordering = False  # 正处于下单中的标记为
