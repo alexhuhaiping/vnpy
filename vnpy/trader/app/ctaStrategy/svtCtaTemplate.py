@@ -928,6 +928,9 @@ class CtaTemplate(vtCtaTemplate):
         :param flinch:
         :return:
         """
+        if flinch == 0:
+            return hands
+
         # 按照连败计数来使用仓位，每多败1次，就多1点仓位，最大不超过1
         pct = min(1, self.loseCount * 1. / flinch)
         # 最少要有1手仓位
