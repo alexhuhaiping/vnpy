@@ -7,17 +7,18 @@
 import copy
 import traceback
 import time
+from threading import Timer
 import talib
 import logging
 import pymongo
 import datetime
-import functools
 
 import pandas as pd
 import arrow
 import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
+from vnpy.trader.vtFunction import waitToContinue
 from vnpy.trader.vtEvent import *
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
@@ -82,22 +83,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
-        loggerName = 'ctabacktesting' if self.isBackTesting() else 'cta'
-        logger = logging.getLogger(loggerName)
-        # 定制 logger.name
         self.log = logging.getLogger(self.vtSymbol)
-        # self.log.parent = logger
-        self.log.propagate = 0
-
-        for f in logger.filters:
-            self.log.addFilter(f)
-        for h in logger.handlers:
-            self.log.addHandler(h)
-
-        if self.isBackTesting():
-            self.log.setLevel(logger.level)
-
-        # 复制成和原来的 Logger 配置一样
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
@@ -106,9 +92,6 @@ class CtaTemplate(vtCtaTemplate):
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
-        # self.bar1min = None  # 1min bar
-        # self.bar = None  # 根据 barXmin 聚合的 bar
-        # self.bar1minCount = 0
 
         self._pos = 0
         self.posList = []
@@ -116,6 +99,11 @@ class CtaTemplate(vtCtaTemplate):
         self.commissionRate = None  # 手续费率 vtObject.VtCommissionRate
         self.marginList = []
         self._positionDetail = None  # 仓位详情
+
+        self._commisionAmonut = 0  # 回测统计用的手续费总数
+        self._splipageAmonut = 0  # 回测统计用的滑点总数
+
+        self.tradingDay = None  # 当前所处的交易日
 
         # K线管理器
         self.maxBarNum = 0
@@ -136,6 +124,10 @@ class CtaTemplate(vtCtaTemplate):
 
         self.isNeedUpdateMarginRate = True
         self.isNeedUpdateCommissionRate = True
+
+        self.winCount = 0  # 连胜计数
+        self.loseCount = 0  # 连败计数
+        self.slight = False  # 轻重仓标记
 
     @property
     def floatProfile(self):
@@ -182,6 +174,9 @@ class CtaTemplate(vtCtaTemplate):
             except TypeError:
                 if self.marginRate is None:
                     pass
+            except ZeroDivisionError:
+                # 可用资金为0
+                self.marginList.append(1)
 
     @property
     def bar(self):
@@ -209,12 +204,10 @@ class CtaTemplate(vtCtaTemplate):
         super(CtaTemplate, self).onStart()
 
     def sendOrder(self, orderType, price, volume, stop=False):
-        log = u'pos{} orderType {}, price {}, volume {}, stop {}'.format(self.pos, orderType, price, volume, stop)
-        if volume == 0:
-            self.log.warning(u'订单量为0 {}'.format(log))
-        else:
-            self.log.info(log)
         vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
+
+        # 下单后保存策略数据
+        self.saveDB()
 
         return vtOrderIDs
 
@@ -314,6 +307,7 @@ class CtaTemplate(vtCtaTemplate):
         commission = self.getCommission(price, volume, offset)
         self.log.info(u'手续费 {}'.format(commission))
         self.capital -= commission
+        self._commisionAmonut += commission
 
     def chargeSplipage(self, volume):
         """
@@ -324,6 +318,7 @@ class CtaTemplate(vtCtaTemplate):
         if self.isBackTesting():
             slippage = volume * self.size * self.ctaEngine.slippage
             self.capital -= slippage
+            self._splipageAmonut += slippage
 
     def newBar(self, tick):
         bar = VtBarData()
@@ -390,6 +385,10 @@ class CtaTemplate(vtCtaTemplate):
             if self.preXminBar:
                 orderDic['pre{}minBar'.format(self.barXmin)] = self.xminBarToHtml(self.preXminBar)
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
+
+            # 限价单 orders 里面是 odic，包含限价单的内容
+            orders = self.ctaEngine.getAllOrderToShow(self.name)
+            orderDic['order'] = pd.DataFrame(orders).to_html()
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
@@ -543,15 +542,31 @@ class CtaTemplate(vtCtaTemplate):
     # def isNewBar(self):
     #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
-    def stop(self):
-        # 执行停止策略
-        self.ctaEngine.stopStrategy(self)
+    def getOrder(self, vtOrderID):
+        if self.isBackTesting():
+            # 回测模式中取回订单对象
+            return self.ctaEngine.getOrder(vtOrderID)
+        else:
+            # 实盘中取回订单对象
+            return self.mainEngine.getOrder(vtOrderID)
 
     def loadCtaDB(self, document):
         if not document:
             return
         self.capital = document['capital']
         self.turnover = document['turnover']
+        orderIDs = document.get('orderIDs')
+
+        tradingDay = tt.get_tradingday(arrow.now().datetime)[1]
+
+        if orderIDs and tradingDay == document['tradingDay']:
+            # 同一交易日，加载缓存的订单ID
+            _orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+            if _orderIDs is None:
+                self.ctaEngine.strategyOrderDict[self.name] = set(orderIDs)
+            else:
+                _orderIDs |= set(orderIDs)
+                self.ctaEngine.strategyOrderDict[self.name] = _orderIDs
 
     def toSave(self):
         """
@@ -561,9 +576,17 @@ class CtaTemplate(vtCtaTemplate):
         dic = self.filterSql()
 
         dic['datetime'] = arrow.now().datetime
+        dic['tradingDay'] = self.tradingDay or tt.get_tradingday(dic['datetime'])[1]
         dic['capital'] = self.capital
         dic['turnover'] = self.turnover
         dic['rtBalance'] = self.rtBalance
+
+        orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+        if orderIDs is None:
+            orderIDs = []
+        else:
+            orderIDs = list(orderIDs)
+        dic['orderIDs'] = orderIDs
 
         return dic
 
@@ -578,7 +601,11 @@ class CtaTemplate(vtCtaTemplate):
 
             # 保存
             document = self.toSave()
-            self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
+            try:
+                self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
+            except Exception:
+                self.log.error(str(document))
+                raise
 
     def filterSql(self):
         gateWay = self.mainEngine.getGateway('CTP')
@@ -831,6 +858,88 @@ class CtaTemplate(vtCtaTemplate):
     def positionErrReport(self, err):
         self.log.error(err)
 
+    @property
+    def maxHands(self):
+        return int(self.capital / (self.bar.close * self.size * self.marginRate))
+
+    def orderUntilTradingTime(self):
+        """
+        使用子线程在等待进入连续交易时再下单
+        :return:
+        """
+        if self.xminBar and self.am and self.inited and self.trading:
+            if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
+                _now = self.bm.lastTick.datetime
+            else:
+                _now = arrow.now().datetime
+
+            _futures = _now + datetime.timedelta(seconds=2)
+            if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
+                # 已经进入连续竞价的阶段，直接下单
+                self.log.info(u'已经处于连续竞价阶段')
+                waistSeconds = 0
+            else:  # 还没进入连续竞价，使用一个定时器
+                self.log.info(u'尚未开始连续竞价')
+                moment = waitToContinue(self.vtSymbol, _futures)
+                wait = moment - _now
+                # 提前2秒下停止单
+                waistSeconds = wait.total_seconds()
+                self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+
+            # 至少要等待5秒以上，等待其他策略的 onStart 完成
+            waistSeconds = max(5, waistSeconds)
+            Timer(waistSeconds, self._orderOnThreading).start()
+        else:
+            self.log.warning(
+                u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
+
+    def _orderOnThreading(self):
+        """
+        在 orderOnTradingTime 中调用该函数，在子线程中下单
+        :return:
+        """
+        raise NotImplementedError(u'尚未定义')
+
+    def isOrderInContinueCaution(self):
+        """
+        是否处于可下单的连续竞价中
+        :return:
+        """
+        if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
+            _now = self.bm.lastTick.datetime
+            # 当前和未来2秒都要处于连续竞价阶段
+            if tt.get_trading_status(self.vtSymbol, _now) == tt.continuous_auction:
+                _futures = _now + datetime.timedelta(seconds=2)
+                if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
+                    return True
+        return False
+
+    def _calHandsByLoseCountPct(self, hands, flinch):
+        """
+        随着连败按照比例加仓
+        :param flinch:
+        :return:
+        """
+        if flinch == 0:
+            return hands
+
+        # 按照连败计数来使用仓位，每多败1次，就多1点仓位，最大不超过1
+        pct = min(1, self.loseCount * 1. / flinch)
+        # 最少要有1手仓位
+        return max(1, int(hands * pct))
+
+    def _calHandsByLoseCount(self, hands, flinch):
+        """
+        保持轻仓，连败 flinch 次之后满仓
+        :param hands:
+        :param flinch:
+        :return:
+        """
+        if self.loseCount < flinch:
+            hands = min(1, hands)
+
+        return hands
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
@@ -991,14 +1100,6 @@ class BarManager(VtBarManager):
 
 #########################################################################
 class ArrayManager(VtArrayManager):
-    # ----------------------------------------------------------------------
-    def ma(self, n, array=False):
-        """简单均线"""
-        result = talib.MA(self.close, n)
-        if array:
-            return result
-        return result[-1]
-
     def __init__(self, size=100):
         size += 1
         super(ArrayManager, self).__init__(size)
@@ -1026,3 +1127,19 @@ class ArrayManager(VtArrayManager):
         ])
 
         return pd.DataFrame(od).to_html()
+
+    # ----------------------------------------------------------------------
+    def ma(self, n, array=False):
+        """简单均线"""
+        result = talib.MA(self.close, n)
+        if array:
+            return result
+        return result[-1]
+
+    def tr(self, array=False):
+        """TR指标"""
+        result = talib.TRANGE(self.high, self.low, self.close)
+
+        if array:
+            return result
+        return result[-1]

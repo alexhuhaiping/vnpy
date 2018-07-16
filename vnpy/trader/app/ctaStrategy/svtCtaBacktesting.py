@@ -23,6 +23,7 @@ except ImportError:
 
 import arrow
 import pymongo
+import pymongo.errors
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -35,12 +36,6 @@ from vnpy.trader.app.ctaStrategy.ctaBacktesting import TradingResult, formatNumb
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
-
-# 读取日志配置文件
-# loggingConFile = 'logging.conf'
-# loggingConFile = getJsonPath(loggingConFile, __file__)
-# logging.config.fileConfig(loggingConFile)
-
 
 ########################################################################
 class BacktestingEngine(VTBacktestingEngine):
@@ -450,7 +445,6 @@ class BacktestingEngine(VTBacktestingEngine):
 
         for data in self.datas:
             td = data.tradingDay
-
             if self.endDate and self.endDate < td:
                 # 要回测的时间段结束
                 break
@@ -461,7 +455,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     self.log.error(u'异常 bar: {}'.format(data.datetime))
                     raise
 
-        self.log.info(u'数据回放结束 ')
+        self.log.info(u'数据回放结束')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
@@ -515,9 +509,6 @@ class BacktestingEngine(VTBacktestingEngine):
             # 判断是否会成交
             buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
             sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
-
-            # if arrow.get('2017-08-04 09:00:00+08:00').datetime < self.dt < arrow.get('2017-08-04 09:02:00+08:00').datetime:
-            #     self.log.info(u'{} {} {} {} {}'.format(so, buyCrossPrice, buyCross, sellCrossPrice, sellCross))
 
             # 如果发生了成交
             if not (buyCross or sellCross):
@@ -606,12 +597,9 @@ class BacktestingEngine(VTBacktestingEngine):
                 if isCrossed:
                     # 出现成交，重新整理停止单队列
 
-                    # self.log.info(u'出现成交,重新生成停止单队列')
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]
-                    # if __debug__:
-                    #     self.log.debug(u'停止单数量 {} -> {}'.format(len(preStopOrders), len(stopOrders)))
                     break
             else:
                 # 一次成交都没有
@@ -710,6 +698,12 @@ class BacktestingEngine(VTBacktestingEngine):
         resultDf = resultDf.set_index('date')
 
         return resultDf
+
+    def getOrder(self, vtOrderID):
+        vtOrder = self.limitOrderDict.get(vtOrderID)
+        if vtOrder is None:
+            vtOrder = self.stopOrderDict.get(vtOrderID)
+        return vtOrder
 
     # ----------------------------------------------------------------------
     def showDailyResult(self, df=None):
@@ -816,17 +810,18 @@ class BacktestingEngine(VTBacktestingEngine):
         fig = plt.figure(figsize=(10, 16))
 
         subPlotNum = 6
-
         pBalance = plt.subplot(subPlotNum, 1, 1)
-        pBalance.set_title('Balance')
-        df['balance'].plot(legend=True)
+        pBalance.set_title('Balance {}'.format(self.symbol))
+        df['balance'].plot(legend=True, grid=True)
 
         pDrawdown = plt.subplot(subPlotNum, 1, 2)
         pDrawdown.set_title('Drawdown')
+        pDrawdown.grid(True, color='gray')
         pDrawdown.fill_between(range(len(df)), df['drawdown'].values)
 
         pDrawdownPer = plt.subplot(subPlotNum, 1, 3)
         pDrawdownPer.set_title('DrawdownPer')
+        pDrawdownPer.grid(True, color='gray')
         pDrawdownPer.fill_between(range(len(df)), df['drawdownPer'].values)
 
         pPnl = plt.subplot(subPlotNum, 1, 4)
@@ -865,6 +860,7 @@ class BacktestingEngine(VTBacktestingEngine):
             if isinstance(v, float) or isinstance(v, int):
                 v = formatNumber(v)
             print(u'%s：\t%s' % (k, v))
+
 
     def calculateBacktestingResult(self):
         """
@@ -1069,7 +1065,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 返回回测结果
         d = {}
-        d['capital'] = capital
+        d['capital'] = capital - self.capital
         d['maxCapital'] = maxCapital
         d['drawdown'] = drawdown
         d['maxDrawdownPer'] = abs(min(drawdownPerList))
@@ -1083,6 +1079,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['drawdownList'] = drawdownList
         d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
+        d['winLoseRate'] = - totalWinning / totalLosing if 0 != totalLosing else 0
         d['averageWinning'] = averageWinning
         d['averageLosing'] = averageLosing
         d['profitLossRatio'] = profitLossRatio
@@ -1108,6 +1105,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
         self.tradeResult[u'总交易次数'] = d['totalResult']
 
+        self.tradeResult[u'初始金'] = self.capital
         self.tradeResult[u'总盈亏'] = d['capital']
         self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
         self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
@@ -1121,6 +1119,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
+        self.tradeResult[u'总盈亏比'] = d['winLoseRate']
 
         if self.isOutputResult:
             self.printResult(self.tradeResult)
@@ -1140,10 +1139,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         pCapital = plt.subplot(subplotNum, 1, 1)
         pCapital.set_ylabel("capital")
+        pCapital.grid(True, color='gray')
         pCapital.plot(d['capitalList'], color='r', lw=0.8)
 
         pDD = plt.subplot(subplotNum, 1, 2)
         pDD.set_ylabel("DD")
+        pDD.grid(True, color='gray')
         pDD.bar(range(len(d['drawdownList'])), d['drawdownList'], color='g')
 
         pDDp = plt.subplot(subplotNum, 1, 3)

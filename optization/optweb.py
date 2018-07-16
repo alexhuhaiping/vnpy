@@ -109,7 +109,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
         signal.signal(sig, shutdown)
 
-    from gevent.wsgi import WSGIServer
+    from gevent.pywsgi import WSGIServer
     server = WSGIServer(('', PORT), app)
     server.serve_forever()
 

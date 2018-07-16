@@ -143,3 +143,8 @@ def waitToContinue(vtSymbol, now):
     # 增加1秒
     c += datetime.timedelta(seconds=1)
     return c
+
+
+def logDate(strateDate, endDate):
+    return arrow.get(strateDate).datetime, arrow.get(endDate).datetime
+

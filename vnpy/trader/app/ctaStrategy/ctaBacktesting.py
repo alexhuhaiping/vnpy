@@ -264,6 +264,7 @@ class BacktestingEngine(object):
 
         self.crossLimitOrder()  # 先撮合限价单
         self.crossStopOrder()  # 再撮合停止单
+        self.strategy.tradingDay = bar.tradingDay # j
         self.strategy.onBar(bar)  # 推送K线到策略中
 
         self.updateDailyClose(bar.tradingDay, bar.close)
@@ -360,7 +361,10 @@ class BacktestingEngine(object):
                 self.strategy.onOrder(order)
 
                 # 从字典中删除该限价单
-                del self.workingLimitOrderDict[orderID]
+                try:
+                    del self.workingLimitOrderDict[orderID]
+                except KeyError:
+                    pass
 
     # ----------------------------------------------------------------------
     def crossStopOrder(self):
@@ -1083,7 +1087,9 @@ class VtTradingResult(object):
         turnover = self.turnover
 
         assert isinstance(rate, VtCommissionRate)
+        # 平仓手续费
         commission = turnover * (rate.openRatioByMoney + max(rate.closeRatioByMoney, rate.closeTodayRatioByMoney))
+        # 开仓手续费
         commission += self.volume * (
             rate.openRatioByVolume + max(rate.closeRatioByVolume, rate.closeTodayRatioByVolume))
         # 惩罚性的手续费倍率
@@ -1125,9 +1131,9 @@ class TradingResult(VtTradingResult):
         self.turnover = (self.entryPrice + self.exitPrice) * size * abs(volume)  # 成交金额
 
         # 开仓
-        commission = rate(entryPrice, volume, OFFSET_OPEN)
+        commission = rate(entryPrice, abs(volume), OFFSET_OPEN)
         # 平仓
-        commission += rate(exitPrice, volume, closeOffset)
+        commission += rate(exitPrice, abs(volume), closeOffset)
         self.commission = commission
 
         self.slippage = slippage * 2 * size * abs(volume)  # 滑点成本

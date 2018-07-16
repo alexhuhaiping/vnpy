@@ -161,7 +161,7 @@ class svtCtpGateway(VtGateway):
     # ----------------------------------------------------------------------
     def cancelOrder(self, cancelOrderReq):
         """撤单"""
-        self.tdApi.cancelOrder(cancelOrderReq)
+        return self.tdApi.cancelOrder(cancelOrderReq)
 
     # ----------------------------------------------------------------------
     def qryAccount(self):
@@ -189,7 +189,9 @@ class svtCtpGateway(VtGateway):
         if self.qryEnabled:
             # 需要循环的查询函数列表
             self.qryFunctionList = [self.qryAccount, self.qryPosition]
-            map(self.qryQueue.put, (self.qryAccount, self.qryPosition))
+
+            for func in self.qryFunctionList:
+                self.qryQueue.put(func)
 
             self.qryCount = 0  # 查询触发倒计时
             self.qryTrigger = 2  # 查询触发点
@@ -1529,7 +1531,7 @@ class svtCtpTdApi(TdApi):
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
 
-        self.reqOrderAction(req, self.reqID)
+        return self.reqOrderAction(req, self.reqID)
 
     # ----------------------------------------------------------------------
     def close(self):

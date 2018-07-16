@@ -1,30 +1,21 @@
 # encoding: UTF-8
 
 """
-感谢Darwin Quant贡献的策略思路。
-知乎专栏原文：https://zhuanlan.zhihu.com/p/24448511
-
-策略逻辑：
-1. 布林通道（信号）
-2. CCI指标（过滤）
-3. ATR指标（止损）
-
-适合品种：螺纹钢
-适合周期：15分钟
-
-这里的策略是作者根据原文结合vn.py实现，对策略实现上做了一些修改，仅供参考。
-
+一个震荡策略，使用通道信号（如唐奇安通道，布林带等）构建一个通道。
+突破大周期通道时开仓，并在小盈利时止盈，大浮亏时止损。
+意在构建一个小盈多赢的震荡策略。
 """
 
 from __future__ import division
 
+import traceback
 from collections import OrderedDict
 import arrow
 from threading import Timer
 import tradingtime as tt
 
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtFunction import waitToContinue, exception
+from vnpy.trader.vtFunction import waitToContinue, exception, logDate
 from vnpy.trader.vtObject import VtTradeData
 from vnpy.trader.app.ctaStrategy.ctaTemplate import (BarManager, ArrayManager)
 from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
@@ -33,79 +24,56 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class SvtBollChannelStrategy(CtaTemplate):
-    """基于布林通道的交易策略"""
-    className = 'SvtBollChannelStrategy'
-    author = u'用Python的交易员'
+class OscillationAtrChannelStrategy(CtaTemplate):
+    """震荡策略"""
+    className = 'OscillationAtrChannelStrategy'
+    author = u'lamter'
 
     # 策略参数
-    bollWindow = 18  # 布林通道窗口数
-    bollDev = 3.4  # 布林通道的偏差
-    cciWindow = 10  # CCI窗口数
-    atrWindow = 30  # ATR窗口数
-    slMultiplier = 5.2  # 计算止损距离的乘数
+    flinch = 2  # 连胜 flinch 次后使用轻仓
+    atrNum = 14  # atr 长度
+    atrChannel = 1.5  # 通道大小
     initDays = 10  # 初始化数据所用的天数
-    risk = slMultiplier / 100.  # 每笔风险投入
-    flinch = 0  # 连胜、连败后轻重仓的指标
+    fixedSize = 1  # 每次交易的数量
+    risk = 0.05  # 要使用的风险度，根据保证金比例计算
 
     # 策略变量
-    loseCount = 0 # 连败统计
-    slight = True  # 畏缩轻仓
-    bollUp = 0  # 布林通道上轨
-    bollDown = 0  # 布林通道下轨
-    cciValue = 0  # CCI指标数值
-    atrValue = 0  # ATR指标数值
-
-    intraTradeHigh = 0  # 持仓期内的最高点
-    intraTradeLow = 0  # 持仓期内的最低点
-    longStop = 0  # 多头止损
-    shortStop = 0  # 空头止损
+    light = False  # 轻仓状态
+    stop = None  # 风险投入
+    flinchCount = 0  # 连胜次数
+    atr = 0  # atr指标
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'flinch',
-        'bollWindow',
-        'bollDev',
-        'cciWindow',
-        'atrWindow',
-        'slMultiplier',
+        'atrNum',
+        'atrChannel',
         'initDays',
+        'fixedSize',
         'risk',
     ])
 
     # 变量列表，保存了变量的名称
-    varList = CtaTemplate.varList[:]
     _varList = [
+        'light',
+        'stop',
+        'flinchCount',
+        'atr',
         'hands',
-        'loseCount',
-        'bollUp',
-        'bollDown',
-        'cciValue',
-        'atrValue',
-        'intraTradeHigh',
-        'intraTradeLow',
-        'longStop',
-        'shortStop',
     ]
+    varList = CtaTemplate.varList[:]
     varList.extend(_varList)
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
+        super(OscillationAtrChannelStrategy, self).__init__(ctaEngine, setting)
 
-        if self.isBackTesting():
-            self.log.info(u'批量回测，不输出日志')
-            self.log.propagate = False
-
-        self.hands = 0
+        self.hands = self.fixedSize
         self.balanceList = OrderedDict()
-        self.a = 0
 
     def initMaxBarNum(self):
-        self.maxBarNum = max(self.atrWindow, self.bollWindow, self.cciWindow)
-
-    # ----------------------------------------------------------------------
+        self.maxBarNum = self.atrNum * 2
 
     # ----------------------------------------------------------------------
     def onInit(self):
@@ -117,15 +85,9 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
 
-        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
-        if not self.isBackTesting():
-            # 需要等待保证金加载完毕
-            document = self.fromDB()
-            self.loadCtaDB(document)
-
         self.initContract()
 
-        # 从数据库加载策略数据
+        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
         if not self.isBackTesting():
             # 需要等待保证金加载完毕
             document = self.fromDB()
@@ -133,6 +95,7 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
+            # TOOD 测试代码
             self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
@@ -144,8 +107,10 @@ class SvtBollChannelStrategy(CtaTemplate):
         else:
             self.log.info(u'初始化数据不足!')
 
-        self.isCloseoutVaild = True
+        if self.stop is None:
+            self.updateStop()
 
+        self.isCloseoutVaild = True
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -159,15 +124,16 @@ class SvtBollChannelStrategy(CtaTemplate):
                 if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
                     # 已经进入连续竞价的阶段，直接下单
                     self.log.info(u'已经处于连续竞价阶段')
-                    self._orderOnStart()
+                    waistSeconds = 5
                 else:  # 还没进入连续竞价，使用一个定时器
                     self.log.info(u'尚未开始连续竞价')
                     moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
                     wait = (moment - arrow.now().datetime)
+                    waistSeconds = wait.total_seconds() - 2
                     self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
-                    # 提前2秒下停止单
-                    Timer(wait.total_seconds() - 2, self._orderOnStart).start()
+                # 提前2秒下停止单
+                Timer(waistSeconds, self._orderOnStart).start()
             else:
                 self.log.warning(
                     u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
@@ -182,7 +148,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         在onStart中的下单
         :return:
         """
-        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
     # ----------------------------------------------------------------------
@@ -221,9 +186,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         """
         bar = xminBar
 
-        # 全撤之前发出的委托
-        self.cancelAll()
-
         # 保存K线数据
         am = self.am
 
@@ -232,20 +194,20 @@ class SvtBollChannelStrategy(CtaTemplate):
         if not am.inited:
             return
 
-        # 计算指标数值
-        self.bollUp, self.bollDown = am.boll(self.bollWindow, self.bollDev)
-        self.cciValue = am.cci(self.cciWindow)
-        self.atrValue = am.atr(self.atrWindow)
+        # 通道内最高点
+        self.atr = am.atr(self.atrNum)
+
+        self.atrUpper = bar.close + self.atr * self.atrChannel
+        self.atrDowner = bar.close - self.atr * self.atrChannel
 
         if self.trading:
+            # self.log.warning(str(bar.datetime))
             self.orderOnXminBar(bar)
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        log = u'up:{} down:{} cci:{} atr:{}'.format(*[int(d) for d in (
-            self.bollUp, self.bollDown, self.cciValue, self.atrValue)])
-        self.log.info(u'更新 XminBar {} {}'.format(xminBar.datetime, log))
+        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
     def orderOnXminBar(self, bar):
         """
@@ -258,7 +220,10 @@ class SvtBollChannelStrategy(CtaTemplate):
             self.log.warn(u'不能下单 trading: False')
             return
 
-        # 判断是否要进行交易
+        # 下单前先撤单
+        self.cancelAll()
+
+        # 计算开仓仓位
         self.updateHands()
 
         if self.hands == 0:
@@ -267,33 +232,20 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         # 当前无仓位，发送开仓委托
         if self.pos == 0:
-            self.intraTradeHigh = bar.high
-            self.intraTradeLow = bar.low
-
-            if self.cciValue > 0:
-                self.buy(self.bollUp, self.hands, True)
-
-            elif self.cciValue < 0:
-                self.short(self.bollDown, self.hands, True)
+            self.buy(self.atrUpper, self.hands, stop=True)
+            self.short(self.atrDowner, self.hands, stop=True)
 
         # 持有多头仓位
         elif self.pos > 0:
-            self.intraTradeHigh = max(self.intraTradeHigh, bar.high)
-            self.intraTradeLow = bar.low
-            self.longStop = self.intraTradeHigh - self.atrValue * self.slMultiplier
-
-            self.sell(self.longStop, abs(self.pos), True)
+            self.sell(self.atrDowner, abs(self.pos), stop=True)
+            self.short(self.atrDowner, self.hands, True)
 
         # 持有空头仓位
         elif self.pos < 0:
-            self.intraTradeHigh = bar.high
-            self.intraTradeLow = min(self.intraTradeLow, bar.low)
-            self.shortStop = self.intraTradeLow + self.atrValue * self.slMultiplier
-
-            self.cover(self.shortStop, abs(self.pos), True)
+            self.cover(self.atrUpper, abs(self.pos), stop=True)
+            self.buy(self.atrUpper, self.hands, stop=True)
 
     # ----------------------------------------------------------------------
-
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         log = self.log.info
@@ -325,7 +277,6 @@ class SvtBollChannelStrategy(CtaTemplate):
         profile = self.capital - preCapital
 
         if not self.isBackTesting():
-            # if self.isBackTesting():
             textList = [u'{}{}'.format(trade.direction, trade.offset)]
             textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
             textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
@@ -335,26 +286,31 @@ class SvtBollChannelStrategy(CtaTemplate):
             )
 
             self.log.info(u'\n'.join(textList))
-
-        if self.pos == 0:
-            # log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
-            # self.log.warning(log)
-            if profile > 0:
-                # 盈利
-                self.winCount += 1
-                self.loseCount = 0
-            else:
-                # 亏损
-                self.loseCount += 1
-                self.winCount = 0
-
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
 
+        log = u'{} {} {} {} {} {} {} {}'.format(round(self.atr, 2), self.pos, trade.direction, trade.offset, trade.price,
+                                                 trade.volume, profile, self.rtBalance)
+        self.log.warning(log)
+
+        if self.pos == 0:
+            if profile > 0:
+                # 盈利，轻仓
+                self.flinchCount += 1
+            else:
+                # 重置连胜计数
+                self.flinchCount = 0
+                # 出现亏损后加仓
+                self.updateStop()
+                # 使用重仓
+                self.light = False
+
+            if self.flinchCount >= self.flinch:
+                self.light = True
+
         # 成交后重新下单
-        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
@@ -379,35 +335,43 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         # 以下技术指标为0时，不更新手数
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
-        if self.slMultiplier == 0:
-            return
-        if self.atrValue == 0:
+        if self.atr == 0:
             return
 
-        minHands = max(0, int(self.capital * self.risk / (self.size * self.atrValue * self.slMultiplier)))
+        # 最大开仓手数
+        minHands = int(self.stop / (self.atr * self.atrChannel * 2 * self.size))
 
-        hands = min(minHands, self.maxHands)
+        if self.light:
+            minHands = min(minHands, 1)
 
-        # 随着连败按照比例加仓
-        # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
-        # 保持轻仓，连败 flinch 次之后满仓
-        self.hands = self._calHandsByLoseCount(hands, self.flinch)
+        self.hands = min(minHands, self.maxHands)
+
+    @property
+    def maxHands(self):
+        return max(0, int(
+            self.capital / (
+                self.size * self.bar.close * self.marginRate)))
 
     def toSave(self):
         """
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(SvtBollChannelStrategy, self).toSave()
+        dic = super(OscillationAtrChannelStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
+
         return dic
 
     def loadCtaDB(self, document=None):
-        super(SvtBollChannelStrategy, self).loadCtaDB(document)
+        super(OscillationAtrChannelStrategy, self).loadCtaDB(document)
         if document:
             for k in self._varList:
                 try:
                     setattr(self, k, document[k])
                 except KeyError:
                     self.log.warning(u'未保存的key {}'.format(k))
+
+    def updateStop(self):
+        self.log.info(u'调整风险投入')
+        self.stop = self.capital * self.risk

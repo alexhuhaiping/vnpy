@@ -1,6 +1,8 @@
 # coding:utf-8
+import logging.config
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
+from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 
 globals().update(STRATEGY_CLASS)
 
@@ -39,19 +41,28 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
 
 
 if __name__ == '__main__':
-    vtSymbol = 'rb1810'
+    # 读取日志配置文件
+    loggingConFile = 'logging.conf'
+    logging.config.fileConfig(loggingConFile)
+
+    vtSymbol = 'ni1609'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
-    }
-    setting.update({
-            "atrWindow":30,"barXmin":49,"bollDev":3.2,"bollWindow":16.0,"cciWindow":10,"slMultiplier":3.2
-    })
+        'risk': 0.05,
 
+        "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
+        'strategyClass': 'SvtBollChannelStrategy',
+
+        # "flinch": 3, "barXmin": 15, "longBar": 40, "stopLoss": 1, "stopProfile": 1.5,
+        # 'strategyClass': 'OscillationDonchianStrategy',
+    }
+
+    strategyClass = setting.pop('strategyClass')
     engine = runBacktesting(
         vtSymbol=vtSymbol,
         setting=setting,
-        strategyClass='SvtBollChannelStrategy',
+        strategyClass=strategyClass,
         mode=BacktestingEngine.BAR_MODE,
         isShowFig=False,
         isOutputResult=True,

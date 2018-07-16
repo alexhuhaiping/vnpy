@@ -24,7 +24,7 @@ import datetime
 from itertools import chain
 from bson.codec_options import CodecOptions
 from threading import Thread, Timer
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
@@ -34,7 +34,7 @@ from vnpy.trader.vtFunction import LOCAL_TIMEZONE
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtObject import VtTickData, VtBarData
+from vnpy.trader.vtObject import VtTickData, VtBarData, VtErrorData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
 from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
@@ -106,6 +106,8 @@ class CtaEngine(VtCtaEngine):
 
         # 维持心跳的品种
         self.heatbeatSymbols = []
+
+        self.vtOrderReqToShow = {}  # 用于展示的限价单对象
 
         if __debug__:
             import pymongo.collection
@@ -207,8 +209,8 @@ class CtaEngine(VtCtaEngine):
             # 遍历等待中的停止单，检查是否会被触发
             for so in self.getAllStopOrdersSorted(vtSymbol):
                 if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
-                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+                    longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 >= so.price  # 多头停止单被触发
+                    shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 <= so.price  # 空头停止单被触发
 
                     if longTriggered or shortTriggered:
                         # 买入和卖出分别以涨停跌停价发单（模拟市价单）
@@ -218,7 +220,11 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, so.price,
+                                                       so.volume)
+                        self.log.info(u'触发停止单 {}'.format(log))
+                        if so.volume != 0:
+                            self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
 
                         # 从活动停止单字典中移除该停止单
                         del self.workingStopOrderDict[so.stopOrderID]
@@ -231,6 +237,19 @@ class CtaEngine(VtCtaEngine):
                         # 更新停止单状态，并通知策略
                         so.status = STOPORDER_TRIGGERED
                         so.strategy.onStopOrder(so)
+
+    def getAllOrderToShow(self, strategyName):
+        """
+
+        :param vtSymbol:
+        :return:
+        """
+        orderList = []
+        for orderID in self.strategyOrderDict[strategyName]:
+            dic = self.vtOrderReqToShow.get(orderID)
+            if dic:
+                orderList.append(dic)
+        return orderList
 
     def getAllStopOrdersSorted(self, vtSymbol):
         """
@@ -400,6 +419,7 @@ class CtaEngine(VtCtaEngine):
         # 成交单的索引
         indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
         indexDatetime = IndexModel([('timestamp', DESCENDING)], name='timestamp', background=True)
+
 
         indexes = [indexSymbol, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
@@ -609,14 +629,44 @@ class CtaEngine(VtCtaEngine):
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
 
-
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{}停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
+        log = u'{} 停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+        if volume == 0:
+            self.log.warning(log)
+        else:
+            self.log.info(log)
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        self.log.info(u'{}发单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume))
-        return super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+        log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+        if volume == 0:
+            self.log.warning(log)
+        else:
+            self.log.info(log)
+        vtOrderIDList = []
+        count = 0
+        while not vtOrderIDList and count <= 2:
+            count += 1
+            vtOrderIDList = super(CtaEngine, self).sendOrder(vtSymbol, orderType, price, volume, strategy)
+            if not vtOrderIDList:
+                time.sleep(3)
+
+        if not vtOrderIDList:
+            self.log.warning(u'vtOrderID 为空，检查是否有限价单无法自动撤单\n{}'.format(log))
+
+        contract = self.mainEngine.getContract(vtSymbol)
+        _price = self.roundToPriceTick(contract.priceTick, price)
+        for vtOrderID in vtOrderIDList:
+            odic = OrderedDict((
+                ('vtOrderID', vtOrderID),
+                ('vtSymbol', vtSymbol),
+                ('orderType', orderType),
+                ('price', _price),
+                ('volume', volume),
+            ))
+            self.vtOrderReqToShow[vtOrderID] = odic
+
+        return vtOrderIDList
 
     def saveTrade(self, dic):
         """
@@ -735,6 +785,7 @@ class CtaEngine(VtCtaEngine):
         super(CtaEngine, self).registerEvent()
         self.eventEngine.register(EVENT_TIMER, self.checkPositionDetail)
         self.eventEngine.register(EVENT_ACCOUNT, self.updateAccount)
+        self.eventEngine.register(EVENT_ERROR, self.processOrderError)
 
     def processOrderEvent(self, event):
         order = event.dict_['data']
@@ -761,3 +812,41 @@ class CtaEngine(VtCtaEngine):
             datas.append(dic)
 
         return datas
+
+    def cancelOrder(self, vtOrderID):
+        self.log.info(u'撤限价单 {}'.format(vtOrderID))
+        try:
+            self.vtOrderReqToShow.pop(vtOrderID)
+        except KeyError:
+            pass
+        req = super(CtaEngine, self).cancelOrder(vtOrderID)
+        if req is not None:
+            self.log.info(u'{} orderID:{}'.format(req.symbol, req.orderID))
+        return req
+
+    def cancelStopOrder(self, stopOrderID):
+        """撤销停止单"""
+        self.log.info(u'撤停止单')
+        so = super(CtaEngine, self).cancelStopOrder(stopOrderID)
+        if so:
+            self.log.info(u'{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))
+
+
+    def processOrderError(self, event):
+        """
+
+        :param event:
+        :return:
+        """
+        return
+        err = event.dict_['data']
+        assert isinstance(err, VtErrorData)
+
+        log = u'报单错误\n'
+        log += u'errorID:{}\n'.format(err.errorID)
+        log += u'errorMsg:{}\n'.format(err.errorMsg)
+        log += u'additionalInfo:{}\n'.format(err.additionalInfo)
+        log += u'errorTime:{}\n'.format(err.errorTime)
+        self.log.error(log)
+
+

@@ -1,0 +1,16 @@
+{
+  "param": {
+    "group": "测试ATR通道震荡",
+    "name": "20180624",
+    "className": "OscillationAtrChannelStrategy",
+    "capital": 50000,
+
+    "barXmin": 30,
+      "atrNum":14,
+      "atrChannel":2
+  },
+  "opts": {
+  }
+}
+
+

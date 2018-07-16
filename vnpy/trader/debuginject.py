@@ -45,46 +45,6 @@ def cover():
     s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
 
 
-def short():
-    s = getStrategy(vtSymbol)
-    # s.pos = -15
-
-    price = int(s.bm.bar.close - 1)
-    volume = 1
-    stop = False
-
-    s.short(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(price))
-
-
-def buy():
-    s = getStrategy(vtSymbol)
-    s.log.debug(u'测试 buy')
-    # s.pos = -15
-
-    price = s.bm.lastTick.lastPrice - 1
-    volume = 1
-    stop = True
-
-    s.buy(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
-
-
-def sell():
-    s = getStrategy(vtSymbol)
-    # s.pos = -15
-    s.sell(s.bm.bar.close, 20, True)
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
-
-
-def showStopOrder():
-    # s = getStrategy(vtSymbol)
-    for os in ce.stopOrderDict.values():
-        print(os.toHtml())
-
-
 def showLastTick():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bm.lastTick.datetime))
@@ -184,16 +144,131 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-vtSymbol = 'rb1810'
+def buy():
+    s = getStrategy(vtSymbol)
+    s.log.debug(u'测试 buy')
+    # s.pos = -15
 
+    price = s.bm.bar.close - 0
+    volume = 1
+    stop = False
+
+    s.buy(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(price))
+
+
+def sell():
+    s = getStrategy(vtSymbol)
+
+    # s.log.info(u'{}'.format(vtSymbol))
+    # s.pos = -15
+
+    price = s.bm.bar.close + 200
+    stop = False
+    s.sell(price, 1, stop)
+    s.log.debug(u'下单完成 {}'.format(price))
+
+
+def orderToShow():
+    print(ce.vtOrderReqToShow)
+    for order in ce.vtOrderReqToShow.values():
+        log = u''
+        for k, v in order.__dict__.items():
+            log += u'{}:{} '.format(k, v)
+
+        print(log)
+
+
+def showStopOrder():
+    s = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
+    for os in ce.stopOrderDict.values():
+        if os.direction == u'多' and os.status == u'等待中':
+            os.price = 116700
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
+
+def checkPositionDetail():
+    for k, detail in me.dataEngine.detailDict.items():
+        print(k)
+        print(detail.output())
+
+
+def checkContinueCaution():
+    s = getStrategy(vtSymbol)
+    s.ctaEngine.get()
+
+
+def short():
+    s = getStrategy(vtSymbol)
+    # s.pos = -15
+
+    price = s.bm.bar.close + s.priceTick * 30
+    volume = 1
+    stop = False
+
+    s.short(price, volume, stop)
+
+    s.log.debug(u'下单完成 {}'.format(price))
+
+
+def strategyOrder():
+    s = getStrategy(vtSymbol)
+
+
+def sendOrder():
+    s = getStrategy(vtSymbol)
+    from vnpy.trader.app.ctaStrategy.ctaBase import CTAORDER_BUY
+    orderType = CTAORDER_BUY
+    volume = 1
+    stop = False
+    price = s.bm.bar.close - s.priceTick * 30
+    s.sendOrder(orderType, price, volume, stop)
+
+
+def checkDataEngineOrder():
+    print(me.dataEngine.orderDict)
+
+
+def cancelOrder():
+    s = getStrategy(vtSymbol)
+    # print(s.ctaEngine.strategyOrderDict)
+    s.cancelAll()
+
+
+vtSymbol = 'ni1809'
+import logging
 
 def run():
     return
     load()
     me.log.info('====================================================')
 
-    # checkPosition()
+    # cancelOrder()
+    # checkDataEngineOrder()
+    sendOrder()
+    # short()
+
+
+    # cover()
+    # sell()
     # buy()
+
+
+    # strategyOrder()
+
+    # checkContinueCaution()
+
+    # checkPositionDetail()
+    # showStopOrder()
+    # orderToShow()
+
+    # checkPosition()
 
     # toHtml()
     # testToStatus()
@@ -203,9 +278,6 @@ def run():
     # showBar()
     # showStopOrder()
     # closeout()
-    # sell()
-    short()
-    # cover()
     # checkHands(me)
 
     me.log.debug('====================================================')
