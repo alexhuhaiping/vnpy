@@ -451,7 +451,6 @@ class DrEngine(object):
         _filter = {'vtSymbol': marginRate.vtSymbol}
 
         _contract = collection.find_one(_filter)
-        print(141414,_contract.get('marginRate'))
         if 'marginRate' not in _contract:
             collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
 
