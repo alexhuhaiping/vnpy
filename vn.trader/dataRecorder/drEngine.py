@@ -448,9 +448,12 @@ class DrEngine(object):
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
         self.log.info(u'更新保证金 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
+        _filter = {'vtSymbol': marginRate.vtSymbol}
 
-        collection.update_one({'vtSymbol': marginRate.vtSymbol},
-                              {'$set': {'marginRate': marginRate.marginRate}})
+        _contract = collection.find_one(_filter)
+        print(141414,_contract.get('marginRate'))
+        if 'marginRate' not in _contract:
+            collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
 
     def updateCommissionRate(self, event):
         """
@@ -499,6 +502,9 @@ class DrEngine(object):
                 self.log.info(u'{} 未获得保证金更新'.format(symbol))
                 continue
 
+            _filter = {'vtSymbol': symbol}
+            _contract = collection.find_one(_filter)
+
             setting = {
                 'openRatioByMoney': vtCr.openRatioByMoney,
                 'closeRatioByMoney': vtCr.closeRatioByMoney,
@@ -509,8 +515,13 @@ class DrEngine(object):
                 'closeTodayRatioByVolume': vtCr.closeTodayRatioByVolume,
 
             }
-            # 将手续费保存到合约中
-            collection.update_one({'vtSymbol': symbol}, {'$set': setting})
+
+            for k in list(setting.keys()):
+                if k in _contract:
+                    setting.pop(k)
+            if setting:
+                # 将手续费保存到合约中
+                collection.update_one(_filter, {'$set': setting})
 
     def updateContractDetail(self):
         self.getMarginRate()
