@@ -79,6 +79,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     _varList = [
         'hands',
         'loseCount',
+        'winCount',
         'bollUp',
         'bollDown',
         'cciValue',
@@ -125,6 +126,12 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         self.initContract()
 
+        # 从数据库加载策略数据
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
         for bar in initData:
             self.bm.bar = bar
             self.tradingDay = bar.tradingDay
@@ -161,7 +168,7 @@ class SvtBollChannelStrategy(CtaTemplate):
                     self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
                     # 提前2秒下停止单
-                    Timer(wait.total_seconds() - 2, self._orderOnStart).start()
+                    Timer(wait.total_seconds() + 1, self._orderOnStart).start()
             else:
                 self.log.warning(
                     u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))

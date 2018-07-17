@@ -148,7 +148,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.saving = True
 
             # 开盘下单逻辑
-            self.cancelAll()
             self.orderUntilTradingTime()
 
         self.putEvent()
@@ -158,6 +157,8 @@ class OscillationDonchianStrategy(CtaTemplate):
         在 orderOnTradingTime 中调用该函数，在子线程中下单
         :return:
         """
+        # 先撤单再下单
+        self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
     # ----------------------------------------------------------------------
