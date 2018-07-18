@@ -209,8 +209,14 @@ class CtaEngine(VtCtaEngine):
             # 遍历等待中的停止单，检查是否会被触发
             for so in self.getAllStopOrdersSorted(vtSymbol):
                 if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 >= so.price  # 多头停止单被触发
-                    shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 <= so.price  # 空头停止单被触发
+                    if so.stopProfile:
+                        # 止盈停止单
+                        longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 <= so.price  # 多头止盈单被触发
+                        shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 >= so.price  # 空头止盈单被触发
+                    else:
+                        # 追价停止单
+                        longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 >= so.price  # 多头停止单被触发
+                        shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 <= so.price  # 空头停止单被触发
 
                     if longTriggered or shortTriggered:
                         # 买入和卖出分别以涨停跌停价发单（模拟市价单）
@@ -629,13 +635,13 @@ class CtaEngine(VtCtaEngine):
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
 
-    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
-        log = u'{} 停止单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
+        log = u'{} 停止单 {} {} {} {} {}'.format(vtSymbol, strategy.name, orderType, price, volume, stopProfile)
         if volume == 0:
             self.log.warning(log)
         else:
             self.log.info(log)
-        return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy)
+        return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy, stopProfile)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)

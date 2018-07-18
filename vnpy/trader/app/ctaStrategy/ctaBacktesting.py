@@ -493,7 +493,7 @@ class BacktestingEngine(object):
             del self.workingLimitOrderDict[vtOrderID]
 
     # ----------------------------------------------------------------------
-    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
+    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
         """发停止单（本地实现）"""
         self.stopOrderCount += 1
         stopOrderID = STOPORDERPREFIX + str(self.stopOrderCount)
@@ -505,6 +505,7 @@ class BacktestingEngine(object):
         so.strategy = strategy
         so.status = STOPORDER_WAITING
         so.stopOrderID = stopOrderID
+        so.stopProfile = stopProfile
 
         if orderType == CTAORDER_BUY:
             so.direction = DIRECTION_LONG

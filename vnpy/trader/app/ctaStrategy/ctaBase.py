@@ -114,6 +114,7 @@ class StopOrder(VtStopOrder):
         self.vtOrderID = None # 触发后，触发后对应的停止单
         self.unit = None # 绑定的对应的 unit
         self.priority = 0 # 同样价格时，成交的优先级。值越小越优先触发
+        self.stopProfile = False # 是否为止盈停止单
 
     def __str__(self):
         s = u'< StopOrder '
@@ -141,6 +142,7 @@ class StopOrder(VtStopOrder):
             ('price', self.price),
             ('volume', self.volume),
             ('priority', self.priority),
+            ('stopProfile', self.stopProfile),
         ]
 
         orderDic = OrderedDict()
