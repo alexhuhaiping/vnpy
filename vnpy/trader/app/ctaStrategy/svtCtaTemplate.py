@@ -940,6 +940,19 @@ class CtaTemplate(vtCtaTemplate):
 
         return hands
 
+    def _calHandsByWinCountPct(self, hands, flinch):
+        """
+        随着连胜按照比例加仓
+        :param flinch:
+        :return:
+        """
+        if flinch == 0:
+            return hands
+
+        # 按照连胜计数来使用仓位，每多胜1次，就减少1点仓位，最小仓位为1手
+        pct = max(0, (flinch - self.winCount) * 1. / flinch)
+        # 最少要有1手仓位
+        return max(1, int(hands * pct))
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

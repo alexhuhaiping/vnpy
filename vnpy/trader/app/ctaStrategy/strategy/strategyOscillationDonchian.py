@@ -86,9 +86,10 @@ class OscillationDonchianStrategy(CtaTemplate):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
-        if self.isBackTesting():
-            self.log.info(u'批量回测，不输出日志')
-            self.log.propagate = False
+
+        # if self.isBackTesting():
+        #     self.log.info(u'批量回测，不输出日志')
+        #     self.log.propagate = False
 
         self.reOrder = False  # 是否重新下单
         self.ordering = False  # 正处于下单中的标记为
@@ -157,7 +158,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         在 orderOnTradingTime 中调用该函数，在子线程中下单
         :return:
         """
-        # 先撤单再下单
+        #
         self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
@@ -474,7 +475,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         # n 连败前轻仓1手，之后满仓
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
 
-        # 随着连败后逐渐加仓
         self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
 
     def toSave(self):
