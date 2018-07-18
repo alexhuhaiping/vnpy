@@ -344,7 +344,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             if self.stopLossPrice is None:
                 self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
             self.stopLossPrice = min(self.stopLossPrice, self.longHigh)
-            self.stopLossPrice = self.rounself.stopLossPrice(self.stopLossPrice)
+            self.stopLossPrice = self.roundToPriceTick(self.stopLossPrice)
 
             # 止盈单
             self.cover(self.stopProfilePrice, abs(self.pos), stopProfile=True)
