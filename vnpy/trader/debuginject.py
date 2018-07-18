@@ -245,8 +245,9 @@ def showStopOrder():
     me.log.info(u'{}'.format(len(ce.stopOrderDict)))
     for os in ce.stopOrderDict.values():
         # if os.direction == u'多' and os.status == u'等待中':
+        # if os.direction == u'空' and os.status == u'等待中':
         if os.stopProfile and os.status == u'等待中':
-            os.price = 108950.0
+            os.price = s.bar.close + s.priceTick * 2
             log = u''
             for k, v in os.toHtml().items():
                 log += u'{}:{} '.format(k, v)
