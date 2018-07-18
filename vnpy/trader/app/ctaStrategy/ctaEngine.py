@@ -173,7 +173,7 @@ class CtaEngine(object):
                 self.log.info(u'报单不可撤单')
     # ----------------------------------------------------------------------
 
-    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
+    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
         """发停止单（本地实现）"""
         self.stopOrderCount += 1
         stopOrderID = STOPORDERPREFIX + u'{}.'.format(vtSymbol) + str(self.stopOrderCount)
@@ -186,6 +186,7 @@ class CtaEngine(object):
         so.strategy = strategy
         so.stopOrderID = stopOrderID
         so.status = STOPORDER_WAITING
+        so.stopProfile = stopProfile
 
         if orderType == CTAORDER_BUY:
             so.direction = DIRECTION_LONG

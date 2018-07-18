@@ -507,8 +507,12 @@ class BacktestingEngine(VTBacktestingEngine):
             """
             stopOrderID = so.stopOrderID
             # 判断是否会成交
-            buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
-            sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
+            if so.stopProfile:
+                buyCross = so.direction == DIRECTION_LONG and so.price >= sellCrossPrice
+                sellCross = so.direction == DIRECTION_SHORT and so.price <= buyCrossPrice
+            else:
+                buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
+                sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
 
             # 如果发生了成交
             if not (buyCross or sellCross):
@@ -540,10 +544,16 @@ class BacktestingEngine(VTBacktestingEngine):
 
                 if buyCross:
                     self.strategy.pos += so.volume
-                    trade.price = max(bestCrossPrice, so.price)
+                    if so.stopProfile:
+                        trade.price = min(bestCrossPrice, so.price)
+                    else:
+                        trade.price = max(bestCrossPrice, so.price)
                 else:
                     self.strategy.pos -= so.volume
-                    trade.price = min(bestCrossPrice, so.price)
+                    if so.stopProfile:
+                        trade.price = max(bestCrossPrice, so.price)
+                    else:
+                        trade.price = min(bestCrossPrice, so.price)
 
                 self.limitOrderCount += 1
                 trade.orderID = orderID

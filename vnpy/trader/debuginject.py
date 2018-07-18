@@ -180,19 +180,6 @@ def orderToShow():
         print(log)
 
 
-def showStopOrder():
-    s = getStrategy(vtSymbol)
-    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
-    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
-    for os in ce.stopOrderDict.values():
-        if os.direction == u'多' and os.status == u'等待中':
-            os.price = 116700
-            log = u''
-            for k, v in os.toHtml().items():
-                log += u'{}:{} '.format(k, v)
-            me.log.info(log)
-
-
 def checkPositionDetail():
     for k, detail in me.dataEngine.detailDict.items():
         print(k)
@@ -241,17 +228,45 @@ def cancelOrder():
     s.cancelAll()
 
 
+def sendStopProfileOrder():
+    s = getStrategy(vtSymbol)
+    from vnpy.trader.app.ctaStrategy.ctaBase import CTAORDER_BUY
+    orderType = CTAORDER_BUY
+    volume = 1
+    stop = False
+    stopProfile = False
+    price = s.bm.bar.close + s.priceTick * 30
+    s.buy(price, volume, stop)
+
+
+def showStopOrder():
+    s = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
+    for os in ce.stopOrderDict.values():
+        # if os.direction == u'多' and os.status == u'等待中':
+        if os.stopProfile and os.status == u'等待中':
+            os.price = 108950.0
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
 vtSymbol = 'ni1809'
 import logging
+
 
 def run():
     return
     load()
     me.log.info('====================================================')
+    showStopOrder()
+
+    # sendStopProfileOrder()
 
     # cancelOrder()
     # checkDataEngineOrder()
-    sendOrder()
+    # sendOrder()
     # short()
 
 

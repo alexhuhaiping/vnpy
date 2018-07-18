@@ -203,11 +203,35 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
-    def sendOrder(self, orderType, price, volume, stop=False):
-        vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
+    def sell(self, price, volume, stop=False, stopProfile=False):
+        """卖平"""
+        if stopProfile:
+            # 止盈停止单
+            return self.sendOrder(CTAORDER_SELL, price, volume, stop, stopProfile)
+        else:
+            # 其余单子
+            return super(CtaTemplate, self).sell(price, volume, stop)
 
-        # 下单后保存策略数据
-        self.saveDB()
+    def cover(self, price, volume, stop=False, stopProfile=False):
+        if stopProfile:
+            # 止盈停止单
+            return self.sendOrder(CTAORDER_COVER, price, volume, stop, stopProfile)
+        else:
+            # 其余单子
+            return super(CtaTemplate, self).cover(price, volume, stop)
+
+    def sendOrder(self, orderType, price, volume, stop=False, stopProfile=False):
+        if stop == stopProfile == True:
+            raise ValueError(u'不能同时设置停止单为止盈和止损!')
+
+        # self.log.warning(u'{} {} {} {}'.format(orderType, self.ctaEngine.roundToPriceTick(price), volume, stop))
+        if stopProfile:
+            vtOrderIDs = self.ctaEngine.sendStopOrder(self.vtSymbol, orderType, price, volume, self, stopProfile)
+        else:
+            vtOrderIDs = super(CtaTemplate, self).sendOrder(orderType, price, volume, stop)
+
+        # # 下单后保存策略数据
+        # self.saveDB()
 
         return vtOrderIDs
 
@@ -555,18 +579,19 @@ class CtaTemplate(vtCtaTemplate):
             return
         self.capital = document['capital']
         self.turnover = document['turnover']
-        orderIDs = document.get('orderIDs')
 
-        tradingDay = tt.get_tradingday(arrow.now().datetime)[1]
-
-        if orderIDs and tradingDay == document['tradingDay']:
-            # 同一交易日，加载缓存的订单ID
-            _orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
-            if _orderIDs is None:
-                self.ctaEngine.strategyOrderDict[self.name] = set(orderIDs)
-            else:
-                _orderIDs |= set(orderIDs)
-                self.ctaEngine.strategyOrderDict[self.name] = _orderIDs
+        # orderIDs = document.get('orderIDs')
+        #
+        # tradingDay = tt.get_tradingday(arrow.now().datetime)[1]
+        #
+        # if orderIDs and tradingDay == document['tradingDay']:
+        #     # 同一交易日，加载缓存的订单ID
+        #     _orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+        #     if _orderIDs is None:
+        #         self.ctaEngine.strategyOrderDict[self.name] = set(orderIDs)
+        #     else:
+        #         _orderIDs |= set(orderIDs)
+        #         self.ctaEngine.strategyOrderDict[self.name] = _orderIDs
 
     def toSave(self):
         """
@@ -581,12 +606,12 @@ class CtaTemplate(vtCtaTemplate):
         dic['turnover'] = self.turnover
         dic['rtBalance'] = self.rtBalance
 
-        orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
-        if orderIDs is None:
-            orderIDs = []
-        else:
-            orderIDs = list(orderIDs)
-        dic['orderIDs'] = orderIDs
+        # orderIDs = self.ctaEngine.strategyOrderDict.get(self.name)
+        # if orderIDs is None:
+        #     orderIDs = []
+        # else:
+        #     orderIDs = list(orderIDs)
+        # dic['orderIDs'] = orderIDs
 
         return dic
 
@@ -939,6 +964,20 @@ class CtaTemplate(vtCtaTemplate):
             hands = min(1, hands)
 
         return hands
+
+    def _calHandsByWinCountPct(self, hands, flinch):
+        """
+        随着连胜按照比例加仓
+        :param flinch:
+        :return:
+        """
+        if flinch == 0:
+            return hands
+
+        # 按照连胜计数来使用仓位，每多胜1次，就减少1点仓位，最小仓位为1手
+        pct = max(0, (flinch - self.winCount) * 1. / flinch)
+        # 最少要有1手仓位
+        return max(1, int(hands * pct))
 
 
 ########################################################################

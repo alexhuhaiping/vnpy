@@ -86,9 +86,10 @@ class OscillationDonchianStrategy(CtaTemplate):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
-        if self.isBackTesting():
-            self.log.info(u'批量回测，不输出日志')
-            self.log.propagate = False
+
+        # if self.isBackTesting():
+        #     self.log.info(u'批量回测，不输出日志')
+        #     self.log.propagate = False
 
         self.reOrder = False  # 是否重新下单
         self.ordering = False  # 正处于下单中的标记为
@@ -157,7 +158,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         在 orderOnTradingTime 中调用该函数，在子线程中下单
         :return:
         """
-        # 先撤单再下单
+        #
         self.cancelAll()
         self.orderOnXminBar(self.xminBar)
 
@@ -321,13 +322,16 @@ class OscillationDonchianStrategy(CtaTemplate):
             if self.stopProfilePrice is None:
                 # 止盈价格
                 self.stopProfilePrice = self.averagePrice + self.stopProfile * self.atr
+                self.stopProfilePrice = self.roundToPriceTick(self.stopProfilePrice)
             if self.stopLossPrice is None:
                 # 止损价格
                 self.stopLossPrice = self.averagePrice - self.stopLoss * self.atr
             self.stopLossPrice = max(self.stopLossPrice, self.longLow)
+            self.stopLossPrice = self.roundToPriceTick(self.stopLossPrice)
 
             # 止盈单
-            self.sell(self.stopProfilePrice, abs(self.pos), False)
+            self.sell(self.stopProfilePrice, abs(self.pos), stopProfile=True)
+            # self.sell(self.stopProfilePrice, abs(self.pos))
             # 止损单
             self.sell(self.stopLossPrice, abs(self.pos), True)
 
@@ -335,13 +339,16 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.pos < 0:
             if self.stopProfilePrice is None:
                 self.stopProfilePrice = self.averagePrice - self.stopProfile * self.atr
+                self.stopProfilePrice = self.roundToPriceTick(self.stopProfilePrice)
 
             if self.stopLossPrice is None:
                 self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
             self.stopLossPrice = min(self.stopLossPrice, self.longHigh)
+            self.stopLossPrice = self.rounself.stopLossPrice(self.stopLossPrice)
 
             # 止盈单
-            self.cover(self.stopProfilePrice, abs(self.pos), False)
+            self.cover(self.stopProfilePrice, abs(self.pos), stopProfile=True)
+            # self.cover(self.stopProfilePrice, abs(self.pos))
             # 止损单
             self.cover(self.stopLossPrice, abs(self.pos), True)
 
@@ -439,7 +446,11 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         if vtOrder.totalVolume == trade.volume:
             # 完全成交
-            self.reOrder = True
+            # self.reOrder = True
+            # 撤单
+            self.cancelAll()
+            # 重新下单
+            self.orderOnXminBar(self.xminBar)
 
         # 发出状态更新事件
         self.saveDB()
@@ -474,7 +485,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         # n 连败前轻仓1手，之后满仓
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
 
-        # 随着连败后逐渐加仓
         self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
 
     def toSave(self):
