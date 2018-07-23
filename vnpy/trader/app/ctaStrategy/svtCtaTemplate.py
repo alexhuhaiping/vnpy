@@ -1001,6 +1001,10 @@ class CtaTemplate(vtCtaTemplate):
         self.stopOrdering.clear()
         self.log.info(u'解除停止单锁定')
 
+    def setStopOrdering(self):
+        self.log.info(u'停止单锁定')
+        self.stopOrdering.set()
+
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):
