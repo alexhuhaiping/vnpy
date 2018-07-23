@@ -444,7 +444,7 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.log.warning(u'找不到订单对象{}'.format(trade.vtOrderID))
                 return
 
-        if vtOrder.totalVolume == trade.volume:
+        if vtOrder.tradedVolume == trade.volume:
             # 完全成交
             # self.reOrder = True
             # 撤单
