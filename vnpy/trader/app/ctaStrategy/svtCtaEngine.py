@@ -229,12 +229,12 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        so.strategy.setStopOrdering()  # 停止单锁定
                         log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
                                                           so.price,
                                                           so.volume)
-                        self.log.info(u'触发停止单 {} 停止单锁定'.format(log))
+                        self.log.info(u'触发停止单 {}'.format(log))
                         if so.volume != 0:
+                            so.strategy.setStopOrdering()  # 停止单锁定
                             self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
 
                         # 从活动停止单字典中移除该停止单
