@@ -308,7 +308,7 @@ class CtaEngine(object):
                 s = self.strategyOrderDict[strategy.name]
                 if vtOrderID in s:
                     s.remove(vtOrderID)
-            
+                strategy.stopOrdering.clearStopOrdering()
             self.callStrategyFunc(strategy, strategy.onOrder, order)
 
     # ----------------------------------------------------------------------

@@ -92,7 +92,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         #     self.log.propagate = False
 
         self.reOrder = False  # 是否重新下单
-        self.ordering = False  # 正处于下单中的标记为
         self.hands = self.fixedSize
         self.balanceList = OrderedDict()
 
@@ -284,10 +283,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         """
         if not self.trading:
             self.log.warn(u'不能下单 trading: False')
-            return
-
-        if not self.waitOrdingTag():
-            # 下单状态无法释放
             return
 
         # 计算开仓仓位
@@ -513,27 +508,3 @@ class OscillationDonchianStrategy(CtaTemplate):
         self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk
 
-    def waitOrdingTag(self):
-        if self.isBackTesting():
-            # 回测中，无需等待
-            return True
-        orderCount = 0
-        waitSeconds = 0.5 * 20
-        while self.ordering:
-            self.log.info(u'正处于下单中')
-            orderCount += 1
-            time.sleep(0.5)
-            if orderCount > waitSeconds:
-                self.log.warning(u'{}秒内下单状态无法解除'.format(waitSeconds))
-                return False
-
-        self.setOrdering()
-        return True
-
-    def setOrdering(self):
-        if not self.isBackTesting():
-            self.ordering = True
-
-    def clearOrdering(self):
-        if not self.isBackTesting():
-            self.ordering = False
