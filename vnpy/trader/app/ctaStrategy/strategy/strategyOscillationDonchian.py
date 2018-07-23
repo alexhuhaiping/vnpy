@@ -133,7 +133,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
-        self.clearOrdering()
         self.isCloseoutVaild = True
         self.putEvent()
 
