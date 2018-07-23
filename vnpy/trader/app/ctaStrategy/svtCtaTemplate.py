@@ -986,20 +986,21 @@ class CtaTemplate(vtCtaTemplate):
         检查停止单是否已经锁定
         :return:
         """
-        ok = self.stopOrdering.isSet()
-        if not ok:
+        if self.stopOrdering.isSet():
             self.stopOrderingCount += 1
             if self.stopOrderingCount == 5 * 2:
                 self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
             if self.stopOrderingCount == 30 * 2:
                 self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
+
+            return False
         else:
-            self.stopOrderingCount = 0
-        return ok
+            return True
 
     def clearStopOrdering(self):
         self.stopOrdering.clear()
         self.log.info(u'解除停止单锁定')
+        self.stopOrderingCount = 0
 
     def setStopOrdering(self):
         self.log.info(u'停止单锁定')
