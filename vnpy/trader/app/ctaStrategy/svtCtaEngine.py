@@ -208,6 +208,9 @@ class CtaEngine(VtCtaEngine):
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
             for so in self.getAllStopOrdersSorted(vtSymbol):
+                if not so.strategy.canProcessStopOrder():
+                    # 检查策略是否正在下停止单
+                    continue
                 if so.vtSymbol == vtSymbol:
                     if so.stopProfile:
                         # 止盈停止单
@@ -226,10 +229,12 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType, so.price,
-                                                       so.volume)
+                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
+                                                          so.price,
+                                                          so.volume)
                         self.log.info(u'触发停止单 {}'.format(log))
                         if so.volume != 0:
+                            so.strategy.setStopOrdering()  # 停止单锁定
                             self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
 
                         # 从活动停止单字典中移除该停止单
@@ -425,7 +430,6 @@ class CtaEngine(VtCtaEngine):
         # 成交单的索引
         indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
         indexDatetime = IndexModel([('timestamp', DESCENDING)], name='timestamp', background=True)
-
 
         indexes = [indexSymbol, indexDatetime]
         self.mainEngine.createCollectionIndex(col, indexes)
@@ -803,6 +807,7 @@ class CtaEngine(VtCtaEngine):
         except KeyError:
             pass
         self.saveOrderback(dic)
+
         return super(CtaEngine, self).processOrderEvent(event)
 
     def updateAccount(self, event):
@@ -837,7 +842,6 @@ class CtaEngine(VtCtaEngine):
         if so:
             self.log.info(u'{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))
 
-
     def processOrderError(self, event):
         """
 
@@ -854,5 +858,3 @@ class CtaEngine(VtCtaEngine):
         log += u'additionalInfo:{}\n'.format(err.additionalInfo)
         log += u'errorTime:{}\n'.format(err.errorTime)
         self.log.error(log)
-
-

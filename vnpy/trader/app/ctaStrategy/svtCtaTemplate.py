@@ -7,7 +7,7 @@
 import copy
 import traceback
 import time
-from threading import Timer
+from threading import Timer, Event
 import talib
 import logging
 import pymongo
@@ -88,6 +88,8 @@ class CtaTemplate(vtCtaTemplate):
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
 
+        self.stopOrdering = Event()  # 停止单锁定
+        self.stopOrderingCount = 0  # 停止单锁定计数
         self.saving = False  # 是否可以存库了
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
@@ -979,6 +981,30 @@ class CtaTemplate(vtCtaTemplate):
         # 最少要有1手仓位
         return max(1, int(hands * pct))
 
+    def canProcessStopOrder(self):
+        """
+        检查停止单是否已经锁定
+        :return:
+        """
+        if self.stopOrdering.isSet():
+            self.stopOrderingCount += 1
+            if self.stopOrderingCount == 5 * 2:
+                self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
+            if self.stopOrderingCount == 30 * 2:
+                self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
+
+            return False
+        else:
+            return True
+
+    def clearStopOrdering(self):
+        self.stopOrdering.clear()
+        self.log.info(u'解除停止单锁定')
+        self.stopOrderingCount = 0
+
+    def setStopOrdering(self):
+        self.log.info(u'停止单锁定')
+        self.stopOrdering.set()
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

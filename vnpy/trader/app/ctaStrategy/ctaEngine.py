@@ -305,10 +305,11 @@ class CtaEngine(object):
             
             # 如果委托已经完成（拒单、撤销、全成），则从活动委托集合中移除
             if order.status in self.STATUS_FINISHED:
+                strategy.clearStopOrdering()
                 s = self.strategyOrderDict[strategy.name]
                 if vtOrderID in s:
                     s.remove(vtOrderID)
-            
+
             self.callStrategyFunc(strategy, strategy.onOrder, order)
 
     # ----------------------------------------------------------------------
