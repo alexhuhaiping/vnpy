@@ -392,17 +392,14 @@ class OscillationDonchianStrategy(CtaTemplate):
                 u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
             )
 
-            self.log.info(u'\n'.join(textList))
+            self.log.warning(u'\n'.join(textList))
+
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
 
         if self.pos == 0:
-            log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile,
-                                                      int(self.rtBalance))
-            self.log.warning(log)
-
             # 重置止盈止损价格
             self.stopLossPrice = None
             self.stopProfilePrice = None
@@ -431,9 +428,8 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.log.warning(u'找不到订单对象{}'.format(trade.vtOrderID))
                 return
 
-        if vtOrder.tradedVolume == trade.volume:
-            # 完全成交
-            # self.reOrder = True
+        if vtOrder.tradedVolume == vtOrder.totalVolume:
+            self.log.info(u'全部成交')
             # 撤单
             self.cancelAll()
             # 重新下单
