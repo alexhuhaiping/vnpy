@@ -94,6 +94,7 @@ class CtaTemplate(vtCtaTemplate):
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
+        self.balanceList = OrderedDict()
 
         self._pos = 0
         self.posList = []
@@ -205,6 +206,15 @@ class CtaTemplate(vtCtaTemplate):
             raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
+    def buy(self, price, volume, stop=False, stopProfile=False):
+        """买开"""
+        if stopProfile:
+            # 止盈停止单
+            return self.sendOrder(CTAORDER_BUY, price, volume, stop, stopProfile)
+        else:
+            # 其余单子
+            return super(CtaTemplate, self).buy(price, volume, stop)
+
     def sell(self, price, volume, stop=False, stopProfile=False):
         """卖平"""
         if stopProfile:
@@ -213,6 +223,15 @@ class CtaTemplate(vtCtaTemplate):
         else:
             # 其余单子
             return super(CtaTemplate, self).sell(price, volume, stop)
+
+    def short(self, price, volume, stop=False, stopProfile=False):
+        """卖开"""
+        if stopProfile:
+            # 止盈停止单
+            return self.sendOrder(CTAORDER_SHORT, price, volume, stop, stopProfile)
+        else:
+            # 其余单子
+            return super(CtaTemplate, self).short(price, volume, stop)
 
     def cover(self, price, volume, stop=False, stopProfile=False):
         if stopProfile:
@@ -1005,6 +1024,7 @@ class CtaTemplate(vtCtaTemplate):
     def setStopOrdering(self):
         self.log.info(u'停止单锁定')
         self.stopOrdering.set()
+
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):

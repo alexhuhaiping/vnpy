@@ -9,13 +9,8 @@
 from __future__ import division
 
 from threading import Timer
-import traceback
 from collections import OrderedDict
 import time
-import datetime
-
-import tradingtime as tt
-import arrow
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
@@ -27,18 +22,15 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class OscillationDonchianStrategy(CtaTemplate):
-    """震荡策略"""
-    className = 'OscillationDonchianStrategy'
+class ContrarianDonchianStrategy(CtaTemplate):
+    """唐奇安通道反转策略"""
+    className = 'ContrarianDonchianStrategy'
     author = u'lamter'
 
     # 策略参数
     longBar = 20
     stopProfile = 1
     stopLoss = 4
-    slippageRate = 1 / 0.2  # 盈利空间和滑点的比例
-    # initDays = 10  # 初始化数据所用的天数
-    fixedSize = 1  # 每次交易的数量
     risk = 0.05  # 每笔风险投入
     flinch = 3  # 畏缩指标
 
@@ -57,11 +49,9 @@ class OscillationDonchianStrategy(CtaTemplate):
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'flinch',
-        'slippageRate',
         'longBar',
         'stopProfile',
         'stopLoss',
-        'fixedSize',
         'risk',
     ])
 
@@ -85,7 +75,7 @@ class OscillationDonchianStrategy(CtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(OscillationDonchianStrategy, self).__init__(ctaEngine, setting)
+        super(ContrarianDonchianStrategy, self).__init__(ctaEngine, setting)
 
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
@@ -93,7 +83,6 @@ class OscillationDonchianStrategy(CtaTemplate):
 
         self.reOrder = False  # 是否重新下单
         self.hands = self.fixedSize
-        self.balanceList = OrderedDict()
 
     def initMaxBarNum(self):
         self.maxBarNum = self.longBar * 2
@@ -165,7 +154,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         """停止策略（必须由用户继承实现）"""
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
-        # self.saveDB()
 
     # ----------------------------------------------------------------------
     def onTick(self, tick):
@@ -273,6 +261,40 @@ class OscillationDonchianStrategy(CtaTemplate):
         self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
 
     @exception
+    def orderOpen(self, bar):
+        """
+        开仓逻辑
+        :param bar:
+        :return:
+        """
+        # 没有持仓的时候，同时下开仓和平仓单
+        if not self.trading:
+            self.log.warn(u'不能下单 trading: False')
+            return
+
+        # 计算开仓仓位
+        self.updateHands()
+        if self.reOrder:
+            self.reOrder = False
+
+            # 发送开仓委托
+            if self.openTag:
+                # 封板时 atr 可能为0，此时不入场
+                # 滑点占盈利空间的比例要小于slippageRate
+                slippage = self.priceTick * 2
+                profile = self.stopProfile * self.atr
+                if profile / slippage >= self.slippageRate:
+                    if self.pos == 0 or self.pos < 0:
+                        # 空仓或者持有空头，下多单
+                        self.buy(self.longHigh, self.hands, True)
+                    if self.pos == 0 or self.pos > 0:
+                        # 空仓或者持有多头，下空单
+                        self.short(self.longLow, self.hands, True)
+                else:
+                    self.log.info(
+                        u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
+
+    @exception
     def orderOnXminBar(self, bar):
         """
         在 onXminBar 中的的指标计算和下单逻辑
@@ -290,9 +312,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         if self.hands == 0:
             self.log.info(u'开仓hands==0，不下单')
             return
-
-        if self.reOrder:
-            self.reOrder = False
 
         # 发送开仓委托
         if self.openTag:
@@ -345,6 +364,7 @@ class OscillationDonchianStrategy(CtaTemplate):
             # self.cover(self.stopProfilePrice, abs(self.pos))
             # 止损单
             self.cover(self.stopLossPrice, abs(self.pos), True)
+
 
     # ----------------------------------------------------------------------
     def onOrder(self, order):
@@ -479,14 +499,14 @@ class OscillationDonchianStrategy(CtaTemplate):
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(OscillationDonchianStrategy, self).toSave()
+        dic = super(ContrarianDonchianStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         dic['openTag'] = int(dic['openTag'])
         return dic
 
     def loadCtaDB(self, document=None):
-        super(OscillationDonchianStrategy, self).loadCtaDB(document)
+        super(ContrarianDonchianStrategy, self).loadCtaDB(document)
         if document:
             for k in self._varList:
                 try:
@@ -499,3 +519,4 @@ class OscillationDonchianStrategy(CtaTemplate):
     def updateStop(self):
         self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk
+
