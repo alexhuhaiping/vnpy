@@ -346,13 +346,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             # 止损单
             self.cover(self.stopLossPrice, abs(self.pos), True)
 
-        if not self.isBackTesting():
-            # 下单完毕后3秒才释放订单状态
-            def foo():
-                self.clearOrdering()
-
-            Timer(0.5, foo).start()
-
     # ----------------------------------------------------------------------
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
@@ -506,4 +499,3 @@ class OscillationDonchianStrategy(CtaTemplate):
     def updateStop(self):
         self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk
-
