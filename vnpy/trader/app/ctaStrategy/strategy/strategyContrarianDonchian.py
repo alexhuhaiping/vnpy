@@ -29,29 +29,22 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
     # 策略参数
     longBar = 20
-    stopProfile = 1
-    stopLoss = 4
+    n = 1  # 高点 n atr 算作反转
     risk = 0.05  # 每笔风险投入
     flinch = 3  # 畏缩指标
 
     # 策略变量
-    longHigh = 0  # 大周期高点
-    longLow = 0  # 大周期低点
-    middle = 0  # 大周期中线
+    high = None  # 高点
+    low = None  # 低点
     atr = 0  # ATR
-    stopProfilePrice = None  # 止盈价格
-    stopLossPrice = None  # 止损价格
     stop = None  # 止损投入
-    openTag = True  # 是否可以开仓
-    openReset = None  # 开仓重置信号
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
+        'n',
         'flinch',
         'longBar',
-        'stopProfile',
-        'stopLoss',
         'risk',
     ])
 
@@ -59,15 +52,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
     _varList = [
         'winCount',
         'loseCount',
+        'high',
+        'low',
         'hands',
-        'openTag',
-        'openReset',
-        'longHigh',
-        'middle',
-        'longLow',
         'atr',
-        'stopProfilePrice',
-        'stopLossPrice',
         'stop',
     ]
     varList = CtaTemplate.varList[:]
@@ -81,8 +69,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
         #     self.log.info(u'批量回测，不输出日志')
         #     self.log.propagate = False
 
-        self.reOrder = False  # 是否重新下单
-        self.hands = self.fixedSize
+        self.hands = 0
 
     def initMaxBarNum(self):
         self.maxBarNum = self.longBar * 2
@@ -135,19 +122,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
-            # 开盘下单逻辑
-            self.orderUntilTradingTime()
-
         self.putEvent()
-
-    def _orderOnThreading(self):
-        """
-        在 orderOnTradingTime 中调用该函数，在子线程中下单
-        :return:
-        """
-        #
-        self.cancelAll()
-        self.orderOnXminBar(self.xminBar)
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -174,22 +149,62 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.closeout()
 
-        if not self.openTag:
-            # 尝试重置开仓标记位
-            if self.prePos > 0:
-                self.openTag = bar.close <= self.openReset
-            else:
-                self.openTag = bar.close >= self.openReset
+        if self.inited:
+            if self.pos == 0:
+                self.high = bar.high
+                self.low = bar.low
+            elif self.pos > 0:
+                self.high = max(bar.high, self.high)
+                self.low = bar.low
+            elif self.pos < 0:
+                self.high = bar.high
+                self.low = min(bar.low, self.low)
 
-        if self.reOrder:
-            self.reOrder = False
-            # 撤掉开仓单
+        # 先撤单再下单
+        if self.trading:
             self.cancelAll()
-            if not self.isBackTesting():
-                time.sleep(0.5)
-            # 下平仓单
-            self.orderOnXminBar(self.xminBar)
-            # self.log.warning(u'onBar 重新下单 l:{} w:{} h:{}'.format(self.loseCount, self.winCount, self.hands))
+            self.orderOpenOnBar()  # 开仓单
+            self.orderClose()  # 平仓单
+
+    def orderOpenOnBar(self):
+        # 开仓价
+        longPrice, shortPrice = self.getPrice(self.bar)
+
+        if self.pos == 0:
+            # 空仓时开仓
+            self.short(shortPrice, self.hands, stop=True)
+            self.buy(longPrice, self.hands, stop=True)
+
+        if self.pos >= 0:
+            # 多仓时反手
+            self.short(shortPrice, self.hands, stop=True)
+
+        if self.pos <= 0:
+            self.buy(longPrice, self.hands, stop=True)
+
+    def getPrice(self, bar):
+        # 更新高、低点
+        shortPrice = self.roundToPriceTick(self.high - self.atr * self.n)
+        longPrice = self.roundToPriceTick(self.low + self.atr * self.n)
+        return longPrice, shortPrice
+
+    def orderClose(self):
+        """
+        平仓单
+        :return:
+        """
+        if self.pos == 0:
+            return
+
+        longPrice, shortPrice = self.getPrice(self.bar)
+
+        if self.pos > 0:
+            # 止盈
+            self.sell(shortPrice, abs(self.pos), stopProfile=True)
+            # 止损
+
+        elif self.pos < 0:
+            self.cover(longPrice, abs(self.pos), stopProfile=True)
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
@@ -209,162 +224,15 @@ class ContrarianDonchianStrategy(CtaTemplate):
         if not am.inited:
             return
 
-        # 计算指标数值
-        # 通道内第二高点
-        # highs = [i for i in am.high[-self.longBar:]]
-        # highs.sort()
-        # self.longHigh = highs[-2]
-        # lows = [i for i in am.low[-self.longBar:]]
-        # lows.sort()
-        # self.longLow = lows[1]
-
-        # 通道内最高点
-        self.longHigh, self.longLow = am.donchian(self.longBar)
-
         # 通道中线
-        self.middle = (self.longHigh + self.longLow) / 2
         self.atr = am.atr(self.longBar)
 
-        if not self.openTag:
-            if self.prePos > 0:
-                if bar.close < bar.open and bar.high - bar.low > self.atr * 0.5:
-                    self.openTag = True
-                _high = max(self.longHigh, self.xminBar.high)
-                self.openReset = max(self.openReset, _high - self.atr * 0.5)
-            else:
-                if bar.close > bar.open and bar.high - bar.low > self.atr * 0.5:
-                    self.openTag = True
-                _low = min(self.longLow, self.xminBar.low)
-                self.openReset = min(self.openReset, _low + self.atr * 0.5)
-
-        if self.trading:
-            # 下单前先撤单
-            self.cancelAll()
-            if not self.isBackTesting():
-                time.sleep(0.5)
-
-            if not self.isBackTesting():
-                # 实盘中，要对是否处于连续交易时间段进行检测
-                if self.isOrderInContinueCaution():
-                    # 处于连续竞价可直接下单
-                    self.orderOnXminBar(bar)
-                else:
-                    # j
-                    self.orderUntilTradingTime()
-            else:
-                # 回测中直接下单
-                self.orderOnXminBar(bar)
+        # # 通道内最高点
+        # self.high, self.low = am.donchian(self.longBar)
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
-
-    @exception
-    def orderOpen(self, bar):
-        """
-        开仓逻辑
-        :param bar:
-        :return:
-        """
-        # 没有持仓的时候，同时下开仓和平仓单
-        if not self.trading:
-            self.log.warn(u'不能下单 trading: False')
-            return
-
-        # 计算开仓仓位
-        self.updateHands()
-        if self.reOrder:
-            self.reOrder = False
-
-            # 发送开仓委托
-            if self.openTag:
-                # 封板时 atr 可能为0，此时不入场
-                # 滑点占盈利空间的比例要小于slippageRate
-                slippage = self.priceTick * 2
-                profile = self.stopProfile * self.atr
-                if profile / slippage >= self.slippageRate:
-                    if self.pos == 0 or self.pos < 0:
-                        # 空仓或者持有空头，下多单
-                        self.buy(self.longHigh, self.hands, True)
-                    if self.pos == 0 or self.pos > 0:
-                        # 空仓或者持有多头，下空单
-                        self.short(self.longLow, self.hands, True)
-                else:
-                    self.log.info(
-                        u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
-
-    @exception
-    def orderOnXminBar(self, bar):
-        """
-        在 onXminBar 中的的指标计算和下单逻辑
-        :param am:
-        :param bar:
-        :return:
-        """
-        if not self.trading:
-            self.log.warn(u'不能下单 trading: False')
-            return
-
-        # 计算开仓仓位
-        self.updateHands()
-
-        if self.hands == 0:
-            self.log.info(u'开仓hands==0，不下单')
-            return
-
-        # 发送开仓委托
-        if self.openTag:
-            # 封板时 atr 可能为0，此时不入场
-            # 滑点占盈利空间的比例要小于slippageRate
-            slippage = self.priceTick * 2
-            profile = self.stopProfile * self.atr
-            if profile / slippage >= self.slippageRate:
-                if self.pos == 0 or self.pos < 0:
-                    # 空仓或者持有空头，下多单
-                    self.buy(self.longHigh, self.hands, True)
-                if self.pos == 0 or self.pos > 0:
-                    # 空仓或者持有多头，下空单
-                    self.short(self.longLow, self.hands, True)
-            else:
-                self.log.info(
-                    u'{} {} {} atr:{} 过低不开仓'.format(profile, slippage, self.slippageRate, round(self.atr, 2)))
-
-        # 持有多头仓位
-        if self.pos > 0:
-            if self.stopProfilePrice is None:
-                # 止盈价格
-                self.stopProfilePrice = self.averagePrice + self.stopProfile * self.atr
-                self.stopProfilePrice = self.roundToPriceTick(self.stopProfilePrice)
-            if self.stopLossPrice is None:
-                # 止损价格
-                self.stopLossPrice = self.averagePrice - self.stopLoss * self.atr
-            self.stopLossPrice = max(self.stopLossPrice, self.longLow)
-            self.stopLossPrice = self.roundToPriceTick(self.stopLossPrice)
-
-            # 止盈单
-            self.sell(self.stopProfilePrice, abs(self.pos), stopProfile=True)
-            # self.sell(self.stopProfilePrice, abs(self.pos))
-            # 止损单
-            self.sell(self.stopLossPrice, abs(self.pos), True)
-
-        # 持有空头仓位
-        if self.pos < 0:
-            if self.stopProfilePrice is None:
-                self.stopProfilePrice = self.averagePrice - self.stopProfile * self.atr
-                self.stopProfilePrice = self.roundToPriceTick(self.stopProfilePrice)
-
-            if self.stopLossPrice is None:
-                self.stopLossPrice = self.averagePrice + self.stopLoss * self.atr
-            self.stopLossPrice = min(self.stopLossPrice, self.longHigh)
-            self.stopLossPrice = self.roundToPriceTick(self.stopLossPrice)
-
-            # 止盈单
-            self.cover(self.stopProfilePrice, abs(self.pos), stopProfile=True)
-            # self.cover(self.stopProfilePrice, abs(self.pos))
-            # 止损单
-            self.cover(self.stopLossPrice, abs(self.pos), True)
-
 
     # ----------------------------------------------------------------------
     def onOrder(self, order):
@@ -423,42 +291,6 @@ class ContrarianDonchianStrategy(CtaTemplate):
                                                       int(self.rtBalance))
             self.log.warning(log)
 
-            # 重置止盈止损价格
-            self.stopLossPrice = None
-            self.stopProfilePrice = None
-
-            if profile < 0:
-                self.updateStop()
-                self.loseCount += 1
-                self.winCount = 0
-
-            if profile > 0:
-                self.winCount += 1
-                self.loseCount = 0
-                # 盈利，设置信号
-                self.openTag = False
-                # 计算重置开仓信号
-                if self.prePos > 0:
-                    self.openReset = trade.price - self.atr
-                else:
-                    self.openReset = trade.price + self.atr
-
-        count = 0
-        vtOrder = self.getOrder(trade.vtOrderID)
-        while vtOrder is None:
-            count += 1
-            if count >= 10:
-                self.log.warning(u'找不到订单对象{}'.format(trade.vtOrderID))
-                return
-
-        if vtOrder.tradedVolume == trade.volume:
-            # 完全成交
-            # self.reOrder = True
-            # 撤单
-            self.cancelAll()
-            # 重新下单
-            self.orderOnXminBar(self.xminBar)
-
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
@@ -482,17 +314,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
         # 以下技术指标为0时，不更新手数
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
         if self.atr == 0:
+            self.hands = 0
             return
 
-        # 理论仓位
-        minHands = max(0, int(self.stop / (self.atr * self.stopLoss * self.size)))
-
-        hands = min(minHands, self.maxHands)
-
-        # n 连败前轻仓1手，之后满仓
-        # self.hands = self._calHandsByLoseCount(hands, self.flinch)
-
-        self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
+        self.hands = 1
 
     def toSave(self):
         """
@@ -502,21 +327,8 @@ class ContrarianDonchianStrategy(CtaTemplate):
         dic = super(ContrarianDonchianStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
-        dic['openTag'] = int(dic['openTag'])
         return dic
-
-    def loadCtaDB(self, document=None):
-        super(ContrarianDonchianStrategy, self).loadCtaDB(document)
-        if document:
-            for k in self._varList:
-                try:
-                    setattr(self, k, document[k])
-                except KeyError:
-                    self.log.warning(u'未保存的key {}'.format(k))
-
-        self.openTag = bool(self.openTag)
 
     def updateStop(self):
         self.log.info(u'调整风险投入')
         self.stop = self.capital * self.risk
-
