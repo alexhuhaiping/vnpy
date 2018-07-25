@@ -109,6 +109,9 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
+        self.high = self.high or self.bar.close
+        self.low = self.low or self.bar.close
+
         self.isCloseoutVaild = True
         self.putEvent()
 
@@ -149,31 +152,32 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.closeout()
 
-        if self.inited:
-            if self.pos == 0:
-                self.high = bar.high
-                self.low = bar.low
-            elif self.pos > 0:
-                self.high = max(bar.high, self.high)
-                self.low = bar.low
-            elif self.pos < 0:
-                self.high = bar.high
-                self.low = min(bar.low, self.low)
-
         # 先撤单再下单
         if self.trading:
+            self.high = max(bar.high, self.high)
+            self.low = min(bar.low, self.low)
+
+            # self.log.info(u'{} {} {} {} {} '.format(self.pos, self.high, bar.high, bar.low, self.low))
+
             self.cancelAll()
             self.orderOpenOnBar()  # 开仓单
             self.orderClose()  # 平仓单
 
     def orderOpenOnBar(self):
         # 开仓价
-        longPrice, shortPrice = self.getPrice(self.bar)
+        longPrice, shortPrice = self.getPrice()
+
+        if shortPrice <= longPrice:
+            self.log.info(u'通道过小，不开仓')
+            return
 
         if self.pos == 0:
             # 空仓时开仓
             self.short(shortPrice, self.hands, stop=True)
             self.buy(longPrice, self.hands, stop=True)
+            self.log.info(u'bar.high:{} bar.low:{}'.format(self.bar.high, self.bar.low))
+            self.log.info(u'longPrice: {} shortPrice:{} diff:{} atr:{} tr:{}'.format(longPrice, shortPrice, shortPrice-longPrice, int(self.atr), self.bar.high - self.bar.low))
+            # self.log.info(u'{} {}'.format(self.bar.high > longPrice, self.bar.low < shortPrice))
 
         if self.pos >= 0:
             # 多仓时反手
@@ -182,7 +186,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
         if self.pos <= 0:
             self.buy(longPrice, self.hands, stop=True)
 
-    def getPrice(self, bar):
+    def getPrice(self):
         # 更新高、低点
         shortPrice = self.roundToPriceTick(self.high - self.atr * self.n)
         longPrice = self.roundToPriceTick(self.low + self.atr * self.n)
@@ -196,13 +200,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
         if self.pos == 0:
             return
 
-        longPrice, shortPrice = self.getPrice(self.bar)
+        longPrice, shortPrice = self.getPrice()
 
         if self.pos > 0:
-            # 止盈
             self.sell(shortPrice, abs(self.pos), stopProfile=True)
-            # 止损
-
         elif self.pos < 0:
             self.cover(longPrice, abs(self.pos), stopProfile=True)
 
@@ -286,10 +287,24 @@ class ContrarianDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        if self.pos == 0:
-            log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile,
-                                                      int(self.rtBalance))
-            self.log.warning(log)
+        log = u'{} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.volume, profile,
+                                                  int(self.rtBalance))
+        self.log.warning(log)
+
+        if self.pos > 0:
+            # 开多了
+            self.high = trade.price
+        elif self.pos < 0:
+            # 开空了，开仓点设为低点，低点反弹 n ATR 反手
+            self.low = trade.price
+
+        if self.pos != 0:
+            # 有仓位，撤单重发
+            self.cancelAll()
+            self.orderOpenOnBar()
+
+        # 下平仓单
+        self.orderClose()
 
         # 发出状态更新事件
         self.saveDB()

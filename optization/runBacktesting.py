@@ -57,7 +57,7 @@ if __name__ == '__main__':
         # "barXmin":15,"flinch":3,"longBar":25,"stopLoss":1,"stopProfile":4,
         # 'strategyClass': 'OscillationDonchianStrategy',
 
-        "barXmin": 15, "longBar": 25, "n": 1,
+        "barXmin": 30, "longBar": 25, "n": 1,
         'strategyClass': 'ContrarianDonchianStrategy',
     }
 

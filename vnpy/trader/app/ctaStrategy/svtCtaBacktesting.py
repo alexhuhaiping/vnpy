@@ -508,11 +508,13 @@ class BacktestingEngine(VTBacktestingEngine):
             stopOrderID = so.stopOrderID
             # 判断是否会成交
             if so.stopProfile:
-                buyCross = so.direction == DIRECTION_LONG and so.price >= sellCrossPrice
-                sellCross = so.direction == DIRECTION_SHORT and so.price <= buyCrossPrice
+                buyCross = so.direction == DIRECTION_LONG and sellCrossPrice <= so.price
+                sellCross = so.direction == DIRECTION_SHORT and buyCrossPrice >= so.price
             else:
-                buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
-                sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
+                buyCross = so.direction == DIRECTION_LONG and buyCrossPrice >= so.price
+                sellCross = so.direction == DIRECTION_SHORT and sellCrossPrice <= so.price
+                print(13131, buyCrossPrice, so.price, buyCrossPrice >= so.price)
+
 
             # 如果发生了成交
             if not (buyCross or sellCross):
@@ -587,6 +589,8 @@ class BacktestingEngine(VTBacktestingEngine):
                 # 按照顺序推送数据
                 self.strategy.onOrder(order)
                 self.strategy.onTrade(trade)
+                print(15151)
+                raise
                 return True
 
         # 遍历停止单字典中的所有停止单
