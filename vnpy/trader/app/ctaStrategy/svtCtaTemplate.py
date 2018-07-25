@@ -437,7 +437,7 @@ class CtaTemplate(vtCtaTemplate):
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
-            units = [so.toHtml() for so in stopOrders]
+            units = [so.toHtml(self.bar) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
             # 持仓详情
