@@ -513,8 +513,6 @@ class BacktestingEngine(VTBacktestingEngine):
             else:
                 buyCross = so.direction == DIRECTION_LONG and buyCrossPrice >= so.price
                 sellCross = so.direction == DIRECTION_SHORT and sellCrossPrice <= so.price
-                print(13131, buyCrossPrice, so.price, buyCrossPrice >= so.price)
-
 
             # 如果发生了成交
             if not (buyCross or sellCross):
@@ -589,8 +587,6 @@ class BacktestingEngine(VTBacktestingEngine):
                 # 按照顺序推送数据
                 self.strategy.onOrder(order)
                 self.strategy.onTrade(trade)
-                print(15151)
-                raise
                 return True
 
         # 遍历停止单字典中的所有停止单
