@@ -127,7 +127,7 @@ class StopOrder(VtStopOrder):
         s += u'>'
         return s
 
-    def toHtml(self):
+    def toHtml(self, bar=None):
         """
         用于网页显示
         :return:
@@ -144,6 +144,9 @@ class StopOrder(VtStopOrder):
             ('priority', self.priority),
             ('stopProfile', self.stopProfile),
         ]
+        if bar:
+            # 距离开仓的价差
+            items.append(('dist', self.price - bar.close))
 
         orderDic = OrderedDict()
         for k, v in items:
