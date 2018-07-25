@@ -42,7 +42,6 @@ class ContrarianDonchianStrategy(CtaTemplate):
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
-        'atrFitler',
         'n',
         'flinch',
         'longBar',
