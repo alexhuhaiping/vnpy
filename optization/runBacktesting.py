@@ -45,7 +45,7 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'ni1807'
+    vtSymbol = 'ni1809'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
         # 'strategyClass': 'SvtBollChannelStrategy',
 
-        # "barXmin":15,"flinch":3,"longBar":25,"stopLoss":1,"stopProfile":4,
+        # "barXmin": 13, "flinch": 0, "longBar": 30, "stopLoss": 1.5, "stopProfile": 1.5,
         # 'strategyClass': 'OscillationDonchianStrategy',
 
         "barXmin": 20, "longBar": 25, "n": 1,

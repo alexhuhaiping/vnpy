@@ -299,10 +299,6 @@ class ContrarianDonchianStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
-                                                     profile, int(self.rtBalance))
-        self.log.warning(log)
-
         # 重置高低点
         if self.pos > 0:
             # 开多了，开仓点设为高点，高点下跌 n ATR 反手
@@ -312,6 +308,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
             self.low = trade.price
 
         if self.pos == 0:
+            # log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
+            #                                              profile, int(self.rtBalance))
+            # self.log.warning(log)
+
             # 平仓了，开始对连胜连败计数
             if profile > 0:
                 self.winCount += 1
@@ -369,12 +369,12 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
         hands = min(minHands, self.maxHands)
 
-        # self.hands = hands
+        self.hands = hands
 
-        if self.loseCount:
-            self.hands = 1
-        else:
-            self.hands = hands
+        # if self.loseCount:
+        #     self.hands = 1
+        # else:
+        #     self.hands = hands
 
         # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
