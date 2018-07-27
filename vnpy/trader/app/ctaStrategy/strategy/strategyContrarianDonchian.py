@@ -32,6 +32,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
     n = 1  # 高点 n atr 算作反转
     risk = 0.05  # 每笔风险投入
     flinch = 3  # 畏缩指标
+    fixhands = 1 # 固定手数
 
     # 策略变量
     high = None  # 高点
@@ -46,6 +47,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
         'flinch',
         'longBar',
         'risk',
+        'fixhands',
     ])
 
     # 变量列表，保存了变量的名称
@@ -128,7 +130,14 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
+        # 开仓单和平仓单
+        self.orderOpenOnBar()
+        self.orderClose()
+
         self.putEvent()
+
+    def _orderOnThreading(self):
+        pass
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -323,6 +332,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 重设风险投入
             self.updateStop()
 
+
         # 重新下单
         if self.pos == 0:
             # 平仓，不能撤单，还有反手的开仓单
@@ -369,7 +379,8 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
         hands = min(minHands, self.maxHands)
 
-        self.hands = hands
+        # self.hands = 10
+        self.hands = self.fixhands
 
         # if self.loseCount:
         #     self.hands = 1

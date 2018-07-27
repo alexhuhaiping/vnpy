@@ -253,7 +253,11 @@ def showStopOrder():
                 log += u'{}:{} '.format(k, v)
             me.log.info(log)
 
-vtSymbol = 'ni1809'
+def saveStrategy():
+    s = getStrategy(vtSymbol)
+    s.saveDB()
+
+vtSymbol = 'ag1812'
 import logging
 
 
@@ -261,7 +265,9 @@ def run():
     return
     load()
     me.log.info('====================================================')
-    showStopOrder()
+    saveStrategy()
+
+    # showStopOrder()
 
     # sendStopProfileOrder()
 
