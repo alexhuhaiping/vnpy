@@ -32,13 +32,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
     n = 1  # 高点 n atr 算作反转
     risk = 0.05  # 每笔风险投入
     flinch = 3  # 畏缩指标
-    fixhands = 1 # 固定手数
-
-    # 策略变量
-    high = None  # 高点
-    low = None  # 低点
-    atr = 0  # ATR
-    stop = None  # 止损投入
+    fixhands = 1  # 固定手数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -50,8 +44,18 @@ class ContrarianDonchianStrategy(CtaTemplate):
         'fixhands',
     ])
 
+    # 策略变量
+    high = None  # 高点
+    low = None  # 低点
+    atr = 0  # ATR
+    stop = None  # 止损投入
+    winMore = 0 # 胜利次数比失败次数多的次数
+    highBalance = None # 净值高点
+
     # 变量列表，保存了变量的名称
     _varList = [
+        'highBalance',
+        'winMore',
         'winCount',
         'loseCount',
         'high',
@@ -116,6 +120,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
         self.high = self.high or self.bar.close
         self.low = self.low or self.bar.close
+        self.highBalance = self.highBalance or self.rtBalance
 
         self.isCloseoutVaild = True
         self.putEvent()
@@ -317,20 +322,29 @@ class ContrarianDonchianStrategy(CtaTemplate):
             self.low = trade.price
 
         if self.pos == 0:
-            # log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
-            #                                              profile, int(self.rtBalance))
-            # self.log.warning(log)
+            log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
+                                                         profile, int(self.rtBalance))
+            self.log.warning(log)
 
             # 平仓了，开始对连胜连败计数
             if profile > 0:
                 self.winCount += 1
-                self.loseCount = 0
+                self.winMore += 1
+                self.winMore = min(self.flinch, self.winMore)
+                # self.loseCount = 0
             else:
-                self.winCount = 0
+                # self.winCount = 0
                 self.loseCount += 1
+                self.winMore -= 1
+                self.winMore = max(-self.flinch, self.winMore)
 
-            # 重设风险投入
-            self.updateStop()
+            self.highBalance = max(self.highBalance, self.rtBalance)
+            self.log.info(u'{} {}'.format(self.highBalance, self.rtBalance))
+            if self.rtBalance / self.highBalance < 0.6:
+                # 回撤超过40%，重新计算风险投入
+                self.highBalance = self.rtBalance
+                # 重设风险投入
+                self.updateStop()
 
 
         # 重新下单
@@ -375,12 +389,15 @@ class ContrarianDonchianStrategy(CtaTemplate):
             return
 
         # 理论仓位
-        minHands = max(0, int(self.stop / (self.atr * self.n * self.size)))
+        minHands = max(0, int(self.stop / (self.n * self.size * self.bar.close * self.marginRate)))
 
         hands = min(minHands, self.maxHands)
 
-        # self.hands = 10
-        self.hands = self.fixhands
+        # rate = (self.winMore / self.flinch) / self.flinch
+        # hands = max(1, int(hands * rate))
+
+        self.hands = max(1, hands)
+        # self.hands = self.fixhands
 
         # if self.loseCount:
         #     self.hands = 1
@@ -399,6 +416,11 @@ class ContrarianDonchianStrategy(CtaTemplate):
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
+
+
+    def loadCtaDB(self, document=None):
+        super(ContrarianDonchianStrategy, self).loadCtaDB(document)
+        self._loadVar(document)
 
     def updateStop(self):
         self.log.info(u'调整风险投入')

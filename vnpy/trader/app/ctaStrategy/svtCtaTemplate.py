@@ -49,10 +49,11 @@ class CtaTemplate(vtCtaTemplate):
         'marginRate',
         'capital',
     ])
-    varList = vtCtaTemplate.varList[:]
-    varList.extend([
 
-    ])
+    _varList = []
+
+    varList = vtCtaTemplate.varList[:]
+    varList.extend(_varList)
 
     # 权益情况
     BALANCE = [
@@ -668,6 +669,14 @@ class CtaTemplate(vtCtaTemplate):
         """
         # 对 datetime 倒叙，获取第一条
         return self.ctaEngine.ctaCol.find_one(self.filterSql(), sort=[('datetime', pymongo.DESCENDING)])
+
+    def _loadVar(self, document):
+        if document:
+            for k in self._varList:
+                try:
+                    setattr(self, k, document[k])
+                except KeyError:
+                    self.log.warning(u'未保存的key {}'.format(k))
 
     def onOrder(self, order):
         """
