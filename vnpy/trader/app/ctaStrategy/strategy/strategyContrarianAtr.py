@@ -31,14 +31,13 @@ class ContrarianAtrStrategy(CtaTemplate):
     longBar = 20
     n = 1  # 高点 n atr 算作反转
     risk = 0.05  # 每笔风险投入
-    flinch = 3  # 畏缩指标
+    flinch = 0  # 畏缩指标
     fixhands = 1  # 固定手数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'n',
-        'flinch',
         'longBar',
         'risk',
         'fixhands',
@@ -49,13 +48,11 @@ class ContrarianAtrStrategy(CtaTemplate):
     low = None  # 低点
     atr = 0  # ATR
     stop = None  # 止损投入
-    winMore = 0 # 胜利次数比失败次数多的次数
     highBalance = None # 净值高点
 
     # 变量列表，保存了变量的名称
     _varList = [
         'highBalance',
-        'winMore',
         'winCount',
         'loseCount',
         'high',
@@ -118,7 +115,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
-        if self.high and self.low:
+        if self.bar:
             self.high = self.high or self.bar.close
             self.low = self.low or self.bar.close
 
@@ -320,21 +317,17 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.low = trade.price
 
         if self.pos == 0:
-            log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
-                                                         profile, int(self.rtBalance))
-            self.log.warning(log)
+            # log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
+            #                                              profile, int(self.rtBalance))
+            # self.log.warning(log)
 
             # 平仓了，开始对连胜连败计数
             if profile > 0:
                 self.winCount += 1
-                self.winMore += 1
-                self.winMore = min(self.flinch, self.winMore)
                 self.loseCount = 0
             else:
                 self.winCount = 0
                 self.loseCount += 1
-                self.winMore -= 1
-                self.winMore = max(-self.flinch, self.winMore)
 
                 # 重新计算风险投入
                 self.updateStop()

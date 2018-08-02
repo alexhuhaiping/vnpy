@@ -45,11 +45,11 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'ni1807'
+    vtSymbol = 'ni1507'
+    # vtSymbol = 'ni1809'
     setting = {
         'vtSymbol': vtSymbol,
         'capital': 100000,
-        'risk': 0.05,
 
         # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
         # 'strategyClass': 'SvtBollChannelStrategy',
@@ -57,8 +57,10 @@ if __name__ == '__main__':
         # "barXmin": 13, "flinch": 0, "longBar": 30, "stopLoss": 1.5, "stopProfile": 1.5,
         # 'strategyClass': 'OscillationDonchianStrategy',
 
-        "barXmin": 15, "longBar": 25, "n": 1, "flinch": 5, "fixhands": 9, "risk": 1,
-        'strategyClass': 'ContrarianDonchianStrategy',
+
+        "risk": 0.03, "longBar": 20,  "barXmin": 60, "fixhands": 5,
+        # "barXmin": 15, "longbar": 25, "n": 1, "fixhands": 5, "risk": 1,
+        'strategyClass': 'ContrarianAtrStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -76,3 +78,5 @@ if __name__ == '__main__':
     # 输出回测结果
     engine.showDailyResult()
     engine.showBacktestingResult()
+    # print(engine.tradeResult["成交单'][0]['entryDt'])
+    # print(engine.tradeResult["成交单'][-1]['entryDt'])
