@@ -85,6 +85,7 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger(self.vtSymbol)
+        self._setting = setting.copy()
 
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')

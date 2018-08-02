@@ -22,9 +22,9 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class ContrarianDonchianStrategy(CtaTemplate):
-    """唐奇安通道反转策略"""
-    className = 'ContrarianDonchianStrategy'
+class ContrarianAtrStrategy(CtaTemplate):
+    """反转ATR策略"""
+    className = u'反转ATR策略'
     author = u'lamter'
 
     # 策略参数
@@ -69,7 +69,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(ContrarianDonchianStrategy, self).__init__(ctaEngine, setting)
+        super(ContrarianAtrStrategy, self).__init__(ctaEngine, setting)
 
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
@@ -107,7 +107,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
             self.onBar(bar)
             self.bm.preBar = bar
 
-        # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
+        # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
             self.log.info(u'初始化完成')
@@ -118,8 +118,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
             self.updateStop()
 
-        self.high = self.high or self.bar.close
-        self.low = self.low or self.bar.close
+        if self.high and self.low:
+            self.high = self.high or self.bar.close
+            self.low = self.low or self.bar.close
+
         self.highBalance = self.highBalance or self.rtBalance
 
         self.isCloseoutVaild = True
@@ -135,9 +137,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
-        # 开仓单和平仓单
-        self.orderOpenOnBar()
-        self.orderClose()
+        if self.high and self.low:
+            # 开仓单和平仓单
+            self.orderOpenOnBar()
+            self.orderClose()
 
         self.putEvent()
 
@@ -171,7 +174,10 @@ class ContrarianDonchianStrategy(CtaTemplate):
 
         # 先撤单再下单
         if self.trading:
-            if self.justOpen:
+            if self.high is None and self.low is None:
+                self.high = bar.high
+                self.low = bar.low
+            elif self.justOpen:
                 if self.pos > 0:
                     self.high = max(bar.close, self.high)
                 elif self.pos < 0:
@@ -191,16 +197,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
         # 开仓价
         longPrice, shortPrice = self.getPrice()
 
-        # if shortPrice <= longPrice:
-        #     self.log.info(u'通道过小，不开仓')
-        #     return
-
         self.updateHands()
-
-        # if self.pos == 0:
-        #     # 空仓时开仓
-        #     shortStopOrderID = self.short(shortPrice, self.hands, stop=True)
-        #     longStopOrderID = self.buy(longPrice, self.hands, stop=True)
 
         if self.pos >= 0:
             # 多仓时反手
@@ -209,6 +206,7 @@ class ContrarianDonchianStrategy(CtaTemplate):
         if self.pos <= 0:
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
+
 
     def getPrice(self):
         # 更新高、低点
@@ -331,21 +329,18 @@ class ContrarianDonchianStrategy(CtaTemplate):
                 self.winCount += 1
                 self.winMore += 1
                 self.winMore = min(self.flinch, self.winMore)
-                # self.loseCount = 0
+                self.loseCount = 0
             else:
-                # self.winCount = 0
+                self.winCount = 0
                 self.loseCount += 1
                 self.winMore -= 1
                 self.winMore = max(-self.flinch, self.winMore)
 
-            self.highBalance = max(self.highBalance, self.rtBalance)
-            self.log.info(u'{} {}'.format(self.highBalance, self.rtBalance))
-            if self.rtBalance / self.highBalance < 0.6:
-                # 回撤超过40%，重新计算风险投入
-                self.highBalance = self.rtBalance
-                # 重设风险投入
+                # 重新计算风险投入
                 self.updateStop()
 
+            self.highBalance = max(self.highBalance, self.rtBalance)
+            self.log.info(u'{} {}'.format(self.highBalance, self.rtBalance))
 
         # 重新下单
         if self.pos == 0:
@@ -389,37 +384,39 @@ class ContrarianDonchianStrategy(CtaTemplate):
             return
 
         # 理论仓位
-        minHands = max(0, int(self.stop / (self.n * self.size * self.bar.close * self.marginRate)))
+        minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
 
         hands = min(minHands, self.maxHands)
 
-        # rate = (self.winMore / self.flinch) / self.flinch
-        # hands = max(1, int(hands * rate))
+        # 仓位计算方法 ===========>
+        # 1. 连败中一直轻仓，连胜一直满仓
+        # self.hands = 1 if self.loseCount else max(1, hands)
 
-        self.hands = max(1, hands)
-        # self.hands = self.fixhands
+        # 2. 直接动态仓位
+        # self.hands = max(1, hands)
 
-        # if self.loseCount:
-        #     self.hands = 1
-        # else:
-        #     self.hands = hands
-
+        # 3. 按连败次数加仓
         # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
+
+        # 4. 连败 flinch 次后满仓
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
 
+        # 5. 固定仓位
+        self.hands = min(self.fixhands, self.maxHands)
+        # <==================
     def toSave(self):
         """
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(ContrarianDonchianStrategy, self).toSave()
+        dic = super(ContrarianAtrStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
 
 
     def loadCtaDB(self, document=None):
-        super(ContrarianDonchianStrategy, self).loadCtaDB(document)
+        super(ContrarianAtrStrategy, self).loadCtaDB(document)
         self._loadVar(document)
 
     def updateStop(self):

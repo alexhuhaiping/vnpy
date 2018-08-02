@@ -1100,6 +1100,20 @@ class VtTradingResult(object):
         self.pnl = ((self.exitPrice - self.entryPrice) * volume * size
                     - self.commission - self.slippage)  # 净盈亏
 
+    def toReutlDB(self):
+        """
+        导出要保存到回测数据库的信息
+        :return:
+        """
+        dic = {
+            'entryDt': self.entryDt,
+            'exitDt': self.exitDt,
+            'entryPrice': self.entryPrice,
+            'exitPrice': self.exitPrice,
+            'voluem': self.volume,
+        }
+        return dic
+
 
 class TradingResult(VtTradingResult):
     """每笔交易的结果"""

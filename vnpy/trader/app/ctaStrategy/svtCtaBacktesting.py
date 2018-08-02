@@ -1137,7 +1137,8 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
+        self.tradeResult[u'收益率曲线'] = list(balanceList.values[1:])
+        self.tradeResult[u'成交单'] = [r.toReutlDB() for r in d['resultList']]
 
         if not self.isShowFig:
             return
