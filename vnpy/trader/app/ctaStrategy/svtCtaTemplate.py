@@ -661,6 +661,7 @@ class CtaTemplate(vtCtaTemplate):
             'symbol': self.vtSymbol,
             'className': self.className,
             'userID': gateWay.tdApi.userID,
+            'name': self.name,
         }
 
     def fromDB(self):
