@@ -1,0 +1,16 @@
+{
+  "param": {
+    "group": "反转ATR批量回测",
+    "name": "20180802",
+    "className": "ContrarianAtrStrategy",
+    "capital": 100000,
+    "risk": 0.05,
+
+    "barXmin": 15, "longBar": 25, "n": 1, "fixhands": 5
+  },
+  "opts": {
+    "barXmin":[5, 10, 15, 20, 30, 60],
+    "longBar":[20, 30, 40],
+    "n": [0.5, 1, 1.5, 2, 2.5]
+  }
+}

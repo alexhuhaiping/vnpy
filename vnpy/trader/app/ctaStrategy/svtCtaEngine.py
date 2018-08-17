@@ -109,6 +109,8 @@ class CtaEngine(VtCtaEngine):
 
         self.vtOrderReqToShow = {}  # 用于展示的限价单对象
 
+        self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
+
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
@@ -544,6 +546,13 @@ class CtaEngine(VtCtaEngine):
             except TypeError:
                 self.log.info(u'{name} 该策略没有持仓'.format(**flt))
 
+    def loadStrategy(self, setting):
+        r = super(CtaEngine, self).loadStrategy(setting)
+        for s in self.strategyDict.values():
+            self.strategyByVtSymbol[s.vtSymbol].add(s)
+
+        return r
+
     def startAll(self):
         super(CtaEngine, self).startAll()
 
@@ -739,9 +748,52 @@ class CtaEngine(VtCtaEngine):
             # 间隔时间不够
             return
 
-        for s in self.strategyDict.values():
-            # 上次检查已经有异常了,这次有异常直接回报
-            self._checkPositionByStrategy(s)
+        for vtSymbol, strategySet in self.strategyByVtSymbol.values():
+            self._checkPositionBySymbol(vtSymbol, strategySet)
+
+            # for s in self.strategyDict.values():
+            #     # 上次检查已经有异常了,这次有异常直接回报
+            #     self._checkPositionByStrategy(s)
+
+    def _checkPositionBySymbol(self, vtSymbol, strategySet):
+        countDic = self.positionErrorCountDic
+
+        def errorHandler(err):
+            countDic[vtSymbol] += 1
+            if countDic[vtSymbol] >= self.reportPosErrCount:
+                err = u'仓位异常 停止交易 {}'.format(err)
+                for s in strategySet:
+                    s.positionErrReport(err)
+                    s.trading = False
+                    # 全部撤单
+                    s.cancelAll()
+            else:
+                self.log.info(u'仓位出现异常次数 {}'.format(countDic[vtSymbol]))
+                self.log.info(u'{}'.format(err))
+
+        # 仓位详情
+        detail = self.mainEngine.dataEngine.getPositionDetail(vtSymbol)
+        posAmount = sum(map(lambda s: s.pos, strategySet))
+
+        if detail.longPos != detail.longYd + detail.longTd:
+            # 多头仓位异常
+            err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=vtSymbol, **detail.__dict__)
+            errorHandler(err)
+
+        elif detail.shortPos != detail.shortYd + detail.shortTd:
+            # 空头仓位异常
+            err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=vtSymbol,
+                                                                                           **detail.__dict__)
+            errorHandler(err)
+
+        elif posAmount != detail.longPos - detail.shortPos:
+            err = u'{name} posAmount:{posAmount} longPos:{longPos} shortPos:{shortPos} '.format(name=vtSymbol,
+                                                                                                posAmount=posAmount,
+                                                                                                **detail.__dict__)
+            errorHandler(err)
+        else:
+            # 没有异常，重置仓位异常次数
+            countDic[vtSymbol] = 0
 
     def _checkPositionByStrategy(self, strategy):
         """

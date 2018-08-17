@@ -508,11 +508,11 @@ class BacktestingEngine(VTBacktestingEngine):
             stopOrderID = so.stopOrderID
             # 判断是否会成交
             if so.stopProfile:
-                buyCross = so.direction == DIRECTION_LONG and so.price >= sellCrossPrice
-                sellCross = so.direction == DIRECTION_SHORT and so.price <= buyCrossPrice
+                buyCross = so.direction == DIRECTION_LONG and sellCrossPrice <= so.price
+                sellCross = so.direction == DIRECTION_SHORT and buyCrossPrice >= so.price
             else:
-                buyCross = so.direction == DIRECTION_LONG and so.price <= buyCrossPrice
-                sellCross = so.direction == DIRECTION_SHORT and so.price >= sellCrossPrice
+                buyCross = so.direction == DIRECTION_LONG and buyCrossPrice >= so.price
+                sellCross = so.direction == DIRECTION_SHORT and sellCrossPrice <= so.price
 
             # 如果发生了成交
             if not (buyCross or sellCross):
@@ -1137,7 +1137,8 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'收益率曲线'] = list(balanceList.values[1:])
+        self.tradeResult[u'收益率曲线'] = list(balanceList.values[1:])
+        self.tradeResult[u'成交单'] = [r.toReutlDB() for r in d['resultList']]
 
         if not self.isShowFig:
             return

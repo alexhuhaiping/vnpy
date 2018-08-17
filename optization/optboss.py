@@ -26,6 +26,11 @@ class WorkService(object):
             self.config.readfp(f)
 
         self.log = logging.getLogger('{}_boss'.format(self.config.get('slavem', 'localhost')))
+        try:
+            cpu_count = self.config.getint('worker', 'cpu')
+            self.cpuCount = min(cpu_count, self.cpuCount)
+        except ConfigParser.NoOptionError:
+            pass
 
         self.logs = {}
         self.workers = []
