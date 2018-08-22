@@ -257,6 +257,10 @@ def saveStrategy():
     s = getStrategy(vtSymbol)
     s.saveDB()
 
+
+def showWorkingStopOrderDic():
+    print(ce.workingStopOrderDict.keys())
+
 vtSymbol = 'ag1812'
 import logging
 
@@ -265,7 +269,8 @@ def run():
     return
     load()
     me.log.info('====================================================')
-    saveStrategy()
+    showWorkingStopOrderDic()
+    # saveStrategy()
 
     # showStopOrder()
 

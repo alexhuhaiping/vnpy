@@ -264,6 +264,19 @@ class CtaEngine(VtCtaEngine):
                 orderList.append(dic)
         return orderList
 
+    def getAllStopOrderToShow(self, strategyName):
+        """
+        只展示有效的停止单
+        :param vtSymbol:
+        :return:
+        """
+        orderList = []
+        for orderID in self.strategyOrderDict[strategyName]:
+            so = self.workingStopOrderDict.get(orderID)
+            if isinstance(so, StopOrder):
+                orderList.append(so)
+        return orderList
+
     def getAllStopOrdersSorted(self, vtSymbol):
         """
         对全部停止单排序后
@@ -748,7 +761,7 @@ class CtaEngine(VtCtaEngine):
             # 间隔时间不够
             return
 
-        for vtSymbol, strategySet in self.strategyByVtSymbol.values():
+        for vtSymbol, strategySet in self.strategyByVtSymbol.items():
             self._checkPositionBySymbol(vtSymbol, strategySet)
 
             # for s in self.strategyDict.values():
