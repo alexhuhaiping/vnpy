@@ -6,6 +6,8 @@ from flask import Flask
 from threading import Thread
 import pandas as pd
 
+from vnpy.trader.vtGlobal import globalSetting
+
 app = Flask(__name__)
 
 if __debug__:
@@ -13,11 +15,15 @@ if __debug__:
 
 PORT = 38080
 
-
 class ServerThread(Thread):
     def __init__(self, app):
         Thread.__init__(self)
         self.setDaemon(True)
+        try:
+            PORT = globalSetting['webPORT']
+        except Exception:
+            PORT = 38080
+            logging.warning(u'未配置web端口，使用默认端口38080')
         self.srv = make_server('0.0.0.0', PORT, app)
         self.ctx = app.app_context()
         self.ctx.push()
