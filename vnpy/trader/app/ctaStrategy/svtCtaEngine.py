@@ -258,13 +258,10 @@ class CtaEngine(VtCtaEngine):
         :return:
         """
         orderList = []
-        try:
-            for orderID in self.strategyOrderDict[strategyName]:
-                dic = self.vtOrderReqToShow.get(orderID)
-                if dic:
-                    orderList.append(dic)
-        except KeyError:
-            self.log.info(u'尚未有供显示的停止单')
+        for orderID in self.strategyOrderDict[strategyName]:
+            dic = self.vtOrderReqToShow.get(orderID)
+            if dic:
+                orderList.append(dic)
 
         return orderList
 
