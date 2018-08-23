@@ -761,7 +761,7 @@ class CtaEngine(VtCtaEngine):
             # 间隔时间不够
             return
 
-        for vtSymbol, strategySet in self.strategyByVtSymbol.values():
+        for vtSymbol, strategySet in self.strategyByVtSymbol.items():
             try:
                 self._checkPositionBySymbol(vtSymbol, strategySet)
             except Exception:
