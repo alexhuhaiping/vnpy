@@ -262,6 +262,7 @@ class CtaEngine(VtCtaEngine):
             dic = self.vtOrderReqToShow.get(orderID)
             if dic:
                 orderList.append(dic)
+
         return orderList
 
     def getAllStopOrderToShow(self, strategyName):
