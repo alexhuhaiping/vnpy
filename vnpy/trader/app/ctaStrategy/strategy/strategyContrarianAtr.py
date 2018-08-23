@@ -32,7 +32,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     n = 1  # 高点 n atr 算作反转
     risk = 0.05  # 每笔风险投入
     flinch = 0  # 畏缩指标
-    fixhands = 1  # 固定手数
+    fixhands = 0  # 固定手数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -72,7 +72,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         #     self.log.info(u'批量回测，不输出日志')
         #     self.log.propagate = False
 
-        self.hands = 1
+        self.hands = self.fixhands
         self.justOpen = False  # 刚开仓过
         self.longStopOrder = None  # 开多停止单实例
         self.shortStopOrder = None  # 开空停止单实例
@@ -378,6 +378,11 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         # 理论仓位
         minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
+
+        if self.fixhands:
+            # 有固定手数时直接使用固定手数
+            self.hands = min(minHands, self.fixhands)
+            return
 
         hands = min(minHands, self.maxHands)
 
