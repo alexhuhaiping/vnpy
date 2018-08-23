@@ -274,7 +274,7 @@ class CtaEngine(VtCtaEngine):
         for orderID in self.strategyOrderDict[strategyName]:
             so = self.workingStopOrderDict.get(orderID)
             if isinstance(so, StopOrder):
-                orderList.append(dic)
+                orderList.append(so)
         return orderList
 
     def getAllStopOrdersSorted(self, vtSymbol):
