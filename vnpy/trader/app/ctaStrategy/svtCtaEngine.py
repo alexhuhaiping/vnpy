@@ -762,7 +762,11 @@ class CtaEngine(VtCtaEngine):
             return
 
         for vtSymbol, strategySet in self.strategyByVtSymbol.values():
-            self._checkPositionBySymbol(vtSymbol, strategySet)
+            try:
+                self._checkPositionBySymbol(vtSymbol, strategySet)
+            except Exception:
+                self.log.error(u'{}'.format(vtSymbol))
+                raise
 
             # for s in self.strategyDict.values():
             #     # 上次检查已经有异常了,这次有异常直接回报
