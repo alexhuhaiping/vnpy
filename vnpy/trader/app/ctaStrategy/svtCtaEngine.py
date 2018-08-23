@@ -259,7 +259,7 @@ class CtaEngine(VtCtaEngine):
         """
         orderList = []
         try:
-            for orderID in self.strategyOrderDict.get(strategyName):
+            for orderID in self.strategyOrderDict[strategyName]:
                 dic = self.vtOrderReqToShow.get(orderID)
                 if dic:
                     orderList.append(dic)
