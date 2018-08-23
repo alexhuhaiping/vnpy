@@ -274,7 +274,7 @@ class CtaEngine(VtCtaEngine):
         for orderID in self.strategyOrderDict[strategyName]:
             so = self.workingStopOrderDict.get(orderID)
             if isinstance(so, StopOrder):
-                orderList.append(so)
+                orderList.append(dic)
         return orderList
 
     def getAllStopOrdersSorted(self, vtSymbol):
@@ -761,7 +761,7 @@ class CtaEngine(VtCtaEngine):
             # 间隔时间不够
             return
 
-        for vtSymbol, strategySet in self.strategyByVtSymbol.items():
+        for vtSymbol, strategySet in self.strategyByVtSymbol.values():
             self._checkPositionBySymbol(vtSymbol, strategySet)
 
             # for s in self.strategyDict.values():

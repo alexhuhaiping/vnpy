@@ -38,8 +38,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     stopLoss = 4
     slippageRate = 1 / 0.2  # 盈利空间和滑点的比例
     # initDays = 10  # 初始化数据所用的天数
-    fixedSize = 1  # 每次交易的数量
-    risk = 0.05  # 每笔风险投入
+    risk = 0.01  # 每笔风险投入
     flinch = 3  # 畏缩指标
 
     # 策略变量
@@ -61,7 +60,6 @@ class OscillationDonchianStrategy(CtaTemplate):
         'longBar',
         'stopProfile',
         'stopLoss',
-        'fixedSize',
         'risk',
     ])
 
@@ -92,7 +90,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         #     self.log.propagate = False
 
         self.reOrder = False  # 是否重新下单
-        self.hands = self.fixedSize
+        self.hands = 0
         self.balanceList = OrderedDict()
 
     def initMaxBarNum(self):
@@ -405,7 +403,6 @@ class OscillationDonchianStrategy(CtaTemplate):
             self.stopProfilePrice = None
 
             if profile < 0:
-                self.updateStop()
                 self.loseCount += 1
                 self.winCount = 0
 

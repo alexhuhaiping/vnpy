@@ -438,8 +438,7 @@ class CtaTemplate(vtCtaTemplate):
             orderDic['order'] = pd.DataFrame(orders).to_html()
 
             # 本地停止单
-            # stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
-            stopOrders = self.ctaEngine.getAllStopOrderToShow(self.name)
+            stopOrders = self.ctaEngine.getAllStopOrdersSorted(self.vtSymbol)
             units = [so.toHtml(self.bar) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
