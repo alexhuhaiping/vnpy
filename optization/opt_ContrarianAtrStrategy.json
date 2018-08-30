@@ -1,7 +1,7 @@
 {
   "param": {
-    "group": "反转ATR批量回测",
-    "name": "20180802",
+    "group": "反转ATR固定手数",
+    "name": "20180830",
     "className": "ContrarianAtrStrategy",
     "capital": 100000,
     "risk": 0.05,

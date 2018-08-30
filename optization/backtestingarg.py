@@ -151,9 +151,9 @@ class BacktestingArg(object):
         contracts = self.getContractAvaible()
 
         # # TODO 测试代码，先只测试螺纹
-        symbol = 'ni'
-        contracts = [c for c in contracts if c['underlyingSymbol'] == symbol]
-        self.log.debug(u'只生成  {} 的参数'.format(symbol))
+        # symbol = 'ni'
+        # contracts = [c for c in contracts if c['underlyingSymbol'] == symbol]
+        # self.log.debug(u'只生成  {} 的参数'.format(symbol))
 
         # 生成最终用于回测的参数组合, 稍后保存到数据库
         documents = self.createBacktestingArgs(contracts, strategyArgs)
@@ -351,7 +351,7 @@ if __name__ == '__main__':
     # optfile = 'optimize.ini'
 
     # home 配置
-    argFileName = 'opt_ni_CCI_SvtBollChannel.json'
+    argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_ContrarianAtrStrategy.json'
     optfile = 'optimizeHome.ini'
 
     print(u'即将使用 {} 的配置'.format(optfile))
