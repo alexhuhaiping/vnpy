@@ -381,7 +381,7 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         if self.fixhands:
             # 有固定手数时直接使用固定手数
-            self.hands = min(minHands, self.fixhands)
+            self.hands = min(self.maxHands, self.fixhands)
             return
 
         hands = min(minHands, self.maxHands)
