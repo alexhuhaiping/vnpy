@@ -6,7 +6,7 @@
     "capital": 100000,
     "risk": 0.05,
 
-    "barXmin": 15, "longBar": 25, "n": 1, "fixhands": 5
+    "barXmin": 15, "longBar": 25, "n": 1, "fixhands": 0
   },
   "opts": {
     "barXmin":[5, 10, 15, 20, 30, 60],
