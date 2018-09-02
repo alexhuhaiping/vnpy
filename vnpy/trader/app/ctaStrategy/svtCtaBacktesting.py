@@ -1030,11 +1030,10 @@ class BacktestingEngine(VTBacktestingEngine):
         losingResult = 0  # 亏损次数
         totalWinning = 0  # 总盈利金额
         totalLosing = 0  # 总亏损金额
-        pos = 0  # 总体持仓情况
+        # pos = 0  # 总体持仓情况
 
         for result in resultList:
-            pos += result.volume
-            margin = abs(pos * self.size * result.entryPrice * self.marginRate.marginRate / capital)
+            margin = abs(result.volume * self.size * result.entryPrice * self.marginRate.marginRate / capital)
             capital += result.pnl
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
@@ -1044,7 +1043,7 @@ class BacktestingEngine(VTBacktestingEngine):
             capitalList.append(capital)
             drawdownList.append(drawdown)
             drawdownPerList.append(drawdown / maxCapital)
-            posList.append(pos)
+            posList.append(result.volume)
             marginList.append(margin)
 
             totalResult += 1
@@ -1166,23 +1165,25 @@ class BacktestingEngine(VTBacktestingEngine):
         pPnl.set_ylabel("pnl")
         pPnl.hist(d['pnlList'], bins=50, color='c')
 
-        pPnl = plt.subplot(subplotNum, 1, 5)
-        pPnl.set_ylabel("Position")
-        pPnl.bar(range(len(d['posList'])), d['posList'], color='g')
+        pPosition = plt.subplot(subplotNum, 1, 5)
+        pPosition.set_ylabel("Position")
+        pPosition.bar(range(len(d['posList'])), d['posList'], color='g')
 
-        pMargin = plt.subplot(subplotNum, 1, 6)
-        pMargin.set_ylabel("sPos")
-        pMargin.bar(range(len(self.strategy.posList)), self.strategy.posList, color='g')
+        # 策略中记录的持仓变化
+        sPos = plt.subplot(subplotNum, 1, 6)
+        sPos.set_ylabel("sPos")
+        sPos.bar(range(len(self.strategy.posList)), self.strategy.posList, color='g')
 
         pMargin = plt.subplot(subplotNum, 1, 7)
         pMargin.set_ylabel("Margin")
         pMargin.bar(range(len(d['marginList'])), d['marginList'], color='g')
         # pMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
 
-        pMargin = plt.subplot(subplotNum, 1, 8)
-        pMargin.set_ylabel("sMargin")
+        # 策略中记录的保证金
+        sMargin = plt.subplot(subplotNum, 1, 8)
+        sMargin.set_ylabel("sMargin")
         # pMargin.bar(range(len(d['marginList'])), d['marginList'], color='g')
-        pMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
+        sMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
 
         # pPos = plt.subplot(subplotNum, 1, 6)
         # pPos.set_ylabel("Position")

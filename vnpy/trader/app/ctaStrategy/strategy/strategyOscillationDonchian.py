@@ -398,6 +398,10 @@ class OscillationDonchianStrategy(CtaTemplate):
                 self.capital = 0
 
         if self.pos == 0:
+            # log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
+            #                                              profile, int(self.rtBalance))
+            # self.log.warning(log)
+
             # 重置止盈止损价格
             self.stopLossPrice = None
             self.stopProfilePrice = None
