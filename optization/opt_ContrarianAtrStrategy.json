@@ -1,7 +1,7 @@
 {
   "param": {
-    "group": "反转ATR固定手数",
-    "name": "20180830",
+    "group": "反转ATR固定手数3",
+    "name": "20180911",
     "className": "ContrarianAtrStrategy",
     "capital": 100000,
     "risk": 0.05,
@@ -9,8 +9,8 @@
     "barXmin": 15, "longBar": 25, "n": 1, "fixhands": 0
   },
   "opts": {
-    "barXmin":[5, 10, 15, 20, 30, 60],
-    "longBar":[20, 30, 40],
-    "n": [0.5, 1, 1.5, 2, 2.5]
+    "barXmin":[10, 15, 20, 30, 45, 60, 120],
+    "longBar":[5, 10, 15, 20, 25, 30],
+    "n": [1]
   }
 }
