@@ -1,18 +1,19 @@
 {
   "param": {
-    "group": "唐奇安震荡",
-    "name": "镍密集穷举",
+    "group": "唐奇安震荡镍固定手数",
+    "name": "铁固定手数",
     "className": "OscillationDonchianStrategy",
     "capital": 100000,
-    "risk": 0.05,
+    "risk": 0.02,
 
     "barXmin": 15, "slippageRate": 5, "flinch": 2, "longBar": 20, "stopProfile": 1, "stopLoss": 2.5
   },
   "opts": {
-    "barXmin": [5, 7, 10, 13, 15 ,18, 20],
-    "longBar": [10, 15, 20, 25, 30, 35, 40, 45, 50],
-    "flinch": [0, 1, 2, 3, 4],
-    "stopProfile": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4],
-    "stopLoss": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]
+    "barXmin": [10, 15, 20, 30, 45,60],
+    "longBar": [10, 20, 30],
+    "flinch": [0, 1, 2, 3],
+    "stopProfile": [0.5, 1, 1.5, 2, 2.5, 3, 4],
+    "stopLoss": [0.5, 1, 1.5, 2, 2.5, 3, 4],
+    "risk": [0.02, 0.025, 0.03]
   }
 }

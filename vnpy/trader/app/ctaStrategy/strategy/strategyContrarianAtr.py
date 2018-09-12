@@ -378,29 +378,28 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         # 理论仓位
         minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
+        if self.hands == 0:
+            self.hands = int(self.maxHands / 2)
 
+        # 仓位计算方法 ===========>
+        # 固定仓位
         if self.fixhands:
             # 有固定手数时直接使用固定手数
             self.hands = min(self.maxHands, self.fixhands)
             return
 
-        hands = min(minHands, self.maxHands)
-
-        # 仓位计算方法 ===========>
-        # 1. 连败中一直轻仓，连胜一直满仓
+        self.hands = min(self.hands, self.maxHands)
+        # 连败中一直轻仓，连胜一直满仓
         # self.hands = 1 if self.loseCount else max(1, hands)
 
-        # 2. 直接动态仓位
+        # 直接动态仓位
         # self.hands = max(1, hands)
 
-        # 3. 按连败次数加仓
+        # 按连败次数加仓
         # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
 
-        # 4. 连败 flinch 次后满仓
+        # 连败 flinch 次后满仓
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
-
-        # 5. 固定仓位
-        self.hands = min(self.fixhands, self.maxHands)
         # <==================
     def toSave(self):
         """

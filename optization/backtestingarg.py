@@ -31,6 +31,9 @@ class BacktestingArg(object):
         sh.setLevel(logging.INFO)
         self.log.addHandler(sh)
 
+        # TODO 只回测指定的品种
+        self.specialSymbols = ['ni', 'AP']
+
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
 
@@ -74,6 +77,7 @@ class BacktestingArg(object):
     @property
     def group(self):
         return self.param['group']
+
     @property
     def name(self):
         return self.param['name']
@@ -150,11 +154,6 @@ class BacktestingArg(object):
         # 取出需要回测的合约
         contracts = self.getContractAvaible()
 
-        # # TODO 测试代码，先只测试螺纹
-        symbol = 'ni'
-        contracts = [c for c in contracts if c['underlyingSymbol'] == symbol]
-        self.log.debug(u'只生成  {} 的参数'.format(symbol))
-
         # 生成最终用于回测的参数组合, 稍后保存到数据库
         documents = self.createBacktestingArgs(contracts, strategyArgs)
 
@@ -204,6 +203,11 @@ class BacktestingArg(object):
         cursor = cursor.sort('activeEndDate', -1)
 
         contracts = [c for c in cursor]
+        if self.specialSymbols:
+            self.log.info(u'只回测品种：{}'.format(u','.join(self.specialSymbols)))
+            contracts = [c for c in contracts if c['underlyingSymbol'] in self.specialSymbols]
+        else:
+            self.log.info(u'回测全品种')
 
         # 依然还在上市的品种
         onMarketUS = set()
@@ -286,6 +290,7 @@ class BacktestingArg(object):
         """
         assert isinstance(self.btinfoCol, Collection)
         flt = self.getFlt()
+
         self.btinfo.update(flt)
 
         # 替换
@@ -347,14 +352,14 @@ class BacktestingArg(object):
 
 if __name__ == '__main__':
     # 本机测试配置
-    # argFileName = 'opt_test.json'
-    # optfile = 'optimize.ini'
+    argFileName = 'opt_test.json'
+    optfile = 'optimize.ini'
 
     # home 配置
-    argFileName = 'opt_ni_CCI_SvtBollChannel.json'
-    optfile = 'optimizeHome.ini'
+    # argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_ContrarianAtrStrategy.json'
+    # optfile = 'optimizeHome.ini'
 
-    print(u'即将使用 {} 的配置'.format(optfile))
+    logging.info(u'即将使用 {} 的配置'.format(optfile))
     time.sleep(5)
 
     b = BacktestingArg(argFileName, optfile)

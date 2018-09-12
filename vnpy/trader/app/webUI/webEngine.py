@@ -78,6 +78,7 @@ def showCtaStrategy():
     try:
         ctaApp.log.info(u'开始刷新 strategy 页面')
         strategyList = list(ctaApp.strategyDict.items())
+        strategyList.sort(key=lambda s: s[0])
         for ctaName, ctaStrategy in strategyList:
             dic[u'策略个数'] += 1
             dic[u'总权益'] += int(ctaStrategy.rtBalance)
