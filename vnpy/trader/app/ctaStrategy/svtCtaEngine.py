@@ -111,6 +111,9 @@ class CtaEngine(VtCtaEngine):
 
         self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
 
+        self.waitStopStartTime = None  # 开始等待停止单的时间
+        self.waittingVtOrderIDList = [] # 等待成交的停止单触发的订单
+
         if __debug__:
             import pymongo.collection
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
@@ -206,6 +209,14 @@ class CtaEngine(VtCtaEngine):
         """收到行情后处理本地停止单（检查是否要立即发出）"""
         vtSymbol = tick.vtSymbol
 
+        if self.waittingVtOrderIDList:
+            # 有等待的停止单
+            if datetime.datetime.now() - self.waitStopStartTime > datetime.timedelta(seconds=5):
+                self.log.error(u'停止单超过5秒未响应')
+                self.waitStopStartTime = None
+                self.waittingVtOrderIDList = []
+            return
+
         # 首先检查是否有策略交易该合约
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
@@ -235,9 +246,14 @@ class CtaEngine(VtCtaEngine):
                                                           so.price,
                                                           so.volume)
                         self.log.info(u'触发停止单 {}'.format(log))
+
                         if so.volume != 0:
                             so.strategy.setStopOrdering()  # 停止单锁定
-                            self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                            vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+
+                            # 将状态设置为有停止单
+                            self.waittingVtOrderIDList = vtOrderIDList
+                            self.waitStopStartTime = datetime.datetime.now()
 
                         # 从活动停止单字典中移除该停止单
                         del self.workingStopOrderDict[so.stopOrderID]
@@ -874,7 +890,12 @@ class CtaEngine(VtCtaEngine):
             pass
         self.saveOrderback(dic)
 
-        return super(CtaEngine, self).processOrderEvent(event)
+        r = super(CtaEngine, self).processOrderEvent(event)
+
+        if order.vtOrderID in self.waittingVtOrderIDList:
+            self.waittingVtOrderIDList.remove(order.vtOrderID)
+
+        return r
 
     def updateAccount(self, event):
         account = event.dict_['data']
