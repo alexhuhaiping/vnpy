@@ -111,8 +111,8 @@ class CtaEngine(VtCtaEngine):
 
         self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
 
-        self.waitStopStartTime = None  # 开始等待停止单的时间
-        self.waittingVtOrderIDList = [] # 等待成交的停止单触发的订单
+        self.waitStopStartTimeDic = defaultdict(lambda: None)  # 开始等待停止单的时间
+        self.waittingVtOrderIDListDic = defaultdict(list)  # 等待成交的停止单触发的订单 {'vtSymbol': vtOrderList}
 
         if __debug__:
             import pymongo.collection
@@ -209,12 +209,17 @@ class CtaEngine(VtCtaEngine):
         """收到行情后处理本地停止单（检查是否要立即发出）"""
         vtSymbol = tick.vtSymbol
 
-        if self.waittingVtOrderIDList:
+        if self.waittingVtOrderIDListDic[tick.vtSymbol]:
             # 有等待的停止单
-            if datetime.datetime.now() - self.waitStopStartTime > datetime.timedelta(seconds=5):
-                self.log.error(u'停止单超过5秒未响应')
-                self.waitStopStartTime = None
-                self.waittingVtOrderIDList = []
+            self.log.info(u'{} 停止单锁定中'.format(tick.vtSymbol))
+            try:
+                if datetime.datetime.now() - self.waitStopStartTimeDic[tick.vtSymbol] > datetime.timedelta(seconds=5):
+                    self.log.error(u'停止单超过5秒未响应')
+                    self.waitStopStartTime = None
+                    self.waittingVtOrderIDListDic[tick.vtSymbol] = []
+            except Exception:
+                self.log.error(traceback.format_exc())
+
             return
 
         # 首先检查是否有策略交易该合约
@@ -248,12 +253,14 @@ class CtaEngine(VtCtaEngine):
                         self.log.info(u'触发停止单 {}'.format(log))
 
                         if so.volume != 0:
-                            so.strategy.setStopOrdering()  # 停止单锁定
+                            # so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
 
                             # 将状态设置为有停止单
-                            self.waittingVtOrderIDList = vtOrderIDList
-                            self.waitStopStartTime = datetime.datetime.now()
+                            if vtOrderIDList:
+                                self.log.info(u'停止单锁定')
+                                self.waittingVtOrderIDListDic[tick.vtSymbol] = vtOrderIDList
+                                self.waitStopStartTimeDic[tick.vtSymbol] = datetime.datetime.now()
 
                         # 从活动停止单字典中移除该停止单
                         del self.workingStopOrderDict[so.stopOrderID]
@@ -266,6 +273,8 @@ class CtaEngine(VtCtaEngine):
                         # 更新停止单状态，并通知策略
                         so.status = STOPORDER_TRIGGERED
                         so.strategy.onStopOrder(so)
+                        # 每个 tick 最多只触发一个停止单
+                        break
 
     def getAllOrderToShow(self, strategyName):
         """
@@ -892,8 +901,10 @@ class CtaEngine(VtCtaEngine):
 
         r = super(CtaEngine, self).processOrderEvent(event)
 
-        if order.vtOrderID in self.waittingVtOrderIDList:
-            self.waittingVtOrderIDList.remove(order.vtOrderID)
+        if order.vtOrderID in self.waittingVtOrderIDListDic[order.vtSymbol]:
+            if order.status == STATUS_ALLTRADED:
+                self.log.info(u'{} 停止单锁定解除'.format(order.vtSymbol))
+                self.waittingVtOrderIDListDic[order.vtSymbol].remove(order.vtOrderID)
 
         return r
 

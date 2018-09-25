@@ -134,15 +134,16 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
-        if self.high and self.low:
-            # 开仓单和平仓单
-            self.orderOpenOnBar()
-            self.orderClose()
+        # 开盘再下单
+        self.orderUntilTradingTime()
 
         self.putEvent()
 
     def _orderOnThreading(self):
-        pass
+        if self.high and self.low:
+            # 开仓单和平仓单
+            self.orderOpenOnBar()
+            self.orderClose()
 
     # ----------------------------------------------------------------------
     def onStop(self):

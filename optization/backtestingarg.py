@@ -344,6 +344,7 @@ class BacktestingArg(object):
         if self.group == 'test':
             # 测试用的组名直接删除
             self.btinfoCol.delete_one(sql)
+
         else:
             binfo = self.btinfoCol.find_one(sql)
             if binfo:
