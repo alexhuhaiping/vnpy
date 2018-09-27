@@ -1,0 +1,18 @@
+{
+  "param": {
+    "group": "螺纹唐奇安震荡20180925",
+    "name": "螺纹唐奇安震荡20180925",
+    "className": "OscillationDonchianStrategy",
+    "capital": 100000,
+    "risk": 0.02,
+
+    "barXmin": 15, "slippageRate": 5, "flinch": 2, "longBar": 20, "stopProfile": 1, "stopLoss": 2.5
+  },
+  "opts": {
+    "barXmin": [10, 15, 20, 30, 60, 120],
+    "longBar": [10, 15, 20],
+    "flinch": [0, 1, 2, 3],
+    "stopProfile": [0.5, 1, 1.5, 2, 3, 4],
+    "stopLoss": [0.5, 1, 1.5, 2, 3, 4]
+  }
+}
