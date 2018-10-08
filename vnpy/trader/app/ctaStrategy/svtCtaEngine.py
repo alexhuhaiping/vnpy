@@ -690,7 +690,7 @@ class CtaEngine(VtCtaEngine):
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
         log = u'{} 停止单 {} {} {} {} {}'.format(vtSymbol, strategy.name, orderType, price, volume, stopProfile)
         if volume == 0:
-            self.log.warning(u'开仓数为0' + log)
+            self.log.warning(u'下单手数为0 {}'.format(log))
         else:
             self.log.info(log)
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy, stopProfile)
