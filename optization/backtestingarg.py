@@ -32,7 +32,7 @@ class BacktestingArg(object):
         self.log.addHandler(sh)
 
         # TODO 只回测指定的品种
-        self.specialSymbols = ['ni', 'AP']
+        self.specialSymbols = ['rb']
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
@@ -344,6 +344,7 @@ class BacktestingArg(object):
         if self.group == 'test':
             # 测试用的组名直接删除
             self.btinfoCol.delete_one(sql)
+
         else:
             binfo = self.btinfoCol.find_one(sql)
             if binfo:
@@ -356,7 +357,7 @@ if __name__ == '__main__':
     optfile = 'optimize.ini'
 
     # home 配置
-    # argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_ContrarianAtrStrategy.json'
+    # argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_rb_oscillationDonchian.json'
     # optfile = 'optimizeHome.ini'
 
     logging.info(u'即将使用 {} 的配置'.format(optfile))

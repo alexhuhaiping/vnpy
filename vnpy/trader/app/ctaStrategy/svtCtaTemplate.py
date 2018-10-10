@@ -84,7 +84,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
-        self.log = logging.getLogger(self.vtSymbol)
+        self.log = logging.getLogger(self.name + '_' + self.vtSymbol)
         self._setting = setting.copy()
 
         if not isinstance(self.barXmin, int):
@@ -1030,11 +1030,11 @@ class CtaTemplate(vtCtaTemplate):
 
     def clearStopOrdering(self):
         self.stopOrdering.clear()
-        self.log.info(u'解除停止单锁定')
+        self.log.info(u'策略内解除停止单锁定')
         self.stopOrderingCount = 0
 
     def setStopOrdering(self):
-        self.log.info(u'停止单锁定')
+        self.log.info(u'策略内停止单锁定')
         self.stopOrdering.set()
 
 

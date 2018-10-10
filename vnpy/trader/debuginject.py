@@ -19,10 +19,7 @@ def getStrategy(symbol):
     global me
 
     from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
-    for s in ce.strategyDict.values():
-        if s.vtSymbol == symbol:
-            isinstance(s, CtaTemplate)
-            return s
+    return [s for s in ce.strategyDict.values() if s.vtSymbol == symbol and isinstance(s, CtaTemplate)]
 
 
 def checkHands():
@@ -144,32 +141,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def buy():
-    s = getStrategy(vtSymbol)
-    s.log.debug(u'测试 buy')
-    # s.pos = -15
-
-    price = s.bm.bar.close - 0
-    volume = 1
-    stop = False
-
-    s.buy(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(price))
-
-
-def sell():
-    s = getStrategy(vtSymbol)
-
-    # s.log.info(u'{}'.format(vtSymbol))
-    # s.pos = -15
-
-    price = s.bm.bar.close + 200
-    stop = False
-    s.sell(price, 1, stop)
-    s.log.debug(u'下单完成 {}'.format(price))
-
-
 def orderToShow():
     print(ce.vtOrderReqToShow)
     for order in ce.vtOrderReqToShow.values():
@@ -239,19 +210,6 @@ def sendStopProfileOrder():
     s.buy(price, volume, stop)
 
 
-def showStopOrder():
-    s = getStrategy(vtSymbol)
-    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
-    me.log.info(u'{}'.format(len(ce.stopOrderDict)))
-    for os in ce.stopOrderDict.values():
-        # if os.direction == u'多' and os.status == u'等待中':
-        # if os.direction == u'空' and os.status == u'等待中':
-        if os.stopProfile and os.status == u'等待中':
-            os.price = s.bar.close + s.priceTick * 2
-            log = u''
-            for k, v in os.toHtml().items():
-                log += u'{}:{} '.format(k, v)
-            me.log.info(log)
 
 def saveStrategy():
     s = getStrategy(vtSymbol)
@@ -261,7 +219,52 @@ def saveStrategy():
 def showWorkingStopOrderDic():
     print(ce.workingStopOrderDict.keys())
 
-vtSymbol = 'ag1812'
+
+def buy():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        s.log.debug(u'测试 buy')
+        # s.pos = -15
+
+        price = s.bm.bar.close - 0
+        volume = 1
+        stop = True
+
+        s.buy(price, volume, stop)
+
+        s.log.debug(u'下单完成 {}'.format(price))
+
+
+def sell():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        # s.log.info(u'{}'.format(vtSymbol))
+        # s.pos = -15
+
+        price = s.bm.bar.close
+        volume = 3
+        stop = True
+        s.sell(price, volume, stop)
+        s.log.debug(u'下单完成 {}'.format(price))
+
+def showStopOrder():
+    sList = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    me.log.info(u'停止单数量{}'.format(len(ce.stopOrderDict)))
+    for os in ce.stopOrderDict.values():
+        if os.direction == u'多' and os.status == u'等待中':
+        # if os.direction == u'空' and os.status == u'等待中':
+        # if os.status == u'等待中':
+            os.price = 104460.0
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
+
+vtSymbol = 'ni1811'
 import logging
 
 
@@ -269,10 +272,13 @@ def run():
     return
     load()
     me.log.info('====================================================')
-    showWorkingStopOrderDic()
+    # sell()
+    # buy()
+
+    # showWorkingStopOrderDic()
     # saveStrategy()
 
-    # showStopOrder()
+    showStopOrder()
 
     # sendStopProfileOrder()
 
@@ -283,8 +289,6 @@ def run():
 
 
     # cover()
-    # sell()
-    # buy()
 
 
     # strategyOrder()

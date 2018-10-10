@@ -134,15 +134,18 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
-        if self.high and self.low:
-            # 开仓单和平仓单
-            self.orderOpenOnBar()
-            self.orderClose()
+        # 开盘再下单
+        self.orderUntilTradingTime()
 
         self.putEvent()
 
     def _orderOnThreading(self):
-        pass
+        if self.high and self.low:
+            # 开仓单和平仓单
+            self.cancelAll()
+            if self.isBackTesting():
+                self.orderOpenOnBar()
+            self.orderClose()
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -187,7 +190,11 @@ class ContrarianAtrStrategy(CtaTemplate):
             # self.log.info(u'{} {} {} {} {} '.format(self.pos, self.high, bar.high, bar.low, self.low))
 
             self.cancelAll()
-            self.orderOpenOnBar()  # 开仓单
+            if self.isBackTesting():
+                self.orderOpenOnBar()  # 开仓单
+            else:
+                if self.pos == 0:
+                    self.orderOpenOnBar()  # 开仓单
             self.orderClose()  # 平仓单
 
     def orderOpenOnBar(self):
@@ -203,6 +210,19 @@ class ContrarianAtrStrategy(CtaTemplate):
         if self.pos <= 0:
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
+
+    def orderOpenOnTrade(self):
+        # 开仓价
+        self.updateHands()
+
+        if self.prePos > 0:
+            # 反手开空
+            self.short(self.bm.lastTick.lowerLimit, self.hands)
+        elif self.prePos < 0:
+            # 反手开多
+            self.buy(self.bm.lastTick.upperLimit, self.hands)
+        else:
+            self.log.warning(u'之前仓位为 pos == 0 无法判断反手方向')
 
 
     def getPrice(self):
@@ -223,8 +243,6 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         if self.pos > 0:
             self.sell(shortPrice, abs(self.pos), stop=True)
-            # self.log.info(u'shortPrice:{}'.format(shortPrice))
-            # raise
         elif self.pos < 0:
             self.cover(longPrice, abs(self.pos), stop=True)
 
@@ -335,25 +353,34 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.highBalance = max(self.highBalance, self.rtBalance)
             self.log.info(u'{} {}'.format(self.highBalance, self.rtBalance))
 
-        # 重新下单
-        if self.pos == 0:
-            # 平仓，不能撤单，还有反手的开仓单
-            self.updateHands()
-            if self.longStopOrder:
-                self.longStopOrder.volume = self.hands
-            if self.shortStopOrder:
-                self.shortStopOrder.volume = self.hands
-
+        if self.isBackTesting():
+            # 回测时
+            self.orderOpenOnTradBackting()
         else:
-            # 开仓，撤单重发
-            self.cancelAll()
-            self.orderOpenOnBar()
-            self.orderClose()
+            # 实盘
+            if self.pos == 0:
+                self.orderOpenOnTrade()
+            else:
+                self.cancelAll()
+                self.orderClose()
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
 
+    def orderOpenOnTradBackting(self):
+        if self.pos == 0:
+            # 直接更改开仓单
+            self.updateHands()
+            if self.longStopOrder:
+                self.longStopOrder.volume = self.hands
+            if self.shortStopOrder:
+                self.shortStopOrder.volume = self.hands
+        else:
+            # 开仓，撤单重发
+            self.cancelAll()
+            self.orderOpenOnBar()
+            self.orderClose()
     # ----------------------------------------------------------------------
     def onStopOrder(self, so):
         """停止单推送"""
