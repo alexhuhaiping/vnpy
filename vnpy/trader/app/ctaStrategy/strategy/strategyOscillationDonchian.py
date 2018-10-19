@@ -40,6 +40,7 @@ class OscillationDonchianStrategy(CtaTemplate):
     # initDays = 10  # 初始化数据所用的天数
     risk = 0.01  # 每笔风险投入
     flinch = 3  # 畏缩指标
+    fixhands = 0 # 固定手数
 
     # 策略变量
     longHigh = 0  # 大周期高点
@@ -61,6 +62,7 @@ class OscillationDonchianStrategy(CtaTemplate):
         'stopProfile',
         'stopLoss',
         'risk',
+        'fixhands',
     ])
 
     # 变量列表，保存了变量的名称
@@ -459,6 +461,13 @@ class OscillationDonchianStrategy(CtaTemplate):
         # 以下技术指标为0时，不更新手数
         # 在长时间封跌涨停板后，会出现以下技术指标为0的情况
         if self.atr == 0:
+            return
+
+        if self.fixhands:
+            # 设置了固定手数
+            if self.fixhands > self.maxHands:
+                self.log.warning(u'开仓最大手数小于固定手数，尽快调整仓位')
+            self.hands = self.fixhands
             return
 
         # 理论仓位

@@ -1110,7 +1110,7 @@ class VtTradingResult(object):
             'exitDt': self.exitDt,
             'entryPrice': self.entryPrice,
             'exitPrice': self.exitPrice,
-            'voluem': self.volume,
+            'volume': self.volume,
         }
         return dic
 
