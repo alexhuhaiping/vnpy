@@ -32,7 +32,7 @@ class BacktestingArg(object):
         self.log.addHandler(sh)
 
         # TODO 只回测指定的品种
-        self.specialSymbols = ['rb']
+        self.specialSymbols = ['AP']
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)

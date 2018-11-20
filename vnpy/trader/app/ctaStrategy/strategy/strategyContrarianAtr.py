@@ -12,6 +12,8 @@ from threading import Timer
 from collections import OrderedDict
 import time
 
+import arrow
+
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
 from vnpy.trader.vtObject import VtTradeData

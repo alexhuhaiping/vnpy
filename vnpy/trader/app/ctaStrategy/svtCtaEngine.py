@@ -109,6 +109,8 @@ class CtaEngine(VtCtaEngine):
 
         self.vtOrderReqToShow = {}  # 用于展示的限价单对象
 
+        self.stopPriceSlippage = {}  # 记录停止单的触发价，用来记录滑点
+
         self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
 
         # self.waitStopStartTimeDic = defaultdict(lambda: None)  # 开始等待停止单的时间
@@ -255,6 +257,8 @@ class CtaEngine(VtCtaEngine):
                         if so.volume != 0:
                             # so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+                            for vtOrderID in vtOrderIDList:
+                                self.stopPriceSlippage[vtOrderID] = so.price
 
                             # # 将状态设置为有停止单
                             # if vtOrderIDList:
@@ -743,9 +747,9 @@ class CtaEngine(VtCtaEngine):
         self.orderBackCol.insert_one(dic)
 
     def processTradeEvent(self, event):
-        super(CtaEngine, self).processTradeEvent(event)
-
         trade = event.dict_['data']
+        trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
+        super(CtaEngine, self).processTradeEvent(event)
 
         # 在完成 strategy.pos 的更新后，保存 trade。trade 也保存更新后的 pos
         if trade.vtOrderID in self.orderStrategyDict:
