@@ -4,7 +4,7 @@ import time
 from logging import INFO
 
 from vnpy.trader.vtConstant import (EMPTY_STRING, EMPTY_UNICODE,
-                                    EMPTY_FLOAT, EMPTY_INT)
+                                    EMPTY_FLOAT, EMPTY_INT, DIRECTION_LONG, DIRECTION_SHORT)
 
 
 ########################################################################
@@ -121,6 +121,9 @@ class VtBarData(VtBaseData):
         """
         return self.rawData
 
+    def __str__(self):
+        return 'd {} o {} h {} l {} c {}'.format(self.datetime, self.open, self.high, self.low, self.close)
+
 
 ########################################################################
 class VtTradeData(VtBaseData):
@@ -150,6 +153,17 @@ class VtTradeData(VtBaseData):
         self.tradeTime = EMPTY_STRING  # 成交时间
         self.tradingDay = None # 交易日
         self.datetime = None # 成交时间戳
+
+        self.stopPrice = None  # 停止单的价格
+
+    @property
+    def slippage(self):
+        """
+        负数为亏损的滑点，正数为盈利的滑点
+        :return:
+        """
+        splippage = self.stopPrice - self.price
+        return - splippage if self.direction == DIRECTION_LONG else splippage
 
 ########################################################################
 class VtOrderData(VtBaseData):

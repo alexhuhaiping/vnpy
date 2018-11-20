@@ -827,12 +827,12 @@ class BacktestingEngine(VTBacktestingEngine):
         pDrawdown = plt.subplot(subPlotNum, 1, 2)
         pDrawdown.set_title('Drawdown')
         pDrawdown.grid(True, color='gray')
-        pDrawdown.fill_between(range(len(df)), df['drawdown'].values)
+        pDrawdown.fill_between(df['drawdown'].index, df['drawdown'].values)
 
         pDrawdownPer = plt.subplot(subPlotNum, 1, 3)
         pDrawdownPer.set_title('DrawdownPer')
         pDrawdownPer.grid(True, color='gray')
-        pDrawdownPer.fill_between(range(len(df)), df['drawdownPer'].values)
+        pDrawdownPer.fill_between(df['drawdownPer'].index, df['drawdownPer'].values)
 
         pPnl = plt.subplot(subPlotNum, 1, 4)
         pPnl.set_title('Daily Pnl')

@@ -45,19 +45,22 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'ni1805'
+    vtSymbol = 'AP905'
     # vtSymbol = 'AP805'
     setting = {
 
         'vtSymbol': vtSymbol,
-        'capital': 100000,
+        'capital': 40000,
 
         # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
         # 'strategyClass': 'SvtBollChannelStrategy',
 
-        'risk': 0.02, "barXmin":15,"flinch":2,"longBar":25,"stopLoss":1,"stopProfile":4,
-        'strategyClass': 'OscillationDonchianStrategy',
+        # 'risk': 0.02, "barXmin":15,"flinch":2,"longBar":25,"stopLoss":1,"stopProfile":4,
+        # 'strategyClass': 'OscillationDonchianStrategy',
 
+
+        "barXmin": 20, "longBar": 10, "n": 1, "fixhands": 2,
+        'strategyClass': 'ContrarianAtrStrategy',
 
         # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
         # # "barXmin": 15, "longbar": 25, "n": 1, "fixhands": 5,

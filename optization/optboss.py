@@ -11,6 +11,7 @@ from Queue import Empty
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
 from optworker import childProcess
 
+
 class WorkService(object):
     """
 
@@ -40,7 +41,7 @@ class WorkService(object):
 
         # 以子线程来运行 optwork
         for i in range(self.cpuCount):
-            name = 'woker_{}'.format(i+1)
+            name = 'woker_{}'.format(i + 1)
             w = threading.Thread(name=name, target=childProcess, args=(name, self.stoped, self.logQueue, config))
             self.workers.append(w)
 
@@ -94,8 +95,10 @@ class WorkService(object):
 
         self.log.info(u'完全退出')
 
+
 if __name__ == '__main__':
     import logging.config
+
     # 读取日志配置文件
     loggingConFile = 'logging.conf'
     loggingConFile = getJsonPath(loggingConFile, __file__)

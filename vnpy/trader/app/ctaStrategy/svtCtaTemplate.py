@@ -926,27 +926,31 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         if self.xminBar and self.am and self.inited and self.trading:
-            if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
-                _now = self.bm.lastTick.datetime
+            if self.isBackTesting():
+                # 回测时
+                self._orderOnThreading()
             else:
-                _now = arrow.now().datetime
+                if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
+                    _now = self.bm.lastTick.datetime
+                else:
+                    _now = arrow.now().datetime
 
-            _futures = _now + datetime.timedelta(seconds=2)
-            if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
-                # 已经进入连续竞价的阶段，直接下单
-                self.log.info(u'已经处于连续竞价阶段')
-                waistSeconds = 0
-            else:  # 还没进入连续竞价，使用一个定时器
-                self.log.info(u'尚未开始连续竞价')
-                moment = waitToContinue(self.vtSymbol, _futures)
-                wait = moment - _now
-                # 提前2秒下停止单
-                waistSeconds = wait.total_seconds()
-                self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+                _futures = _now + datetime.timedelta(seconds=2)
+                if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
+                    # 已经进入连续竞价的阶段，直接下单
+                    self.log.info(u'已经处于连续竞价阶段')
+                    waistSeconds = 0
+                else:  # 还没进入连续竞价，使用一个定时器
+                    self.log.info(u'尚未开始连续竞价')
+                    moment = waitToContinue(self.vtSymbol, _futures)
+                    wait = moment - _now
+                    # 提前2秒下停止单
+                    waistSeconds = wait.total_seconds()
+                    self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
-            # 至少要等待5秒以上，等待其他策略的 onStart 完成
-            waistSeconds = max(5, waistSeconds)
-            Timer(waistSeconds, self._orderOnThreading).start()
+                # 至少要等待5秒以上，等待其他策略的 onStart 完成
+                waistSeconds = max(5, waistSeconds)
+                Timer(waistSeconds, self._orderOnThreading).start()
         else:
             self.log.warning(
                 u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
