@@ -749,6 +749,7 @@ class CtaEngine(VtCtaEngine):
     def processTradeEvent(self, event):
         trade = event.dict_['data']
         trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
+
         super(CtaEngine, self).processTradeEvent(event)
 
         # 在完成 strategy.pos 的更新后，保存 trade。trade 也保存更新后的 pos
@@ -760,6 +761,7 @@ class CtaEngine(VtCtaEngine):
 
         dic = trade.__dict__.copy()
         dic.pop('rawData')
+        dic['splippage'] = trade.splippage
 
         # 时间戳
         dt = dic['datetime']
@@ -774,6 +776,7 @@ class CtaEngine(VtCtaEngine):
         dic['class'] = strategy.className
         dic['name'] = strategy.name
         dic['pos'] = strategy.pos
+
 
         self.saveTrade(dic)
 
