@@ -162,7 +162,7 @@ class VtTradeData(VtBaseData):
         负数为亏损的滑点，正数为盈利的滑点
         :return:
         """
-        splippage = self.stopPrice - self.price
+        splippage = self.price - self.stopPrice
         return - splippage if self.direction == DIRECTION_LONG else splippage
 
 
