@@ -37,7 +37,7 @@ if __debug__:
 class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
-    barXmin = 1  # n 分钟的K线
+    barXmin = 2  # n 分钟的K线
 
     # 默认初始资金是1万, 在 onTrade 中平仓时计算其盈亏
     # 有存库的时候使用存库中的 capital 值，否则使用 CTA_setting.json 中的值

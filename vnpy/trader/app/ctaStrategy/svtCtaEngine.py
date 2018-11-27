@@ -255,7 +255,7 @@ class CtaEngine(VtCtaEngine):
                         self.log.info(u'触发停止单 {}'.format(log))
 
                         if so.volume != 0:
-                            # so.strategy.setStopOrdering()  # 停止单锁定
+                            so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
                             for vtOrderID in vtOrderIDList:
                                 self.stopPriceSlippage[vtOrderID] = so.price
