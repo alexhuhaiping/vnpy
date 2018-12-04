@@ -213,6 +213,8 @@ class ContrarianAtrStrategy(CtaTemplate):
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
 
+        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+
     def orderOpenOnTrade(self):
         # 开仓价
         self.updateHands()
@@ -226,6 +228,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         else:
             self.log.warning(u'之前仓位为 pos == 0 无法判断反手方向')
 
+        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
 
     def getPrice(self):
         # 更新高、低点
@@ -369,6 +372,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
+
 
     def orderOpenOnTradBackting(self):
         if self.pos == 0:

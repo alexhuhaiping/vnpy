@@ -38,6 +38,7 @@ class CtaTemplate(vtCtaTemplate):
     """CTA策略模板"""
 
     barXmin = 2  # n 分钟的K线
+    overSplipage = 2  # 滑点过大
 
     # 默认初始资金是1万, 在 onTrade 中平仓时计算其盈亏
     # 有存库的时候使用存库中的 capital 值，否则使用 CTA_setting.json 中的值
@@ -1040,6 +1041,18 @@ class CtaTemplate(vtCtaTemplate):
     def setStopOrdering(self):
         self.log.info(u'策略内停止单锁定')
         self.stopOrdering.set()
+
+    def monitorSplippage(self, trade):
+        """
+        监控滑点，滑点过大时警示
+        :return:
+        """
+        # 滑点过大警告, 滑点超过 - overSplipage 算作滑点过大
+        overSplipage = -self._setting.get('overSplipage', self.overSplipage)
+        # if trade.splippage / self.priceTick <= overSplipage:
+        self.log.warning(
+            u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
+                                                                  trade.splippage, self.priceTick, overSplipage))
 
 
 ########################################################################

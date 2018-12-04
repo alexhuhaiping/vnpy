@@ -779,6 +779,8 @@ class CtaEngine(VtCtaEngine):
 
 
         self.saveTrade(dic)
+        # 监控滑点问题
+        strategy.monitorSplippage(trade)
 
     def checkPositionDetail(self, event):
         """

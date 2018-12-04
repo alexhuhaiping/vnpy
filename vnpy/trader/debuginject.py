@@ -206,19 +206,6 @@ def showWorkingStopOrderDic():
     print(ce.workingStopOrderDict.keys())
 
 
-def sell():
-    sList = getStrategy(vtSymbol)
-    # print(sList)
-    for s in sList:
-        # s.log.info(u'{}'.format(vtSymbol))
-        # s.pos = -15
-
-        price = s.bm.bar.close
-        volume = 3
-        stop = True
-        s.sell(price, volume, stop)
-        s.log.debug(u'下单完成 {}'.format(price))
-
 def showStopOrder():
     sList = getStrategy(vtSymbol)
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
@@ -241,7 +228,7 @@ def buy():
         s.log.debug(u'测试 buy')
         # s.pos = -15
 
-        price = s.bm.bar.close - 0
+        price = s.bm.bar.close - 2
         volume = 1
         stop = True
 
@@ -262,13 +249,26 @@ def cover():
         break
 
 
+def sell():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        # s.log.info(u'{}'.format(vtSymbol))
+        # s.pos = -15
+
+        price = s.bm.bar.close
+        volume = 2
+        stop = True
+        s.sell(price, volume, stop)
+        s.log.debug(u'下单完成 {}'.format(price))
+
 vtSymbol = 'AP905'
 import logging
 
 
 def run():
-    return
     load()
+    return
     me.log.info('====================================================')
     # cover()
     # sell()
