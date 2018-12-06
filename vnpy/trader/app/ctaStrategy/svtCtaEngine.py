@@ -749,6 +749,8 @@ class CtaEngine(VtCtaEngine):
     def processTradeEvent(self, event):
         trade = event.dict_['data']
         trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
+        if trade.stopPrice is None:
+            self.log.warning(u'trade.stopPrice is None, trade.vtOrderID == {}'.format(trade.vtOrderID))
 
         super(CtaEngine, self).processTradeEvent(event)
 
