@@ -753,11 +753,6 @@ class CtaEngine(VtCtaEngine):
         if trade.stopPrice is None:
             trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
 
-        if trade.stopPrice is None:
-            msg = u'trade.stopPrice is None, trade.vtOrderID == {}'.format(trade.vtOrderID)
-            msg += u'\n' + u','.join(self.stopPriceSlippage.keys())
-            self.log.warning(msg)
-
         super(CtaEngine, self).processTradeEvent(event)
 
         # 在完成 strategy.pos 的更新后，保存 trade。trade 也保存更新后的 pos

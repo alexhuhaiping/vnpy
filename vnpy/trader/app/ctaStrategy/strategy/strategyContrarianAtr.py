@@ -356,7 +356,7 @@ class ContrarianAtrStrategy(CtaTemplate):
                 self.updateStop()
 
             self.highBalance = max(self.highBalance, self.rtBalance)
-            self.log.info(u'{} {}'.format(self.highBalance, self.rtBalance))
+            self.log.info(u'highBalance:{}; rtBalance:{}'.format(self.highBalance, self.rtBalance))
 
         if self.isBackTesting():
             # 回测时
