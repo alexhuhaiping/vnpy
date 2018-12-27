@@ -64,7 +64,6 @@ class TestStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
-            # TOOD 测试代码
             self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar

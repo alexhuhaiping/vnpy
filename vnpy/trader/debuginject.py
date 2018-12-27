@@ -27,20 +27,6 @@ def checkHands():
     # me.log.info('{}'.format(s.hands))
 
 
-def cover():
-    s = getStrategy(vtSymbol)
-    # s.pos = -15
-
-    price = s.bm.bar.close - 1
-    volume = 20
-    stop = False
-
-    s.cover(price, volume, stop)
-    s.cover(price, volume, stop)
-    s.cover(price, volume, stop)
-
-    s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
-
 
 def showLastTick():
     s = getStrategy(vtSymbol)
@@ -220,35 +206,6 @@ def showWorkingStopOrderDic():
     print(ce.workingStopOrderDict.keys())
 
 
-def buy():
-    sList = getStrategy(vtSymbol)
-    # print(sList)
-    for s in sList:
-        s.log.debug(u'测试 buy')
-        # s.pos = -15
-
-        price = s.bm.bar.close - 0
-        volume = 1
-        stop = True
-
-        s.buy(price, volume, stop)
-
-        s.log.debug(u'下单完成 {}'.format(price))
-
-
-def sell():
-    sList = getStrategy(vtSymbol)
-    # print(sList)
-    for s in sList:
-        # s.log.info(u'{}'.format(vtSymbol))
-        # s.pos = -15
-
-        price = s.bm.bar.close
-        volume = 3
-        stop = True
-        s.sell(price, volume, stop)
-        s.log.debug(u'下单完成 {}'.format(price))
-
 def showStopOrder():
     sList = getStrategy(vtSymbol)
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
@@ -264,21 +221,63 @@ def showStopOrder():
             me.log.info(log)
 
 
-vtSymbol = 'ni1811'
+def buy():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        s.log.debug(u'测试 buy')
+        # s.pos = -15
+
+        price = s.bm.bar.close - 2
+        volume = 1
+        stop = True
+
+        s.buy(price, volume, stop)
+
+        s.log.debug(u'下单完成 {}'.format(price))
+def cover():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        price = s.bm.bar.close - 1
+        volume = 2
+        stop = False
+
+        s.cover(price, volume, stop)
+
+        s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
+        break
+
+
+def sell():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        # s.log.info(u'{}'.format(vtSymbol))
+        # s.pos = -15
+
+        price = s.bm.bar.close
+        volume = 2
+        stop = True
+        s.sell(price, volume, stop)
+        s.log.debug(u'下单完成 {}'.format(price))
+
+vtSymbol = 'AP905'
 import logging
 
 
 def run():
-    return
     load()
+    return
     me.log.info('====================================================')
+    # cover()
     # sell()
-    # buy()
+    buy()
 
     # showWorkingStopOrderDic()
     # saveStrategy()
 
-    showStopOrder()
+    # showStopOrder()
 
     # sendStopProfileOrder()
 
@@ -288,7 +287,6 @@ def run():
     # short()
 
 
-    # cover()
 
 
     # strategyOrder()
@@ -311,4 +309,4 @@ def run():
     # closeout()
     # checkHands(me)
 
-    me.log.debug('====================================================')
+    me.log.debug('----------------------------------------------------')

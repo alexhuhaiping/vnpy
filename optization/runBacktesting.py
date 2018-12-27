@@ -28,6 +28,7 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     engine = BacktestingEngine()
 
     # 设置回测使用的数据
+    engine.setSlippage(setting.get('slippage', 1))
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol)  # 设置该次回测使用的合约
     engine.setShowFig(isShowFig)
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     vtSymbol = 'AP905'
     # vtSymbol = 'AP805'
     setting = {
-
+        'slippage': 5,
         'vtSymbol': vtSymbol,
         'capital': 40000,
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
         # 'strategyClass': 'OscillationDonchianStrategy',
 
 
-        "barXmin": 20, "longBar": 10, "n": 1, "fixhands": 2,
+        "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
         'strategyClass': 'ContrarianAtrStrategy',
 
         # "longBar": 20,  "barXmin": 10, # "fixhands": 5,

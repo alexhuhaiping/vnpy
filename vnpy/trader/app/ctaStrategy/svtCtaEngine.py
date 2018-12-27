@@ -255,9 +255,10 @@ class CtaEngine(VtCtaEngine):
                         self.log.info(u'触发停止单 {}'.format(log))
 
                         if so.volume != 0:
-                            # so.strategy.setStopOrdering()  # 停止单锁定
+                            so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
                             for vtOrderID in vtOrderIDList:
+                                self.log.info(u'stopPriceSlippage - vtOrderID: {} so.price: {}'.format(vtOrderID, so.price))
                                 self.stopPriceSlippage[vtOrderID] = so.price
 
                             # # 将状态设置为有停止单
@@ -748,7 +749,10 @@ class CtaEngine(VtCtaEngine):
 
     def processTradeEvent(self, event):
         trade = event.dict_['data']
-        trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
+
+        if trade.stopPrice is None:
+            trade.stopPrice = self.stopPriceSlippage.get(trade.vtOrderID)
+
         super(CtaEngine, self).processTradeEvent(event)
 
         # 在完成 strategy.pos 的更新后，保存 trade。trade 也保存更新后的 pos
@@ -760,6 +764,7 @@ class CtaEngine(VtCtaEngine):
 
         dic = trade.__dict__.copy()
         dic.pop('rawData')
+        dic['splippage'] = trade.splippage
 
         # 时间戳
         dt = dic['datetime']
@@ -775,7 +780,10 @@ class CtaEngine(VtCtaEngine):
         dic['name'] = strategy.name
         dic['pos'] = strategy.pos
 
+
         self.saveTrade(dic)
+        # 监控滑点问题
+        strategy.monitorSplippage(trade)
 
     def checkPositionDetail(self, event):
         """

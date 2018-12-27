@@ -382,7 +382,7 @@ class OptimizeService(object):
             # 出现重复的 _id
             for r in results:
                 try:
-                    self.resultCol.update_one({'_id': r['_id']}, r, upsert=True)
+                    self.resultCol.update_one({'_id': r['_id']}, {'$set': r}, upsert=True)
                 except pymongo.errors.DuplicateKeyError:
                     pass
 
