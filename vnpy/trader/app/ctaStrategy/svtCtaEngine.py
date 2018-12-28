@@ -720,14 +720,15 @@ class CtaEngine(VtCtaEngine):
         contract = self.mainEngine.getContract(vtSymbol)
         _price = self.roundToPriceTick(contract.priceTick, price)
         for vtOrderID in vtOrderIDList:
-            odic = OrderedDict((
-                ('vtOrderID', vtOrderID),
-                ('vtSymbol', vtSymbol),
-                ('orderType', orderType),
-                ('price', _price),
-                ('volume', volume),
-            ))
-            self.vtOrderReqToShow[vtOrderID] = odic
+            if vtOrderID:
+                odic = OrderedDict((
+                    ('vtOrderID', vtOrderID),
+                    ('vtSymbol', vtSymbol),
+                    ('orderType', orderType),
+                    ('price', _price),
+                    ('volume', volume),
+                ))
+                self.vtOrderReqToShow[vtOrderID] = odic
 
         return vtOrderIDList
 

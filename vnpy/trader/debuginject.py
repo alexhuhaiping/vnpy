@@ -127,16 +127,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def orderToShow():
-    print(ce.vtOrderReqToShow)
-    for order in ce.vtOrderReqToShow.values():
-        log = u''
-        for k, v in order.__dict__.items():
-            log += u'{}:{} '.format(k, v)
-
-        print(log)
-
-
 def checkPositionDetail():
     for k, detail in me.dataEngine.detailDict.items():
         print(k)
@@ -262,7 +252,21 @@ def sell():
         s.sell(price, volume, stop)
         s.log.debug(u'下单完成 {}'.format(price))
 
-vtSymbol = 'AP905'
+
+def orderToShow():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        orderList = s.ctaEngine.getAllOrderToShow(s.name)
+        # for vtOrderID, order in s.orders.items():
+        for order in orderList:
+            print('+++++++++++')
+            for k, v in order.items():
+                print(u'{} {}'.format(k,v))
+
+
+# vtSymbol = 'AP905'
+vtSymbol = 'au1906'
 import logging
 
 
@@ -270,9 +274,11 @@ def run():
     load()
     return
     me.log.info('====================================================')
+    orderToShow()
+
     # cover()
     # sell()
-    buy()
+    # buy()
 
     # showWorkingStopOrderDic()
     # saveStrategy()
@@ -295,7 +301,6 @@ def run():
 
     # checkPositionDetail()
     # showStopOrder()
-    # orderToShow()
 
     # checkPosition()
 

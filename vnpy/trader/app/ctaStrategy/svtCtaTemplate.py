@@ -137,8 +137,18 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def floatProfile(self):
+        if self.pos == 0:
+            return 0
+        tick = self.bm.lastTick
+        if tick:
+            if self.pos > 0:
+                return (tick.bidPrice1 - self.averagePrice) * self.pos * self.size
+            if self.pos < 0:
+                return (tick.askPrice1 - self.averagePrice) * self.pos * self.size
+
         if not self.bar:
             return 0
+
         return (self.bar.close - self.averagePrice) * self.pos * self.size
 
     @property
@@ -892,12 +902,12 @@ class CtaTemplate(vtCtaTemplate):
         # 下平仓单
         if self.pos > 0:
             # 平多
-            price = self.bm.lastTick.upperLimit if self.bm.lastTick else self.bar.high
+            price = self.bm.lastTick.lowerLimit if self.bm.lastTick else self.bar.low
             volume = self.pos
             self.sell(price, volume)
         elif self.pos < 0:
             # 平空
-            price = self.bm.lastTick.lowerLimit if self.bm.lastTick else self.bar.low
+            price = self.bm.lastTick.upperLimit if self.bm.lastTick else self.bar.high
             volume = abs(self.pos)
             self.cover(price, volume)
 
@@ -1054,6 +1064,76 @@ class CtaTemplate(vtCtaTemplate):
                 u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
                                                                       trade.splippage, self.priceTick, overSplipage))
 
+    def _onTrade(self, trade):
+        """
+        onTrade 的常规逻辑
+        :param trade:
+        :return:
+        """
+        originCapital = preCapital = self.capital
+
+        self.charge(trade.offset, trade.price, trade.volume)
+
+        # 手续费
+        charge = preCapital - self.capital
+
+        preCapital = self.capital
+
+        # 回测时滑点
+        if self.isBackTesting():
+            self.chargeSplipage(trade.volume)
+
+        # 计算成本价和利润
+        self.capitalBalance(trade)
+        profile = self.capital - preCapital
+
+        if not self.isBackTesting():
+            textList = [u'{}{}'.format(trade.direction, trade.offset)]
+            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList.append(
+                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+            )
+
+            self.log.warning(u'\n'.join(textList))
+        if self.isBackTesting():
+            if self.capital <= 0:
+                # 回测中爆仓了
+                self.capital = 0
+
+    def loadBarOnInit(self):
+        """
+        常规加载
+        :return:
+        """
+        self.writeCtaLog(u'%s策略初始化' % self.name)
+
+        # 载入历史数据，并采用回放计算的方式初始化策略数值
+        initData = self.loadBar(self.maxBarNum)
+
+        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+
+        self.initContract()
+
+        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
+        for bar in initData:
+            self.bm.bar = bar
+            self.tradingDay = bar.tradingDay
+            self.onBar(bar)
+            self.bm.preBar = bar
+
+        # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
+
+        if len(initData) >= self.maxBarNum:
+            self.log.info(u'初始化完成')
+        else:
+            self.log.info(u'初始化数据不足!')
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
