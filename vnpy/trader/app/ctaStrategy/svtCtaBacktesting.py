@@ -73,6 +73,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
 
+        self.collectionName = MINUTE_COL_NAME
         self.initMongoDB()
 
         logging.Formatter.converter = self.barTimestamp
@@ -385,7 +386,10 @@ class BacktestingEngine(VTBacktestingEngine):
     def loadHistoryData(self):
         """载入历史数据"""
         self.loadHised = True
-        collection = self.ctpCol1minBar
+        collection = {
+            MINUTE_COL_NAME:self.ctpCol1minBar,
+            DAY_COL_NAME:self.ctpCol1dayBar,
+        }.get(self.collectionName)
 
         self.log.info(u'开始载入数据')
 

@@ -1,5 +1,6 @@
 # coding:utf-8
 import logging.config
+from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
@@ -46,10 +47,11 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'AP905'
-    # vtSymbol = 'AP805'
+    vtSymbol = 'AP805'
+    # vtSymbol = 'rb1901'
+
     setting = {
-        'slippage': 5,
+        'slippage': 2,
         'vtSymbol': vtSymbol,
         'capital': 40000,
 
@@ -60,12 +62,15 @@ if __name__ == '__main__':
         # 'strategyClass': 'OscillationDonchianStrategy',
 
 
-        "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
-        # # "barXmin": 15, "longbar": 25, "n": 1, "fixhands": 5,
-        # 'strategyClass': 'ContrarianAtrStrategy',
+        "barXmin": 20, "longbar": 10, "n": 1, "fixhands": 2,
+        'strategyClass': 'ContrarianAtrStrategy',
+
+        # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
+        # 'strategyClass': 'DailyMAStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -77,7 +82,6 @@ if __name__ == '__main__':
         isShowFig=False,
         isOutputResult=True,
     )
-
     # 运行回测
     engine.runBacktesting()  # 运行回测
     # 输出回测结果

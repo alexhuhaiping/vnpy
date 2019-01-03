@@ -302,15 +302,16 @@ class BacktestingArg(object):
         :return:
         """
 
-        # 保存回测详情
-        self.saveBtinfo()
-
         # 保存回测参数
         self.saveBtargs(documents)
+
+        # 保存回测详情
+        self.saveBtinfo()
 
     def saveBtargs(self, documents):
 
         count = len(documents)
+        self.btinfo['amount'] = count
         if count > 1000:
             countStr = u'{}万'.format(count / 10000.)
         else:

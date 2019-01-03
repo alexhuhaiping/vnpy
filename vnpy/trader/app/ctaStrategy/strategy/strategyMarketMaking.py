@@ -35,14 +35,14 @@ class MarketMakingStrategy(CtaTemplate):
     reorder = 4  # 已经挂单的偏离买一/卖一的价格后要撤单重新下单
 
     fixhands = 1
-    stopHands = 5  # hands 单边达到几手时停止开仓
+    maxHands = 5  # hands 单边达到几手时停止开仓
     stopDelta = 5  # sec 允许敞口持续多久
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'fixhands',
-        'stopHands',
+        'maxHands',
         'stopDelta',
     ])
 
@@ -53,8 +53,8 @@ class MarketMakingStrategy(CtaTemplate):
     ask1 = bid1 = None
     askVol1 = bidVol1 = None
     _varList = [
-        'bidVol1','bid1',
-        'ask1','askVol1',
+        'bidVol1', 'bid1',
+        'ask1', 'askVol1',
         'status',
         'orderCount', 'cancelCount',
     ]
@@ -66,6 +66,9 @@ class MarketMakingStrategy(CtaTemplate):
     STATUS_REPLENISH = u'补仓'  # 出现单腿成交，需要补仓
     STATUS_RISK_WARNING = u'敞口预警'  # 风险敞口达到最大，进入清仓预警
     STATUS_PAUSE = u'暂停'  # 暂停onTick下单，但是策略没有停止
+    STATUS_REORDER = u'重新下单'  # 出现价格偏移后撤单了，现在需要重新下单
+
+    NEED_ORDER_COUNT_BACKWORD = 10
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
@@ -90,6 +93,7 @@ class MarketMakingStrategy(CtaTemplate):
 
         self.orders = {}  # {'vtOrderID': vtOrder()}
         self.status = self.STATUS_PAUSE
+        self.needOrderCountBackward = self.NEED_ORDER_COUNT_BACKWORD
 
     @property
     def tick(self):
@@ -118,7 +122,7 @@ class MarketMakingStrategy(CtaTemplate):
             self.saving = True
 
         # 交易时间段再下单
-        self.orderUntilTradingTime()
+        Timer(60, self.orderUntilTradingTime).start()
 
         self.putEvent()
 
@@ -180,7 +184,7 @@ class MarketMakingStrategy(CtaTemplate):
             # self.bm.updateTick(tick)
             if self.status == self.STATUS_READY:
                 # 尚未下单，开始下单
-                self.orderOpenStatuStartOnTick(tick)
+                self.orderOpenStatuReadyOnTick(tick)
             elif self.status == self.STATUS_REPLENISH:
                 # 需要补仓
                 self.orderOpenStatusReplenishOnTick(tick)
@@ -188,7 +192,20 @@ class MarketMakingStrategy(CtaTemplate):
                 if datetime.datetime.now() > self.stopMoment:
                     # 风险持续过大，强平
                     self.orderCloseAllOnTick(tick)
-            #
+            elif self.status == self.STATUS_WAIT_DEAL:
+                # 挂单不足
+                if len(self.orders) < 2:
+                    self.needOrderCountBackward -= 1
+                if self.needOrderCountBackward <= 0:
+                    self.log.warning(u'挂单不足，检查挂单')
+                    self.orderOpenStatuWaitDealOnTick(tick)
+                    self.needOrderCountBackward = self.NEED_ORDER_COUNT_BACKWORD
+            elif self.status == self.STATUS_REORDER:
+                # 需要重新下单
+                # 重下开仓单
+                self.orderOpenStatuReorderOnTick(tick)
+                self.setStatus(self.STATUS_WAIT_DEAL)
+
             with self.pause(self.status):
                 # 检查头寸和平仓单，将平仓单补齐至头寸
                 self.orderCloseOnTick(tick)
@@ -215,7 +232,6 @@ class MarketMakingStrategy(CtaTemplate):
                 orderType = CTAORDER_COVER
                 price = tick.askPrice1 + self.priceTick * 2
                 self.sendOrder(orderType, price, self.positionDetail.shortPos)
-
 
     def orderCloseOnTick(self, tick):
         shortVolume = longVolume = 0
@@ -256,15 +272,26 @@ class MarketMakingStrategy(CtaTemplate):
         self.sendOrder(orderType, price, self.fixhands)
 
     def cancelOnTick(self, tick):
+        """
+        将价格偏移过大的单子撤掉重下
+        :param tick:
+        :return:
+        """
+        canceled = False
         for o in self.orders.values():
             if o.status == STATUS_NOTTRADED:
                 if o.direction == DIRECTION_LONG:
                     # 多单，对比买一价
                     if o.price < tick.bidPrice1 - self.priceTick * self.reorder:
+                        canceled = True
                         self.cancelOrder(o.vtOrderID)
                 elif o.direction == DIRECTION_SHORT:
                     if o.price > tick.askPrice1 + self.priceTick * self.reorder:
+                        canceled = True
                         self.cancelOrder(o.vtOrderID)
+
+        if canceled:
+            self.setStatus(self.STATUS_REORDER)
 
     def orderOpenStatusReplenishOnTick(self, tick):
         """
@@ -273,6 +300,7 @@ class MarketMakingStrategy(CtaTemplate):
         :return:
         """
         with self.pause(self.STATUS_WAIT_DEAL):
+            self.log.info(u'尝试补仓')
             # 统计所有订单，看看缺少什么方向的开仓单
             directions = defaultdict(lambda: 0)
             for o in self.orders.values():
@@ -289,14 +317,64 @@ class MarketMakingStrategy(CtaTemplate):
             if directions[DIRECTION_SHORT] == 0:
                 # 缺少空单# 卖开
                 self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+            if directions[DIRECTION_LONG] != 0 and directions[DIRECTION_SHORT] != 0:
+                self.log.info(u'补仓失败，多空都已经存在开仓单')
 
-    def orderOpenStatuStartOnTick(self, tick):
+    def orderOpenStatuReadyOnTick(self, tick):
 
         with self.pause(self.STATUS_WAIT_DEAL):
             # 买开
             self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
             # 卖开
             self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+
+    def orderOpenStatuWaitDealOnTick(self, tick):
+        """
+        检查缺少的开仓单，补充开仓单
+        :param tick:
+        :return:
+        """
+
+        with self.pause(self.STATUS_WAIT_DEAL):
+            # 买开
+            directions = {DIRECTION_LONG: 0, DIRECTION_SHORT: 0}
+            for o in self.orders:
+                if o.offset == OFFSET_OPEN:
+                    if o.direction == DIRECTION_LONG:
+                        directions[DIRECTION_LONG] += 1
+                    if o.direction == DIRECTION_SHORT:
+                        directions[DIRECTION_SHORT] += 1
+
+            if directions[DIRECTION_LONG] == 0:
+                self.log.warning(u'缺少开仓多单，补齐开仓 多 单')
+                self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+            if directions[DIRECTION_SHORT] == 0:
+                self.log.warning(u'缺少开仓多单，补齐开仓 空 单')
+                self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+
+    def orderOpenStatuReorderOnTick(self, tick):
+        """
+        检查缺少的开仓单，补充开仓单
+        :param tick:
+        :return:
+        """
+
+        with self.pause(self.STATUS_REORDER):
+            # 买开
+            directions = {DIRECTION_LONG: 0, DIRECTION_SHORT: 0}
+            for o in self.orders:
+                if o.offset == OFFSET_OPEN:
+                    if o.direction == DIRECTION_LONG:
+                        directions[DIRECTION_LONG] += 1
+                    if o.direction == DIRECTION_SHORT:
+                        directions[DIRECTION_SHORT] += 1
+
+            if directions[DIRECTION_LONG] == 0:
+                self.log.warning(u'缺少开仓多单，补齐开仓 多 单')
+                self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+            if directions[DIRECTION_SHORT] == 0:
+                self.log.warning(u'缺少开仓多单，补齐开仓 空 单')
+                self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
 
     def orderOpen(self, direction, price):
         if direction == DIRECTION_LONG:
@@ -393,7 +471,7 @@ class MarketMakingStrategy(CtaTemplate):
             # 挂平仓单
             self.log.info(u'{} 成交 价格:{}'.format(trade.offset, trade.price))
             self.orderCloseOnTrade(trade)
-            if abs(self.pos) < self.stopHands:
+            if abs(self.pos) < self.maxHands:
                 # 风险敞口未达到止损
                 # 设置状态为需要补充
                 self.setStatus(self.STATUS_REPLENISH)

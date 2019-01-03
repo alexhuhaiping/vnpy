@@ -1102,6 +1102,17 @@ class CtaTemplate(vtCtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
+        return originCapital, charge, profile
+
+    def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
+        if trade.offset in OFFSET_CLOSE_LIST:
+            textList = [u'{} {} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
+            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList.append(u'**********************')
+            print(u'\n'.join(textList))
+
     def loadBarOnInit(self):
         """
         常规加载
@@ -1149,6 +1160,8 @@ class BarManager(VtBarManager):
         self.strategy = strategy
         self.preBar = None  # 前一个1分钟K线对象
         self.preXminBar = None  # 前一个X分钟K线对象
+        self.hourBar = None # 当前1小时K线
+        self.preHourBar = None # 前一个1小时K线
 
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
@@ -1243,6 +1256,53 @@ class BarManager(VtBarManager):
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
 
+    def updateHourBar(self, bar):
+        """
+        生成1小时线
+        :param bar:
+        :return:
+        """
+        if self.strategy.isBackTesting():
+            self.bar = bar
+
+        self.count += 1
+
+        newhourBar = self.hourBar is None
+
+        # 尚未创建对象
+        if newhourBar:
+            self.preHourBar, self.hourBar = self.hourBar, VtBarData()
+
+            self.hourBar.vtSymbol = bar.vtSymbol
+            self.hourBar.symbol = bar.symbol
+            self.hourBar.exchange = bar.exchange
+
+            self.hourBar.open = bar.open
+            self.hourBar.high = bar.high
+            self.hourBar.low = bar.low
+            # 累加老K线
+        else:
+            self.hourBar.high = max(self.hourBar.high, bar.high)
+            self.hourBar.low = min(self.hourBar.low, bar.low)
+
+        # 通用部分
+        self.hourBar.close = bar.close
+        self.hourBar.datetime = bar.datetime
+        self.hourBar.openInterest = bar.openInterest
+        self.hourBar.volume += int(bar.volume)
+
+        # X分钟已经走完
+        if self.count % self.xmin == 0:  # 可以用X整除
+            # 结束的 bar 的时间戳，就是 hourBar 的时间戳
+            self.hourBar.datetime = bar.datetime
+            self.hourBar.date = self.hourBar.datetime.strftime('%Y%m%d')
+            self.hourBar.time = self.hourBar.datetime.strftime('%H:%M:%S.%f')
+
+            # 推送
+            self.onhourBar(self.hourBar)
+
+
+
     def updateXminBar(self, bar):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
@@ -1260,7 +1320,7 @@ class BarManager(VtBarManager):
             # 清空老K线缓存对象
 
         # 尚未创建对象
-        if newXminBar:
+        if newXminBar or self.xmin == 1:
             self.preXminBar, self.xminBar = self.xminBar, VtBarData()
 
             self.xminBar.vtSymbol = bar.vtSymbol

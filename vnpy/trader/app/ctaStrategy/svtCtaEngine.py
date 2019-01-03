@@ -29,7 +29,7 @@ from collections import defaultdict, OrderedDict
 import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 import tradingtime as tt
-from vnpy.trader.vtFunction import LOCAL_TIMEZONE
+from vnpy.trader.vtFunction import LOCAL_TIMEZONE, loadConfigIni
 
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
@@ -49,7 +49,8 @@ from .strategy import STRATEGY_CLASS
 ########################################################################
 class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
-
+    settingFileName = 'CTA_setting.ini'
+    settingfilePath = getJsonPath(settingFileName, __file__)
     def __init__(self, mainEngine, eventEngine):
         self.accounts = {}  # {accountID: vtAccount}
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
@@ -134,9 +135,8 @@ class CtaEngine(VtCtaEngine):
             'bar_1min': self.ctpCol1minBar,
             'bar_1day': self.ctpCol1dayBar,
         }.get(collectionName)
-
         # 假设周期 barPeriod=7, barNum=10
-        cursor = self.ctpCol1minBar.find({'symbol': symbol}).hint('symbol')
+        cursor = collection.find({'symbol': symbol}).hint('symbol')
         amount = cursor.count()
         # 先取余数
         rest = amount % barPeriod
@@ -661,8 +661,29 @@ class CtaEngine(VtCtaEngine):
         # self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
+    def writeCtaLog(self, content):
+        self.log.info(content)
+        super(CtaEngine, self).writeCtaLog(content)
+
+    def loadCtaSettingInit(self):
+        """
+        加载 .ini 文件的 CTA_setting ，代替 loadSetting 函数
+        :return:
+        """
+        ctaConfig = loadConfigIni(self.settingfilePath)
+
+        strategiesList = ctaConfig.get('strategies', 'active').split(',')
+
+        for s in strategiesList:
+            n = 'strategy_{}'.format(s)
+            setting = dict(ctaConfig.typeitems(n))
+            self.loadStrategy(setting)
+
+        self.loadPosition()
+
     def loadSetting(self):
-        super(CtaEngine, self).loadSetting()
+        # super(CtaEngine, self).loadSetting()
+        self.loadCtaSettingInit()
         for us in ['ag', 'T']:
             # 订阅 ag 和 T 的主力合约
             sql = {

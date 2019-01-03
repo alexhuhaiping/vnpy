@@ -102,7 +102,8 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
-            self.tradingDay = bar.tradingDay
+            if not self.isBackTesting():
+                self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
 
@@ -299,37 +300,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
 
-        originCapital = preCapital = self.capital
-
-        self.charge(trade.offset, trade.price, trade.volume)
-
-        # 手续费
-        charge = preCapital - self.capital
-
-        preCapital = self.capital
-
-        # 回测时滑点
-        if self.isBackTesting():
-            self.chargeSplipage(trade.volume)
-
-        # 计算成本价和利润
-        self.capitalBalance(trade)
-        profile = self.capital - preCapital
-
-        if not self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
-            textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
-            )
-
-            self.log.warning(u'\n'.join(textList))
-        if self.isBackTesting():
-            if self.capital <= 0:
-                # 回测中爆仓了
-                self.capital = 0
+        originCapital, charge, profile = self._onTrade(trade)
 
         # 重置高低点
         if self.pos > 0:
@@ -373,6 +344,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
+        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def orderOpenOnTradBackting(self):
         if self.pos == 0:
@@ -415,13 +387,20 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = int(self.maxHands / 2)
 
         # 仓位计算方法 ===========>
-        # 固定仓位
-        if self.fixhands:
-            # 有固定手数时直接使用固定手数
-            self.hands = min(self.maxHands, self.fixhands)
-            return
+        # # 固定仓位
+        # if self.fixhands:
+        #     # 有固定手数时直接使用固定手数
+        #     self.hands = min(self.maxHands, self.fixhands)
+        #     return
+
+        # 固定比例仓位,每2万本金对应1仓，不减仓
+        if self.hands:
+            self.hands = max(int(self.capital / 20000), self.hands)
+        else:
+            self.hands = self.fixhands
 
         self.hands = min(self.hands, self.maxHands)
+
         # 连败中一直轻仓，连胜一直满仓
         # self.hands = 1 if self.loseCount else max(1, hands)
 
