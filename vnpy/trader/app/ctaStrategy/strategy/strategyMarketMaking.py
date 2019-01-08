@@ -67,6 +67,8 @@ class MarketMakingStrategy(CtaTemplate):
     STATUS_RISK_WARNING = u'敞口预警'  # 风险敞口达到最大，进入清仓预警
     STATUS_PAUSE = u'暂停'  # 暂停onTick下单，但是策略没有停止
     STATUS_REORDER = u'重新下单'  # 出现价格偏移后撤单了，现在需要重新下单
+    STATUS_QUIT = u'收盘清仓'  # 即将收盘，清仓
+    STATUS_LIMITED = u'封板'  # 封摊暂停
 
     NEED_ORDER_COUNT_BACKWORD = 10
 
@@ -122,7 +124,7 @@ class MarketMakingStrategy(CtaTemplate):
             self.saving = True
 
         # 交易时间段再下单
-        Timer(60, self.orderUntilTradingTime).start()
+        Timer(10, self.orderUntilTradingTime).start()
 
         self.putEvent()
 
@@ -148,6 +150,19 @@ class MarketMakingStrategy(CtaTemplate):
         if self.isCloseoutVaild and self.rtBalance < 0:
             # 爆仓，一键平仓
             self.closeout()
+
+        if self.trading:
+            # 检测是否即将收盘，要注意区分上午10:15分钟休市的问题
+            nextMoment = self.bar.datetime + datetime.timedelta(seconds=60 * 2)
+            if tt.get_trading_status(self.vtSymbol, nextMoment) != tt.continuous_auction:
+                # 2分钟后不是连续交易
+                nextMoment = self.bar.datetime + datetime.timedelta(seconds=60 * 16)
+                if tt.get_trading_status(self.vtSymbol, nextMoment) != tt.continuous_auction:
+                    # 16分钟后也不是连续交易，说明不是临时停盘
+                    self.setStatus(self.STATUS_QUIT)
+                    self.cancelAll()
+                    # 检查是否有需要平仓
+                    Timer(5, self.orderCloseStatusQuit).start()
 
     def onXminBar(self, xminBar):
         """
@@ -205,13 +220,12 @@ class MarketMakingStrategy(CtaTemplate):
                 # 重下开仓单
                 self.orderOpenStatuReorderOnTick(tick)
                 self.setStatus(self.STATUS_WAIT_DEAL)
-
-            with self.pause(self.status):
-                # 检查头寸和平仓单，将平仓单补齐至头寸
-                self.orderCloseOnTick(tick)
-
-                # 对偏移过远的订单撤单
-                self.cancelOnTick(tick)
+            if self.status != self.STATUS_QUIT:
+                with self.pause(self.status):
+                    # 检查头寸和平仓单，将平仓单补齐至头寸
+                    self.orderCloseOnTick(tick)
+                    # 对偏移过远的订单撤单
+                    self.cancelOnTick(tick)
 
     def orderCloseAllOnTick(self, tick):
         """
@@ -233,6 +247,24 @@ class MarketMakingStrategy(CtaTemplate):
                 price = tick.askPrice1 + self.priceTick * 2
                 self.sendOrder(orderType, price, self.positionDetail.shortPos)
 
+    def orderCloseStatusQuit(self):
+        """
+        清仓
+        :return:
+        """
+        tick = self.tick
+        # 下平仓单
+        if self.pos > 0:
+            # 平多
+            price = tick.lowerLimit if tick else self.bar.low
+            volume = self.pos
+            self.sell(price, volume)
+        elif self.pos < 0:
+            # 平空
+            price = tick.upperLimit if tick else self.bar.high
+            volume = abs(self.pos)
+            self.cover(price, volume)
+
     def orderCloseOnTick(self, tick):
         shortVolume = longVolume = 0
         for o in self.orders.values():
@@ -249,7 +281,8 @@ class MarketMakingStrategy(CtaTemplate):
             else:
                 for i in range(volume):
                     # 买平
-                    self._orderClose(CTAORDER_COVER, tick)
+                    price = self.getCoverPrice(tick)
+                    self.cover(price, 1)
         if self.positionDetail.longPos:
             volume = self.positionDetail.longPos - longVolume
             if volume < 0:
@@ -257,19 +290,13 @@ class MarketMakingStrategy(CtaTemplate):
             else:
                 for i in range(volume):
                     # 买平
-                    self._orderClose(CTAORDER_SELL, tick)
+                    self.sell(self.getSellPrice(tick), 1)
 
-    def _orderClose(self, orderType, tick):
-        if orderType == CTAORDER_COVER:
-            # 买平
-            price = tick.bidPrice1 - self.shiftingClose * self.priceTick
-        elif orderType == CTAORDER_SELL:
-            # 卖平
-            price = tick.askPrice1 + self.shiftingClose * self.priceTick
-        else:
-            self.log.warning(u'未知的平仓模式 orderType == {}'.format(orderType))
-            return
-        self.sendOrder(orderType, price, self.fixhands)
+    def getCoverPrice(self, tick):
+        return tick.bidPrice1 - self.shiftingClose * self.priceTick
+
+    def getSellPrice(self, tick):
+        return tick.askPrice1 + self.shiftingClose * self.priceTick
 
     def cancelOnTick(self, tick):
         """
@@ -313,10 +340,10 @@ class MarketMakingStrategy(CtaTemplate):
                     else:
                         self.log.warning(u'补仓失败，未知的开仓方向')
             if directions[DIRECTION_LONG] == 0:
-                self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+                self.orderOpen(self.buy, tick.bidPrice1)
             if directions[DIRECTION_SHORT] == 0:
                 # 缺少空单# 卖开
-                self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+                self.orderOpen(self.short, tick.askPrice1)
             if directions[DIRECTION_LONG] != 0 and directions[DIRECTION_SHORT] != 0:
                 self.log.info(u'补仓失败，多空都已经存在开仓单')
 
@@ -324,9 +351,9 @@ class MarketMakingStrategy(CtaTemplate):
 
         with self.pause(self.STATUS_WAIT_DEAL):
             # 买开
-            self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+            self.orderOpen(self.buy, tick.bidPrice1)
             # 卖开
-            self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+            self.orderOpen(self.short, tick.askPrice1)
 
     def orderOpenStatuWaitDealOnTick(self, tick):
         """
@@ -338,7 +365,7 @@ class MarketMakingStrategy(CtaTemplate):
         with self.pause(self.STATUS_WAIT_DEAL):
             # 买开
             directions = {DIRECTION_LONG: 0, DIRECTION_SHORT: 0}
-            for o in self.orders:
+            for o in self.orders.values():
                 if o.offset == OFFSET_OPEN:
                     if o.direction == DIRECTION_LONG:
                         directions[DIRECTION_LONG] += 1
@@ -347,10 +374,10 @@ class MarketMakingStrategy(CtaTemplate):
 
             if directions[DIRECTION_LONG] == 0:
                 self.log.warning(u'缺少开仓多单，补齐开仓 多 单')
-                self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+                self.orderOpen(self.buy, tick.bidPrice1)
             if directions[DIRECTION_SHORT] == 0:
                 self.log.warning(u'缺少开仓多单，补齐开仓 空 单')
-                self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+                self.orderOpen(self.short, tick.askPrice1)
 
     def orderOpenStatuReorderOnTick(self, tick):
         """
@@ -371,37 +398,41 @@ class MarketMakingStrategy(CtaTemplate):
 
             if directions[DIRECTION_LONG] == 0:
                 self.log.warning(u'缺少开仓多单，补齐开仓 多 单')
-                self.orderOpen(DIRECTION_LONG, tick.bidPrice1)
+                self.orderOpen(self.buy, tick.bidPrice1)
             if directions[DIRECTION_SHORT] == 0:
                 self.log.warning(u'缺少开仓多单，补齐开仓 空 单')
-                self.orderOpen(DIRECTION_SHORT, tick.askPrice1)
+                self.orderOpen(self.short, tick.askPrice1)
 
-    def orderOpen(self, direction, price):
-        if direction == DIRECTION_LONG:
+    def orderOpen(self, orderFunc, price):
+        shiftingLimited = 10
+        if self.buy == orderFunc:
+            # 接近涨停价不再卖出
             if self.pos < 0:
                 self.log.info(u'已经持有空头，不再挂买开，只挂买平')
                 return
-            else:
-                price = price - self.priceTick * self.shiftingOpen
-                # TODO 涨停价不再卖出
-                orderType = CTAORDER_BUY
-
-
-        elif direction == DIRECTION_SHORT:
+            price = price - self.priceTick * self.shiftingOpen
+            if price >= self.tick.upperLimit - self.priceTick * shiftingLimited:
+                self.log.warning(u'接近涨停价不再买开')
+                self.setStatus(self.STATUS_LIMITED)
+                return
+        elif self.short == orderFunc:
             if self.pos > 0:
                 self.log.info(u'已经持有多头，不再挂卖开，只挂卖平')
                 return
             else:
                 price = price + self.priceTick * self.shiftingOpen
-                orderType = CTAORDER_SHORT
-                # TODO 涨停价不再卖出
+                # 涨停价不再卖出
+                if price <= self.tick.lowerLimit + self.priceTick * shiftingLimited:
+                    self.log.warning(u'接近跌停不再卖开')
+                    self.setStatus(self.STATUS_LIMITED)
+                    return
         else:
-            self.log.warning(u'挂开仓单失败，未知的条件 direction:{} pos:{}'.format(direction, self.pos))
+            self.log.warning(u'挂开仓单失败，未知的条件 orderFunc:{} pos:{}'.format(orderFunc, self.pos))
             return
 
-        self.log.info(u'READY 挂开仓单 {} {} {}'.format(orderType, price, self.fixhands))
+        self.log.info(u'READY 挂开仓单 {} {}'.format(price, self.fixhands))
 
-        return self.sendOrder(orderType, price, self.fixhands)
+        return orderFunc(price, self.fixhands)
 
     def setStatus(self, status):
         self.status = status

@@ -672,7 +672,8 @@ class CtaEngine(VtCtaEngine):
         """
         ctaConfig = loadConfigIni(self.settingfilePath)
 
-        strategiesList = ctaConfig.get('strategies', 'active').split(',')
+        activeStrategies = ctaConfig.get('strategies', 'active')
+        strategiesList = activeStrategies.strip('"').strip("'").split(',')
 
         for s in strategiesList:
             n = 'strategy_{}'.format(s)

@@ -255,15 +255,20 @@ def sell():
 
 def orderToShow():
     sList = getStrategy(vtSymbol)
-    # print(sList)
+    print(sList)
     for s in sList:
+
+        for vtOrderID, order in s.orders.items():
+            print('+++++++++++')
+            for k, v in order.__dict__.items():
+                print(u'{} {}'.format(k,v))
+
         orderList = s.ctaEngine.getAllOrderToShow(s.name)
-        # for vtOrderID, order in s.orders.items():
+        # print(len(orderList), len(s.orders))
         for order in orderList:
             print('+++++++++++')
             for k, v in order.items():
                 print(u'{} {}'.format(k,v))
-
 
 # vtSymbol = 'AP905'
 vtSymbol = 'au1906'

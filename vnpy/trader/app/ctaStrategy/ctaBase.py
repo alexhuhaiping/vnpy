@@ -5,7 +5,7 @@
 '''
 
 # CTA引擎中涉及的数据类定义
-from vnpy.trader.vtConstant import EMPTY_UNICODE, EMPTY_STRING, EMPTY_FLOAT, EMPTY_INT
+from vnpy.trader.vtConstant import EMPTY_UNICODE, EMPTY_STRING, EMPTY_FLOAT, EMPTY_INT, DIRECTION_SHORT, DIRECTION_LONG
 from collections import OrderedDict
 
 # 常量定义
@@ -127,7 +127,7 @@ class StopOrder(VtStopOrder):
         s += u'>'
         return s
 
-    def toHtml(self, bar=None):
+    def toHtml(self, tick=None):
         """
         用于网页显示
         :return:
@@ -144,9 +144,12 @@ class StopOrder(VtStopOrder):
             ('priority', self.priority),
             ('stopProfile', self.stopProfile),
         ]
-        if bar:
+        if tick:
             # 距离开仓的价差
-            items.append(('dist', self.price - bar.close))
+            if self.direction == DIRECTION_LONG:
+                items.append(('dist', tick.askPrice1 - self.price))
+            if self.direction == DIRECTION_SHORT:
+                items.append(('dist', tick.bidPrice1 - self.price))
 
         orderDic = OrderedDict()
         for k, v in items:

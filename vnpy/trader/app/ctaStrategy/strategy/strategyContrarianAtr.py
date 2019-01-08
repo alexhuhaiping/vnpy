@@ -344,7 +344,9 @@ class ContrarianAtrStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
-        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
+        # if arrow.get('2018-03-02 14:00:00+08') < self.bar.datetime < arrow.get('2018-03-02 15:00:00+08'):
+        # if self.bar.datetime < arrow.get('2017-12-31 15:00:00+08'):
+        #     self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def orderOpenOnTradBackting(self):
         if self.pos == 0:
@@ -387,19 +389,19 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = int(self.maxHands / 2)
 
         # 仓位计算方法 ===========>
-        # # 固定仓位
-        # if self.fixhands:
-        #     # 有固定手数时直接使用固定手数
-        #     self.hands = min(self.maxHands, self.fixhands)
-        #     return
+        # 固定仓位
+        if self.fixhands:
+            # 有固定手数时直接使用固定手数
+            self.hands = min(self.maxHands, self.fixhands)
+            return
 
         # 固定比例仓位,每2万本金对应1仓，不减仓
-        if self.hands:
-            self.hands = max(int(self.capital / 20000), self.hands)
-        else:
-            self.hands = self.fixhands
-
-        self.hands = min(self.hands, self.maxHands)
+        # if self.hands:
+        #     self.hands = max(int(self.capital / 20000), self.hands)
+        # else:
+        #     self.hands = self.fixhands
+        # self.hands = min(self.hands, self.maxHands)
+        # return
 
         # 连败中一直轻仓，连胜一直满仓
         # self.hands = 1 if self.loseCount else max(1, hands)

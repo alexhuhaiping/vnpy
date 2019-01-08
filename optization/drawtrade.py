@@ -84,33 +84,37 @@ def runOptBoss():
 
 
 if __name__ == '__main__':
-    # # 按照需要注释掉部分流程
-    # clearCollection() # 清空数据库
-    # runArg() # 生成参数
-    # # 批量回测 ==>
-    # child_runBackTesting = multiprocessing.Process(target=runBackTesting)
-    # child_runBackTesting.start()
-    # child_runOptBoss = multiprocessing.Process(target=runOptBoss)
-    # child_runOptBoss.start()
-    #
-    # btInfoDic = btinfoCol.find_one({})
-    # while True:
-    #     time.sleep(1)
-    #     cursor = btresultCol.find()
-    #     count = cursor.count()
-    #     print('result {}'.format(count))
-    #     if btInfoDic['amount'] == count:
-    #         # 已经全部回测完毕
-    #         break
-    #     cursor.close()
-    # child_runBackTesting.terminate()
-    # child_runOptBoss.terminate()
-    # # <== 批量回测完成
+    # 按照需要注释掉部分流程
+    clearCollection() # 清空数据库
+    runArg() # 生成参数
+
+    # 批量回测 ==>
+    child_runBackTesting = multiprocessing.Process(target=runBackTesting)
+    child_runBackTesting.start()
+    child_runOptBoss = multiprocessing.Process(target=runOptBoss)
+    child_runOptBoss.start()
+
+    btInfoDic = btinfoCol.find_one({})
+    while True:
+        time.sleep(1)
+        cursor = btresultCol.find()
+        count = cursor.count()
+        print('result {}'.format(count))
+        if btInfoDic['amount'] == count:
+            # 已经全部回测完毕
+            break
+        cursor.close()
+    child_runBackTesting.terminate()
+    child_runOptBoss.terminate()
+    # <== 批量回测完成
 
     bars = mk.qryBarsMongoDB(
         underlyingSymbol='AP',
-        # startTradingDay=arrow.get('2017-12-22 00:00:00+08:00').datetime,
-        endTradingDay=arrow.get('2018-04-10 00:00:00+08:00').datetime,
+
+        # 截取回测始末日期，注释掉的话默认取全部主力日期
+        # startTradingDay=arrow.get('2018-03-01 00:00:00+08:00').datetime,
+        # endTradingDay=arrow.get('2018-03-10 00:00:00+08:00').datetime,
+
         host=config.get('ctp_mongo', 'host'), port=config.getint('ctp_mongo', 'port'),
         dbn=config.get('ctp_mongo', 'dbn'), collection=config.get('ctp_mongo', 'collection'),
         username=config.get('ctp_mongo', 'username'), password=config.get('ctp_mongo', 'password'),
@@ -118,7 +122,7 @@ if __name__ == '__main__':
 
     originTrl = mk.qryBtresultMongoDB(
         underlyingSymbol='AP',
-        optsv='AP,"barXmin":20,"longBar":10,"n":1',
+        optsv='AP,"barXmin":120,"longBar":10,"n":1',
         host=host, port=port, dbn=dbn, collection=btresult, username=username, password=password,
     )
 

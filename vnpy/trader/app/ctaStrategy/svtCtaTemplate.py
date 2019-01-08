@@ -445,13 +445,20 @@ class CtaTemplate(vtCtaTemplate):
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
 
             # 限价单 orders 里面是 odic，包含限价单的内容
-            orders = self.ctaEngine.getAllOrderToShow(self.name)
+            orders = []
+            if self.bm.lastTick:
+                for o in self.ctaEngine.getAllOrderToShow(self.name):
+                    if o['orderType'] in (CTAORDER_BUY, CTAORDER_COVER):
+                        o['dist'] = o['price'] - self.bm.lastTick.askPrice1
+                    else:
+                        o['dist'] = o['price'] - self.bm.lastTick.bidPrice1
+                    orders.append(o)
             orderDic['order'] = pd.DataFrame(orders).to_html()
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrderToShow(self.name)
             stopOrders.sort(key=lambda s: (s.direction, s.stopProfile))
-            units = [so.toHtml(self.bar) for so in stopOrders]
+            units = [so.toHtml(self.bm.lastTick) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
             # 持仓详情
@@ -1105,8 +1112,9 @@ class CtaTemplate(vtCtaTemplate):
         return originCapital, charge, profile
 
     def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
-        if trade.offset in OFFSET_CLOSE_LIST:
-            textList = [u'{} {} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
+        # if trade.offset in OFFSET_CLOSE_LIST:
+            print(self.bar.datetime)
+            textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
             textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
             textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
             textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
