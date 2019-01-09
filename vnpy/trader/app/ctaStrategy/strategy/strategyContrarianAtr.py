@@ -153,6 +153,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
+        self.saveDB()
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
 
@@ -199,6 +200,8 @@ class ContrarianAtrStrategy(CtaTemplate):
                 if self.pos == 0:
                     self.orderOpenOnBar()  # 开仓单
             self.orderClose()  # 平仓单
+
+            self.saveDB()
 
     def orderOpenOnBar(self):
         # 开仓价
