@@ -1,131 +1,79 @@
-# encoding: UTF-8
-
-"""
-绘制成交图
-"""
-import threading
-import logging.config
-import logging
+# coding=utf-8
+from collections import OrderedDict
 import ConfigParser
-import time
-import multiprocessing
-
-import pymongo
 import arrow
-
-import optserver
-import backtestingarg
-import optboss
+from myplot.kline import *
 import myplot.kline as mk
+import json
+logging.basicConfig(level=logging.INFO)
 
-# # 清空本地数据库
-config = ConfigParser.SafeConfigParser()
-# configPath = 'localMongo.ini'
+class Config(ConfigParser.SafeConfigParser):
+    def optionxform(self, optionstr):
+        return optionstr
+
+
+# 读取设置参数
+config = Config()
 configPath = 'drawtrade.ini'
 with open(configPath, 'r') as f:
     config.readfp(f)
-#
-host = config.get('backtesting_mongo', 'host')
-port = config.getint('backtesting_mongo', 'port')
-username = config.get('backtesting_mongo', 'username')
-password = config.get('backtesting_mongo', 'password')
-dbn = config.get('backtesting_mongo', 'dbn')
-btinfo = config.get('backtesting_mongo', 'btinfo')
-btarg = config.get('backtesting_mongo', 'btarg')
-btresult = config.get('backtesting_mongo', 'btresult')
 
-client = pymongo.MongoClient(host, port)
-db = client[dbn]
-db.authenticate(username, password)
-btinfoCol = db[btinfo]
-btargCol = db[btarg]
-btresultCol = db[btresult]
+# # 加载K线
+endTradingDay = startTradingDay = None
+kwarg = dict(config.items('qryBarsMongoDB'))
+if 'startTradingDay' in kwarg:
+    startTradingDay = kwarg['startTradingDay'] = arrow.get(
+        '{} 00:00:00+08:00'.format(kwarg['startTradingDay'])).datetime
+if 'endTradingDay' in kwarg:
+    endTradingDay = kwarg['endTradingDay'] = arrow.get('{} 00:00:00+08:00'.format(kwarg['endTradingDay'])).datetime
+kwarg['port'] = int(kwarg['port'])
 
+documents = mk.qryBarsMongoDB(**kwarg)
 
-# 运行清空命令
-def clearCollection():
-    btinfoCol.delete_many({})
-    btargCol.delete_many({})
-    btresultCol.delete_many({})
+# 加载原始成交单
+kwarg = dict(config.items('qryTradeListMongodb'))
+kwarg['port'] = int(kwarg['port'])
+sql = {
+    'symbol': 'AP905',
+    'class': 'ContrarianAtrStrategy',
+    'name': u'苹果_定点ATR反转20min回测对比',
+}
+matcher = qryTradeListMongodb(
+    sql=sql,
+    **kwarg
+)
 
+col = ['tradeID', 'datetime', 'offset', 'direction', 'price', 'volume', 'pos']
 
-# 生成参数
-logging.info(u'生成参数')
-argFileName = 'opt_test.json'
-optfile = 'drawtrade.ini'
-
-
-def runArg():
-    logging.info(u'即将使用 {} 的配置'.format(optfile))
-    b = backtestingarg.BacktestingArg(argFileName, optfile)
-    b.start()
-
-
-# 运行批量回测
-def runBackTesting():
-    logging.info(u'启动批量回测服务端')
-    server = optserver.OptimizeService(optfile)
-    server.start()
-
-
-# 读取日志配置文件
-loggingConFile = 'logging.conf'
-
-
-def runOptBoss():
-    """
-    运行回测算力
-    :return:
-    """
-    logging.config.fileConfig(loggingConFile)
-    time.sleep(2)
-    logging.info(u'启动批量回测算力')
-    server = optboss.WorkService(optfile)
-    server.start()
-
-
-if __name__ == '__main__':
-    # 按照需要注释掉部分流程
-    clearCollection() # 清空数据库
-    runArg() # 生成参数
-
-    # 批量回测 ==>
-    child_runBackTesting = multiprocessing.Process(target=runBackTesting)
-    child_runBackTesting.start()
-    child_runOptBoss = multiprocessing.Process(target=runOptBoss)
-    child_runOptBoss.start()
-
-    btInfoDic = btinfoCol.find_one({})
-    while True:
-        time.sleep(1)
-        cursor = btresultCol.find()
-        count = cursor.count()
-        print('result {}'.format(count))
-        if btInfoDic['amount'] == count:
-            # 已经全部回测完毕
+# 剔除异常成交
+df = matcher.df.copy()
+if startTradingDay:
+    df = df[df.datetime >= startTradingDay]
+    df = matcher.df = df.iloc[1:]
+if endTradingDay:
+    df = df[df.datetime <= endTradingDay]
+# 剔除指定的 TradeID
+with open('/Users/lamter/workspace/SlaveO/svnpy/optization/droptradeid.json', 'r') as f:
+    lis = json.load(f)
+    for d in lis:
+        if d['name'] == sql['name'] and d['symbol'] == sql['symbol']:
+            _filter = []
+            tradeIDs = d['tradeID'][:]
+            for index in df.tradeID.index:
+                dfTradeID = df.tradeID.loc[index].strip(' ')
+                r = not dfTradeID in tradeIDs
+                _filter.append(r)
+                if not r:
+                    tradeIDs.remove(dfTradeID)
+            if _filter:
+                logging.info(u'\t{symbol}\t{name}\t剔除成交'.format(**d))
+                df = df[pd.Series(_filter, df.index)]
+            # 每次只处理一个合约
             break
-        cursor.close()
-    child_runBackTesting.terminate()
-    child_runOptBoss.terminate()
-    # <== 批量回测完成
 
-    bars = mk.qryBarsMongoDB(
-        underlyingSymbol='AP',
+# 重新生成实例 DealMatcher 计算，不能直接替换 matcher.df 计算
+matcher = DealMatcher(df)
+matcher.do()
 
-        # 截取回测始末日期，注释掉的话默认取全部主力日期
-        # startTradingDay=arrow.get('2019-01-07 00:00:00+08:00').datetime,
-        # endTradingDay=arrow.get('2018-03-10 00:00:00+08:00').datetime,
-
-        host=config.get('ctp_mongo', 'host'), port=config.getint('ctp_mongo', 'port'),
-        dbn=config.get('ctp_mongo', 'dbn'), collection=config.get('ctp_mongo', 'collection'),
-        username=config.get('ctp_mongo', 'username'), password=config.get('ctp_mongo', 'password'),
-    )
-
-    originTrl = mk.qryBtresultMongoDB(
-        underlyingSymbol='AP',
-        optsv='AP,"barXmin":20,"longBar":10,"n":1',
-        host=host, port=port, dbn=dbn, collection=btresult, username=username, password=password,
-    )
-
-    tradeOnKlinePlot = mk.tradeOnKLine('1T', bars, originTrl, width=3000, height=1350)
-    tradeOnKlinePlot.render('/Users/lamter/Downloads/回测成交图.html')
+tradeOnKlinePlot = tradeOnKLine('1T', documents, matcher.originTrl, width=3000, height=1350)
+tradeOnKlinePlot.render(u'/Users/lamter/Downloads/模拟盘成交图.html')
