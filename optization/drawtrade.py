@@ -20,7 +20,8 @@ import myplot.kline as mk
 
 # # 清空本地数据库
 config = ConfigParser.SafeConfigParser()
-configPath = 'localMongo.ini'
+# configPath = 'localMongo.ini'
+configPath = 'drawtrade.ini'
 with open(configPath, 'r') as f:
     config.readfp(f)
 #
@@ -51,7 +52,7 @@ def clearCollection():
 # 生成参数
 logging.info(u'生成参数')
 argFileName = 'opt_test.json'
-optfile = 'optimize.ini'
+optfile = 'drawtrade.ini'
 
 
 def runArg():
@@ -112,7 +113,7 @@ if __name__ == '__main__':
         underlyingSymbol='AP',
 
         # 截取回测始末日期，注释掉的话默认取全部主力日期
-        # startTradingDay=arrow.get('2018-03-01 00:00:00+08:00').datetime,
+        # startTradingDay=arrow.get('2019-01-07 00:00:00+08:00').datetime,
         # endTradingDay=arrow.get('2018-03-10 00:00:00+08:00').datetime,
 
         host=config.get('ctp_mongo', 'host'), port=config.getint('ctp_mongo', 'port'),
@@ -122,9 +123,9 @@ if __name__ == '__main__':
 
     originTrl = mk.qryBtresultMongoDB(
         underlyingSymbol='AP',
-        optsv='AP,"barXmin":120,"longBar":10,"n":1',
+        optsv='AP,"barXmin":20,"longBar":10,"n":1',
         host=host, port=port, dbn=dbn, collection=btresult, username=username, password=password,
     )
 
-    tradeOnKlinePlot = mk.tradeOnKLine('1T', bars, originTrl)
+    tradeOnKlinePlot = mk.tradeOnKLine('1T', bars, originTrl, width=3000, height=1350)
     tradeOnKlinePlot.render('/Users/lamter/Downloads/回测成交图.html')
