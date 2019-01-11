@@ -47,7 +47,7 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'AP805'
+    vtSymbol = 'AP905'
     # vtSymbol = 'rb1901'
 
     setting = {
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     # 运行回测
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
-    engine.showDailyResult()
-    engine.showBacktestingResult()
+    # engine.showDailyResult()
+    # engine.showBacktestingResult()
     # print(engine.tradeResult["成交单'][0]['entryDt'])
     # print(engine.tradeResult["成交单'][-1]['entryDt'])

@@ -340,6 +340,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             if self.pos == 0:
                 self.orderOpenOnTrade()
             else:
+                self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
                 self.cancelAll()
                 self.orderClose()
 
@@ -347,9 +348,10 @@ class ContrarianAtrStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
-        # if arrow.get('2018-03-02 14:00:00+08') < self.bar.datetime < arrow.get('2018-03-02 15:00:00+08'):
-        # if self.bar.datetime < arrow.get('2017-12-31 15:00:00+08'):
-        #     self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
+        if self.isBackTesting():
+            if arrow.get('2019-01-10 10:43:00+08') < self.bar.datetime < arrow.get('2019-01-10 10:46:00+08'):
+                print(u'{} {}'.format(self.atr, self.low))
+                self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def orderOpenOnTradBackting(self):
         if self.pos == 0:
