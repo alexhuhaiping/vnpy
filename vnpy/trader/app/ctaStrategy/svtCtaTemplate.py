@@ -801,8 +801,8 @@ class CtaTemplate(vtCtaTemplate):
             for k, v in commissionRate.__dict__.items():
                 if k == 'rawData':
                     continue
-                log += u'{}:{} '.format(k, v)
-                self.log.info(log)
+                log += u'\n{}:{}'.format(k, v)
+            self.log.info(log)
             return
         elif self.vtSymbol.startswith(commissionRate.underlyingSymbol):
             # 返回 rb ,合约没有变动

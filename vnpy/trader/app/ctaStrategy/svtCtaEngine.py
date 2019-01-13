@@ -676,9 +676,10 @@ class CtaEngine(VtCtaEngine):
         strategiesList = activeStrategies.strip('"').strip("'").split(',')
 
         for s in strategiesList:
-            n = 'strategy_{}'.format(s)
-            setting = dict(ctaConfig.typeitems(n))
-            self.loadStrategy(setting)
+            if s:
+                n = 'strategy_{}'.format(s)
+                setting = dict(ctaConfig.typeitems(n))
+                self.loadStrategy(setting)
 
         self.loadPosition()
 

@@ -12,33 +12,52 @@ class DrawTrade(object):
     """
     绘制模拟盘/实盘的成交图
     """
-    def __init__(self, sql, configPath='drawtrade.ini', startTradingDay=None, endTradingDay=None):
-        self.sql = sql
+
+    def __init__(self, configPath='drawtrade.ini', startTradingDay=None, endTradingDay=None):
         self.config = MyConfigParser()
         with open(configPath, 'r') as f:
             self.config.readfp(f)
 
+        self.sql = dict(self.config.autoitems('trade_filter'))
         # K线的选取范围，也决定了成交图的范围
         self.underlyingSymbol = self.config.autoget('DrawTrade', 'underlyingSymbol')
         self.dropTradeIDsFile = self.config.autoget('DrawTrade', 'dropTradeIDsFile')
         self.drawFile = self.config.autoget('DrawTrade', 'drawfile')
-        self.startTradingDay = startTradingDay
-        self.endTradingDay = endTradingDay
 
-        self.bars = None # K 线数据
-        self.originTrl = None # 成交单
+        # 截止的始末日期
+        if startTradingDay:
+            self.startTradingDay = startTradingDay
+        else:
+            std = self.config.autoget('DrawTrade', 'startTradingDay')
+            self.startTradingDay = arrow.get('{} 00:00:00+08'.format(std)).datetime if std else None
+
+        if endTradingDay:
+            self.endTradingDay = endTradingDay
+        else:
+            std = self.config.autoget('DrawTrade', 'endTradingDay')
+            self.endTradingDay = arrow.get('{} 00:00:00+08'.format(std)).datetime if std else None
+
+        self.bars = None  # K 线数据
+        self.originTrl = None  # 成交单
 
     def loadBar(self):
-
         kwarg = dict(self.config.autoitems('ctp_mongo'))
+
+        startTradingDay = self.startTradingDay
+        endTradingDay = self.endTradingDay
+
+        if self.matcher:
+            if self.matcher.startTradingDay:
+                startTradingDay = max(startTradingDay, self.matcher.startTradingDay)
+            if self.matcher.endTradingDay:
+                endTradingDay = min(endTradingDay, self.matcher.endTradingDay)
 
         self.bars = mk.qryBarsMongoDB(
             self.underlyingSymbol,
-            startTradingDay=self.startTradingDay,
-            endTradingDay=self.endTradingDay,
+            startTradingDay=startTradingDay,
+            endTradingDay=endTradingDay,
             **kwarg
         )
-
 
     def loadTrade(self):
         """
