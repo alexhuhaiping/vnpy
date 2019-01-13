@@ -137,8 +137,18 @@ class CtaTemplate(vtCtaTemplate):
 
     @property
     def floatProfile(self):
+        if self.pos == 0:
+            return 0
+        tick = self.bm.lastTick
+        if tick:
+            if self.pos > 0:
+                return (tick.bidPrice1 - self.averagePrice) * self.pos * self.size
+            if self.pos < 0:
+                return (tick.askPrice1 - self.averagePrice) * self.pos * self.size
+
         if not self.bar:
             return 0
+
         return (self.bar.close - self.averagePrice) * self.pos * self.size
 
     @property
@@ -435,13 +445,20 @@ class CtaTemplate(vtCtaTemplate):
             orderDic['{}minBar'.format(self.barXmin)] = self.xminBarToHtml()
 
             # 限价单 orders 里面是 odic，包含限价单的内容
-            orders = self.ctaEngine.getAllOrderToShow(self.name)
+            orders = []
+            if self.bm.lastTick:
+                for o in self.ctaEngine.getAllOrderToShow(self.name):
+                    if o['orderType'] in (CTAORDER_BUY, CTAORDER_COVER):
+                        o['dist'] = o['price'] - self.bm.lastTick.askPrice1
+                    else:
+                        o['dist'] = o['price'] - self.bm.lastTick.bidPrice1
+                    orders.append(o)
             orderDic['order'] = pd.DataFrame(orders).to_html()
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrderToShow(self.name)
             stopOrders.sort(key=lambda s: (s.direction, s.stopProfile))
-            units = [so.toHtml(self.bar) for so in stopOrders]
+            units = [so.toHtml(self.bm.lastTick) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
             # 持仓详情
@@ -892,12 +909,12 @@ class CtaTemplate(vtCtaTemplate):
         # 下平仓单
         if self.pos > 0:
             # 平多
-            price = self.bm.lastTick.upperLimit if self.bm.lastTick else self.bar.high
+            price = self.bm.lastTick.lowerLimit if self.bm.lastTick else self.bar.low
             volume = self.pos
             self.sell(price, volume)
         elif self.pos < 0:
             # 平空
-            price = self.bm.lastTick.lowerLimit if self.bm.lastTick else self.bar.low
+            price = self.bm.lastTick.upperLimit if self.bm.lastTick else self.bar.high
             volume = abs(self.pos)
             self.cover(price, volume)
 
@@ -1054,6 +1071,88 @@ class CtaTemplate(vtCtaTemplate):
                 u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
                                                                       trade.splippage, self.priceTick, overSplipage))
 
+    def _onTrade(self, trade):
+        """
+        onTrade 的常规逻辑
+        :param trade:
+        :return:
+        """
+        originCapital = preCapital = self.capital
+
+        self.charge(trade.offset, trade.price, trade.volume)
+
+        # 手续费
+        charge = preCapital - self.capital
+
+        preCapital = self.capital
+
+        # 回测时滑点
+        if self.isBackTesting():
+            self.chargeSplipage(trade.volume)
+
+        # 计算成本价和利润
+        self.capitalBalance(trade)
+        profile = self.capital - preCapital
+
+        if not self.isBackTesting():
+            textList = [u'{}{}'.format(trade.direction, trade.offset)]
+            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList.append(
+                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+            )
+
+            self.log.warning(u'\n'.join(textList))
+        if self.isBackTesting():
+            if self.capital <= 0:
+                # 回测中爆仓了
+                self.capital = 0
+
+        return originCapital, charge, profile
+
+    def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
+        # if trade.offset in OFFSET_CLOSE_LIST:
+            print(self.bar.datetime)
+            textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
+            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList.append(u'**********************')
+            print(u'\n'.join(textList))
+
+    def loadBarOnInit(self):
+        """
+        常规加载
+        :return:
+        """
+        self.writeCtaLog(u'%s策略初始化' % self.name)
+
+        # 载入历史数据，并采用回放计算的方式初始化策略数值
+        initData = self.loadBar(self.maxBarNum)
+
+        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+
+        self.initContract()
+
+        # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
+        if not self.isBackTesting():
+            # 需要等待保证金加载完毕
+            document = self.fromDB()
+            self.loadCtaDB(document)
+
+        for bar in initData:
+            self.bm.bar = bar
+            self.tradingDay = bar.tradingDay
+            self.onBar(bar)
+            self.bm.preBar = bar
+
+        # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
+
+        if len(initData) >= self.maxBarNum:
+            self.log.info(u'初始化完成')
+        else:
+            self.log.info(u'初始化数据不足!')
 
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
@@ -1069,6 +1168,8 @@ class BarManager(VtBarManager):
         self.strategy = strategy
         self.preBar = None  # 前一个1分钟K线对象
         self.preXminBar = None  # 前一个X分钟K线对象
+        self.hourBar = None # 当前1小时K线
+        self.preHourBar = None # 前一个1小时K线
 
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
@@ -1163,6 +1264,53 @@ class BarManager(VtBarManager):
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
 
+    def updateHourBar(self, bar):
+        """
+        生成1小时线
+        :param bar:
+        :return:
+        """
+        if self.strategy.isBackTesting():
+            self.bar = bar
+
+        self.count += 1
+
+        newhourBar = self.hourBar is None
+
+        # 尚未创建对象
+        if newhourBar:
+            self.preHourBar, self.hourBar = self.hourBar, VtBarData()
+
+            self.hourBar.vtSymbol = bar.vtSymbol
+            self.hourBar.symbol = bar.symbol
+            self.hourBar.exchange = bar.exchange
+
+            self.hourBar.open = bar.open
+            self.hourBar.high = bar.high
+            self.hourBar.low = bar.low
+            # 累加老K线
+        else:
+            self.hourBar.high = max(self.hourBar.high, bar.high)
+            self.hourBar.low = min(self.hourBar.low, bar.low)
+
+        # 通用部分
+        self.hourBar.close = bar.close
+        self.hourBar.datetime = bar.datetime
+        self.hourBar.openInterest = bar.openInterest
+        self.hourBar.volume += int(bar.volume)
+
+        # X分钟已经走完
+        if self.count % self.xmin == 0:  # 可以用X整除
+            # 结束的 bar 的时间戳，就是 hourBar 的时间戳
+            self.hourBar.datetime = bar.datetime
+            self.hourBar.date = self.hourBar.datetime.strftime('%Y%m%d')
+            self.hourBar.time = self.hourBar.datetime.strftime('%H:%M:%S.%f')
+
+            # 推送
+            self.onhourBar(self.hourBar)
+
+
+
     def updateXminBar(self, bar):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
@@ -1180,7 +1328,7 @@ class BarManager(VtBarManager):
             # 清空老K线缓存对象
 
         # 尚未创建对象
-        if newXminBar:
+        if newXminBar or self.xmin == 1:
             self.preXminBar, self.xminBar = self.xminBar, VtBarData()
 
             self.xminBar.vtSymbol = bar.vtSymbol

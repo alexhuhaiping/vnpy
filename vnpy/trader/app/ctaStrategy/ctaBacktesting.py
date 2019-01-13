@@ -262,9 +262,9 @@ class BacktestingEngine(object):
         self.bar = bar
         self.dt = bar.datetime
 
+        self.strategy.tradingDay = bar.tradingDay # j
         self.crossLimitOrder()  # 先撮合限价单
         self.crossStopOrder()  # 再撮合停止单
-        self.strategy.tradingDay = bar.tradingDay # j
         self.strategy.onBar(bar)  # 推送K线到策略中
 
         self.updateDailyClose(bar.tradingDay, bar.close)

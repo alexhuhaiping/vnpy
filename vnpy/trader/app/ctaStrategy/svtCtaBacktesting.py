@@ -29,7 +29,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from vnpy.trader.vtConstant import *
-from vnpy.trader.vtGlobal import globalSetting
+from vnpy.trader.vtGlobal import globalSetting, settingFilePath
 from vnpy.trader.vtObject import VtTickData, VtBarData, VtContractData, VtMarginRate, VtCommissionRate
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine as VTBacktestingEngine
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import TradingResult, formatNumber, DailyResult
@@ -73,6 +73,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.loadHised = False  # 是否已经加载过了历史数据
         self.barPeriod = '1T'  # 默认是1分钟 , 15T 是15分钟， 1H 是1小时，1D 是日线
 
+        self.collectionName = MINUTE_COL_NAME
         self.initMongoDB()
 
         logging.Formatter.converter = self.barTimestamp
@@ -108,6 +109,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.initData = self._resample(self.barPeriod, self._initData)
     #     self.datas = self._resample(self.barPeriod, self._datas)
     def initMongoDB(self):
+        print(u'globalSetting: {}'.format(settingFilePath))
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
 
@@ -385,7 +387,10 @@ class BacktestingEngine(VTBacktestingEngine):
     def loadHistoryData(self):
         """载入历史数据"""
         self.loadHised = True
-        collection = self.ctpCol1minBar
+        collection = {
+            MINUTE_COL_NAME:self.ctpCol1minBar,
+            DAY_COL_NAME:self.ctpCol1dayBar,
+        }.get(self.collectionName)
 
         self.log.info(u'开始载入数据')
 
@@ -473,12 +478,14 @@ class BacktestingEngine(VTBacktestingEngine):
                 break
         # 只返回指定数量的 bar
         initDataNum = len(initDatas)
+
         if initDataNum < needBarNum:
             self.log.info(u'{} 预加载的 bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
             return initDatas
 
         # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
         barAmount = initDataNum % barPeriod + needBarNum
+
         return initDatas[-barAmount:]
 
     def barTimestamp(self, *args, **kwargs):

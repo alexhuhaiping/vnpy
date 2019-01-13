@@ -102,7 +102,8 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         for bar in initData:
             self.bm.bar = bar
-            self.tradingDay = bar.tradingDay
+            if not self.isBackTesting():
+                self.tradingDay = bar.tradingDay
             self.onBar(bar)
             self.bm.preBar = bar
 
@@ -152,6 +153,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
+        self.saveDB()
         self.log.info(u'%s策略停止' % self.name)
         self.putEvent()
 
@@ -198,6 +200,8 @@ class ContrarianAtrStrategy(CtaTemplate):
                 if self.pos == 0:
                     self.orderOpenOnBar()  # 开仓单
             self.orderClose()  # 平仓单
+
+            self.saveDB()
 
     def orderOpenOnBar(self):
         # 开仓价
@@ -299,37 +303,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     def onTrade(self, trade):
         assert isinstance(trade, VtTradeData)
 
-        originCapital = preCapital = self.capital
-
-        self.charge(trade.offset, trade.price, trade.volume)
-
-        # 手续费
-        charge = preCapital - self.capital
-
-        preCapital = self.capital
-
-        # 回测时滑点
-        if self.isBackTesting():
-            self.chargeSplipage(trade.volume)
-
-        # 计算成本价和利润
-        self.capitalBalance(trade)
-        profile = self.capital - preCapital
-
-        if not self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
-            textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
-            )
-
-            self.log.warning(u'\n'.join(textList))
-        if self.isBackTesting():
-            if self.capital <= 0:
-                # 回测中爆仓了
-                self.capital = 0
+        originCapital, charge, profile = self._onTrade(trade)
 
         # 重置高低点
         if self.pos > 0:
@@ -366,6 +340,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             if self.pos == 0:
                 self.orderOpenOnTrade()
             else:
+                self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
                 self.cancelAll()
                 self.orderClose()
 
@@ -373,6 +348,10 @@ class ContrarianAtrStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
+        if self.isBackTesting():
+            if arrow.get('2019-01-10 10:43:00+08') < self.bar.datetime < arrow.get('2019-01-10 10:46:00+08'):
+                print(u'{} {}'.format(self.atr, self.low))
+                self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def orderOpenOnTradBackting(self):
         if self.pos == 0:
@@ -421,7 +400,14 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = min(self.maxHands, self.fixhands)
             return
 
-        self.hands = min(self.hands, self.maxHands)
+        # 固定比例仓位,每2万本金对应1仓，不减仓
+        # if self.hands:
+        #     self.hands = max(int(self.capital / 20000), self.hands)
+        # else:
+        #     self.hands = self.fixhands
+        # self.hands = min(self.hands, self.maxHands)
+        # return
+
         # 连败中一直轻仓，连胜一直满仓
         # self.hands = 1 if self.loseCount else max(1, hands)
 

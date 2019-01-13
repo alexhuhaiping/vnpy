@@ -80,23 +80,23 @@ class OptimizeService(object):
 
         # 数据库链接
         self.client = pymongo.MongoClient(
-            host=self.config.get('mongo', 'host'),
-            port=self.config.getint('mongo', 'port'),
+            host=self.config.get('backtesting_mongo', 'host'),
+            port=self.config.getint('backtesting_mongo', 'port'),
         )
 
-        self.db = self.client[self.config.get('mongo', 'dbn')]
+        self.db = self.client[self.config.get('backtesting_mongo', 'dbn')]
 
         self.db.authenticate(
-            self.config.get('mongo', 'username'),
-            self.config.get('mongo', 'password'),
+            self.config.get('backtesting_mongo', 'username'),
+            self.config.get('backtesting_mongo', 'password'),
         )
 
         # 回测任务参数
-        self.argCol = self.db[self.config.get('mongo', 'argCol')].with_options(
+        self.argCol = self.db[self.config.get('backtesting_mongo', 'btarg')].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
         # 回测结果
-        self.resultCol = self.db[self.config.get('mongo', 'resultCol')].with_options(
+        self.resultCol = self.db[self.config.get('backtesting_mongo', 'btresult')].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
         # 任务队列

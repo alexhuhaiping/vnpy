@@ -1,5 +1,6 @@
 # coding:utf-8
 import logging.config
+from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
@@ -47,11 +48,9 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     vtSymbol = 'AP905'
-    # vtSymbol = 'AP805'
+    # vtSymbol = 'rb1901'
+
     setting = {
-        'slippage': 5,
-        'vtSymbol': vtSymbol,
-        'capital': 40000,
 
         # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
         # 'strategyClass': 'SvtBollChannelStrategy',
@@ -60,12 +59,16 @@ if __name__ == '__main__':
         # 'strategyClass': 'OscillationDonchianStrategy',
 
 
-        "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
+        # "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
+        # 'strategyClass': 'ContrarianAtrStrategy',
+
+        'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 40000,
+        # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
+        "barXmin": 20, "longBar": 10, "n": 1, "fixhands": 2,
         'strategyClass': 'ContrarianAtrStrategy',
 
-        # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
-        # # "barXmin": 15, "longbar": 25, "n": 1, "fixhands": 5,
-        # 'strategyClass': 'ContrarianAtrStrategy',
+        # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
+        # 'strategyClass': 'DailyMAStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -77,11 +80,10 @@ if __name__ == '__main__':
         isShowFig=False,
         isOutputResult=True,
     )
-
     # 运行回测
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
-    engine.showDailyResult()
-    engine.showBacktestingResult()
+    # engine.showDailyResult()
+    # engine.showBacktestingResult()
     # print(engine.tradeResult["成交单'][0]['entryDt'])
     # print(engine.tradeResult["成交单'][-1]['entryDt'])

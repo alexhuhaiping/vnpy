@@ -10,6 +10,7 @@ import os
 import decimal
 import arrow
 import time
+import ConfigParser
 import datetime
 import pytz
 import tradingtime as tt
@@ -148,3 +149,39 @@ def waitToContinue(vtSymbol, now):
 def logDate(strateDate, endDate):
     return arrow.get(strateDate).datetime, arrow.get(endDate).datetime
 
+
+
+class VnpyConfigParser(ConfigParser.SafeConfigParser):
+    def optionxform(self, optionstr):
+        return optionstr
+    def typeitems(self, section):
+        """
+
+        :return:
+        """
+
+        def turn(o):
+            try:
+                return int(o)
+            except ValueError:
+                pass
+            try:
+                return float(o)
+            except ValueError:
+                pass
+
+            if o.startswith('"') and o.endswith('"'):
+                o = o[1:-1]
+            elif o.startswith("'") and o.endswith("'"):
+                o = o[1:-1]
+            return o
+
+        return tuple((s, turn(o)) for s, o in (ConfigParser.SafeConfigParser).items(self, section))
+
+def loadConfigIni(settingFileInit):
+    setting = VnpyConfigParser()
+
+    with open(settingFileInit, 'rb') as f:
+        setting.readfp(f)
+
+    return setting

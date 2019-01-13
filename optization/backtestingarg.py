@@ -112,13 +112,13 @@ class BacktestingArg(object):
             codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
         # 将回测参数保存到数据库
-        host = self.config.get('mongo', 'host')
-        port = self.config.getint('mongo', 'port')
-        username = self.config.get('mongo', 'username')
-        password = self.config.get('mongo', 'password')
-        dbn = self.config.get('mongo', 'dbn')
-        colName = self.config.get('mongo', 'argCol')
-        btinfoColName = self.config.get('mongo', 'btinfoCol')
+        host = self.config.get('backtesting_mongo', 'host')
+        port = self.config.getint('backtesting_mongo', 'port')
+        username = self.config.get('backtesting_mongo', 'username')
+        password = self.config.get('backtesting_mongo', 'password')
+        dbn = self.config.get('backtesting_mongo', 'dbn')
+        colName = self.config.get('backtesting_mongo', 'btarg')
+        btinfoColName = self.config.get('backtesting_mongo', 'btinfo')
 
         self.log.info(u'即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
         # seconds = 3
@@ -302,15 +302,16 @@ class BacktestingArg(object):
         :return:
         """
 
-        # 保存回测详情
-        self.saveBtinfo()
-
         # 保存回测参数
         self.saveBtargs(documents)
+
+        # 保存回测详情
+        self.saveBtinfo()
 
     def saveBtargs(self, documents):
 
         count = len(documents)
+        self.btinfo['amount'] = count
         if count > 1000:
             countStr = u'{}万'.format(count / 10000.)
         else:
