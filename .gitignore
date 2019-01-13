@@ -91,4 +91,6 @@ optization/run_optbossMac.py
 optization/loggingMac.conf
 optization/test1.py
 optization/localmongo.ini
+optization/drawtrade_*
+optization/droptradeid_*
 
