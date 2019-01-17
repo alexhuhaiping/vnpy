@@ -14,11 +14,18 @@ class DrawTrade(object):
     """
 
     def __init__(self, configPath='drawtrade.ini', startTradingDay=None, endTradingDay=None):
+        """
+
+        :param configPath:
+        :param startTradingDay: 优先级 arg > *.ini > 成交单
+        :param endTradingDay:
+        """
         self.config = MyConfigParser()
         with open(configPath, 'r') as f:
             self.config.readfp(f)
 
         self.sql = dict(self.config.autoitems('trade_filter'))
+
         # K线的选取范围，也决定了成交图的范围
         self.underlyingSymbol = self.config.autoget('DrawTrade', 'underlyingSymbol')
         self.dropTradeIDsFile = self.config.autoget('DrawTrade', 'dropTradeIDsFile')
@@ -43,14 +50,15 @@ class DrawTrade(object):
     def loadBar(self):
         kwarg = dict(self.config.autoitems('ctp_mongo'))
 
-        startTradingDay = self.startTradingDay
-        endTradingDay = self.endTradingDay
-
         if self.matcher:
-            if self.matcher.startTradingDay:
-                startTradingDay = max(startTradingDay, self.matcher.startTradingDay)
-            if self.matcher.endTradingDay:
-                endTradingDay = min(endTradingDay, self.matcher.endTradingDay)
+            # 优先使用默认的日期，默认日期为 None 时使用成交单的日期
+            startTradingDay = self.startTradingDay or self.matcher.startTradingDay
+            logging.info(u'根据成交单范围选取 K线 startTradingDay: {}'.format(startTradingDay))
+            endTradingDay = self.endTradingDay or self.matcher.endTradingDay
+            logging.info(u'根据成交单范围选取 K线 endTradingDay: {}'.format(endTradingDay))
+        else:
+            startTradingDay = self.startTradingDay
+            endTradingDay = self.endTradingDay
 
         self.bars = mk.qryBarsMongoDB(
             self.underlyingSymbol,
@@ -106,7 +114,7 @@ class DrawTrade(object):
                         df = df[pd.Series(_filter, df.index)]
                     # 每次只处理一个合约
                     break
-        df = df
+
         # 重新生成实例 DealMatcher 计算，不能直接替换 matcher.df 计算
         matcher = DealMatcher(df)
         matcher.do()
