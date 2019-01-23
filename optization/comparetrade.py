@@ -7,47 +7,52 @@ from myplot.kline import *
 from drawbacktestingtrade import DrawBacktestingTrade
 from drawtrade import DrawTrade
 
-# ################################
-# # 运行回测，生成成交图
-# dbt = DrawBacktestingTrade(configPath='drawtrade_backtesting.ini',startTradingDay=arrow.get('2019-01-09 00:00:00+08').datetime)
-# dbt.clearCollection()  # 清空数据库
-# dbt.runArg()  # 生成参数
-# dbt.runBacktesting()# 批量回测
-#
-# # # 加载数据并绘制成交图
-# dbt.loadBar()
+################################
+# 运行回测，生成成交图
+# startTradingDay=arrow.get('2019-01-14 00:00:00+08').datetime
+startTradingDay=arrow.get('2018-12-01 00:00:00+08').datetime
+dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay)
+dbt.clearCollection()  # 清空数据库
+dbt.runArg()  # 生成参数
+dbt.runBacktesting()# 批量回测
+
 # dbt.loadTrade()
-# dbt.draw()
+
+# 加载数据并绘制成交图
+# dbt.loadBar()
+# dbt.draw('1T')
+################################
+
+
+
 # ################################
-#
-#
+# # 实盘盘成交
+# # startTradingDay=arrow.get('2019-01-10 00:00:00+08').datetime
+# drm = DrawTrade('drawtrade_realmoney.ini', )
+# drm.loadTrade()
+# drm.filterTrade()
+# drm.loadBar()
+# drm.draw()
+# ################################
+
 # ################################
 # # 模拟盘成交
-# sql = {
-#     'symbol': 'AP905',
-#     'class': 'ContrarianAtrStrategy',
-#     'name': u'苹果_定点ATR反转20min回测对比',
-# }
-# dt = DrawTrade(sql, configPath='drawtrade_sim.ini', startTradingDay=arrow.get('2019-01-09 00:00:00+08').datetime)
-# dt.loadBar()
-# dt.filterTrade()
-# dt.loadTrade()
-# dt.draw()
+# # startTradingDay = drm.matcher.startTradingDay # 取实盘的第一笔成交开始做对比
+# dsim = DrawTrade('drawtrade_sim.ini', )
+# dsim.loadTrade()
+# dsim.filterTrade()
+# dsim.loadBar()
+# dsim.draw()
 # ################################
 
-
-################################
-# 实盘盘成交
-dt = DrawTrade(configPath='drawtrade_realmoney.ini', endTradingDay=arrow.get('2018-11-07 00:00:00+08').datetime)
-dt.loadTrade()
-dt.loadBar()
-dt.filterTrade()
-dt.draw()
-################################
-
-# originTrl = chain(dt.originTrl, dbt.originTrl)
+# originTrl = list(chain(
+#     dbt.originTrl,
+#     dsim.originTrl,
+#     # drm.originTrl
+#
+# ))
 # # # 合并绘制成交图
-# tradeOnKlinePlot = tradeOnKLine('1T', dt.bars, originTrl, width=3000, height=1350)
+# tradeOnKlinePlot = tradeOnKLine('1T', dsim.bars, originTrl, width=3000, height=1350)
 # tradeOnKlinePlot.render(u'/Users/lamter/Downloads/叠加成交图.html')
 
 

@@ -62,9 +62,9 @@ if __name__ == '__main__':
         # "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
-        'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 40000,
+        'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 40000,
         # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
-        "barXmin": 20, "longBar": 10, "n": 1, "fixhands": 2,
+        "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 2,
         'strategyClass': 'ContrarianAtrStrategy',
 
         # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
@@ -83,7 +83,8 @@ if __name__ == '__main__':
     # 运行回测
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
-    # engine.showDailyResult()
-    # engine.showBacktestingResult()
+    engine.showDailyResult()
+    engine.showBacktestingResult()
+
     # print(engine.tradeResult["成交单'][0]['entryDt'])
     # print(engine.tradeResult["成交单'][-1]['entryDt'])
