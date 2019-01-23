@@ -120,16 +120,46 @@ class DrawTrade(object):
         matcher.do()
         self.originTrl = matcher.originTrl
 
-    def draw(self):
+    def draw(self, period='1T'):
         """
         重新绘制成交图
         :return:
         """
 
-        tradeOnKlinePlot = tradeOnKLine('1T', self.bars, self.originTrl, width=3000, height=1350)
+        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=3000, height=1350)
 
         tradeOnKlinePlot.render(self.drawFile)
-        # tradeOnKlinePlot.render(u'/Users/lamter/Downloads/模拟盘成交图.html')
+
+    @property
+    def title(self):
+        return u'成交' + u' '.join(self.sql.values())
+
+
+    @staticmethod
+    def sample_run():
+        """
+        示例如何使用本类
+        :return:
+        """
+        # 配置文件
+        configPath = 'drawtrade.ini'
+        # 最优先的始末日期，比其他地方的始末日期都高的优先级
+        startTradingDay = None
+        endTradingDay = None
+
+        d = DrawTrade(configPath, startTradingDay, endTradingDay)
+
+        # 加载成交单
+        d.loadTrade()
+        # 剔除成交单中的异常的成交，比如手动平仓手不能凑成对的成交单
+        d.filterTrade()
+
+        # 加载完成交单后，再加载 K 线，这样K线可以根据成交单的时间范围进行少量读取
+        d.loadBar()
+
+        # 绘制图，可以选取K线周期，尽量选择能够被1小时整除的周期，或者日线，如
+        # 1T, 5T, 15T, 30T, 1H , 1D之类
+        d.draw('10T')
 
 
 if __name__ == '__main__':

@@ -151,15 +151,22 @@ class DrawBacktestingTrade(object):
             password=self.password,
         )
 
-    def draw(self):
+    def draw(self, period='1T'):
         """
         绘制成交图
         :return:
         """
 
-        tradeOnKlinePlot = mk.tradeOnKLine('1T', self.bars, self.originTrl, width=3000, height=1350)
-        tradeOnKlinePlot.render(self.backtestingdrawfile)
+        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=3000, height=1350)
+        if '{optsv}' in self.backtestingdrawfile:
+            f = self.backtestingdrawfile.format(optsv=self.optsv)
+        else:
+            f = self.backtestingdrawfile
+        tradeOnKlinePlot.render(f)
 
+    @property
+    def title(self):
+        return u'回测' + u'{}'.format(self.optsv)
 
 if __name__ == '__main__':
     dbt = DrawBacktestingTrade()
