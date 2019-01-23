@@ -769,7 +769,7 @@ class BacktestingEngine(VTBacktestingEngine):
         dailyTradeCount = totalTradeCount / totalDays
 
         totalReturn = (endBalance / self.capital - 1)
-        dailyReturn = df['return'].mean()
+        dailyReturn = df['return'].mean() * 100
         returnStd = df['return'].std()
 
         maxMarginPer = df['marginPer'].max()
