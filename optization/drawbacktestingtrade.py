@@ -61,11 +61,18 @@ class DrawBacktestingTrade(object):
         self.startTradingDay = startTradingDay
         self.endTradingDay = endTradingDay
 
-        # 品种
-        self.underlyingSymbol = self.config.autoget('DrawBacktestingTrade', 'underlyingSymbol')
-        self.optsv = self.config.autoget('DrawBacktestingTrade', 'optsv')
-        self.backtestingdrawfile = self.config.autoget('DrawBacktestingTrade', 'backtestingdrawfile')
 
+    @property
+    def backtestingdrawfile(self):
+        return self.config.autoget('DrawBacktestingTrade', 'backtestingdrawfile')
+
+    @property
+    def underlyingSymbol(self):
+        return self.config.autoget('DrawBacktestingTrade', 'underlyingSymbol')
+
+    @property
+    def optsv(self):
+        return self.config.autoget('DrawBacktestingTrade', 'optsv')
 
     def clearCollection(self):
         """
@@ -131,6 +138,7 @@ class DrawBacktestingTrade(object):
     def loadBar(self):
         # 加载K线
         # 截取回测始末日期，注释掉的话默认取全部主力日期
+        logging.info(u'加载 bar')
         kwargs = dict(self.config.autoitems('ctp_mongo'))
         self.bars = mk.qryBarsMongoDB(
             underlyingSymbol=self.underlyingSymbol,
@@ -144,6 +152,7 @@ class DrawBacktestingTrade(object):
         加载成交单
         :return:
         """
+        logging.info(u'加载 成交单')
         self.originTrl = mk.qryBtresultMongoDB(
             underlyingSymbol=self.underlyingSymbol,
             optsv=self.optsv,
@@ -151,17 +160,18 @@ class DrawBacktestingTrade(object):
             password=self.password,
         )
 
-    def draw(self, period='1T'):
+    def draw(self, period='1T', width=3000, height=1350):
         """
         绘制成交图
         :return:
         """
 
-        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=3000, height=1350)
+        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=width, height=height)
         if '{optsv}' in self.backtestingdrawfile:
             f = self.backtestingdrawfile.format(optsv=self.optsv)
         else:
             f = self.backtestingdrawfile
+        logging.info(u'生成成交图 {}'.format(f))
         tradeOnKlinePlot.render(f)
 
     @property

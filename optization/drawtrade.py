@@ -120,14 +120,14 @@ class DrawTrade(object):
         matcher.do()
         self.originTrl = matcher.originTrl
 
-    def draw(self, period='1T'):
+    def draw(self, period='1T', width=3000, height=1350):
         """
         重新绘制成交图
         :return:
         """
 
-        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=3000, height=1350)
-
+        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=width, height=height)
+        logging.info(u'生成成交图 {}'.format(self.drawFile))
         tradeOnKlinePlot.render(self.drawFile)
 
     @property
