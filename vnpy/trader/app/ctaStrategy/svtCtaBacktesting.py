@@ -417,7 +417,30 @@ class BacktestingEngine(VTBacktestingEngine):
         # 对 datetime 排序
         self.datas.sort(key=lambda d: d.datetime)
 
+        self.clearBeforeBar()
+
         self.log.info(u'载入完成')
+
+    def clearBeforeBar(self):
+        """
+        剔除 9:00 和 21:00 的不合理K线
+        :return:
+        """
+        if self.mode == self.BAR_MODE and self.collectionName == MINUTE_COL_NAME:
+            timestamp = ((9, 0, 0), (21, 0, 0))
+            preKline = None
+            for k in self.datas[:]:
+                if (k.datetime.hour, k.datetime.minute, k.datetime.second) in timestamp:
+                    # 取出提前开始的K线 9:00
+                    preKline = k
+                    self.datas.remove(k)
+                if preKline:
+                    # 聚合到下一根K线上，可能是 9:02 ，不一定是9:01
+                    k.high = max(preKline.high, k.high)
+                    k.low = min(preKline.low, k.low)
+                    k.volume += preKline.volume
+                    preKline = None
+            self.log.info(u'剔除过早的K线')
 
     # ----------------------------------------------------------------------
     def runBacktesting(self):
