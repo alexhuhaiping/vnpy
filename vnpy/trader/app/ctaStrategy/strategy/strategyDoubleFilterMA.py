@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 """
-做一条MA5，然后MA5上最近3K线都是涨的， 并且最近两K线都是收阳， 就开多
+做一条MA，然后MA上最近3个MA都是涨的， 并且最近两K线都是收阳， 就开多
 """
 
 from __future__ import division
@@ -24,9 +24,9 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class DailyMAStrategy(CtaTemplate):
+class DoubleFilterMAStrategy(CtaTemplate):
     """日均线策略"""
-    className = u'日均线策略'
+    className = u'二重过滤均线策略'
     author = u'lamter'
 
     barXmin = 60  # 1小时K线
@@ -53,7 +53,7 @@ class DailyMAStrategy(CtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(DailyMAStrategy, self).__init__(ctaEngine, setting)
+        super(DoubleFilterMAStrategy, self).__init__(ctaEngine, setting)
 
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
@@ -173,6 +173,7 @@ class DailyMAStrategy(CtaTemplate):
         trend = ma[-self.trendMA:] < ma[-self.trendMA - 1:-1]
         assert isinstance(trend, np.ndarray)
         if trend.all():
+            # 连续 self.trendMA 个 MA 值都是递减，空趋势
             if self.am.close[-1] < self.am.open[-1] and self.am.close[-2] < self.am.open[-2]:
                 if self.pos >= 0:
                     price = self.bar.close
