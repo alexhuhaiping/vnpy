@@ -195,20 +195,34 @@ class AtrBottomFishStrategy(CtaTemplate):
 
                 # self.log.info(u'{} {} {} {} {} '.format(self.pos, self.high, bar.high, bar.low, self.low))
 
-            if self.bar.datetime.hour == 14 and self.bar.datetime.minute >= 58:
-                # 清仓
-                self.cancelAll()
-                self.canOrder = False
-                self.clearAll()
-            elif bar.high - bar.low < self.atr:
-                # 下单/重新下单
-                # 先撤单再下单
-                self.orderOnBar()  # 开仓单
+            # 两者只能选择一个
+            self.orderWithoutCheckCanOrder()
+            # self.checkCanOrcer(bar)
 
-                self.saveDB()
 
-            else:
+    def orderWithoutCheckCanOrder(self):
+        """
 
+        :return:
+        """
+        # orderOnBar 中会做撤单操作
+        self.orderOnBar()  # 开仓单
+        self.saveDB()
+
+    def checkCanOrcer(self, bar):
+        if bar.datetime.hour == 14 and bar.datetime.minute >= 58:
+            # 清仓
+            self.cancelAll()
+            self.canOrder = False
+            self.clearAll()
+        elif bar.high - bar.low < self.atr:
+            # 下单/重新下单
+            # 先撤单再下单
+            self.orderOnBar()  # 开仓单
+
+            self.saveDB()
+        else:
+            pass
 
     def orderOnBar(self):
         # 开仓价
