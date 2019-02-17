@@ -48,7 +48,7 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     vtSymbol = 'AP905'
-    # vtSymbol = 'AP810'
+    # vtSymbol = 'AP805'
     # vtSymbol = 'rb1901'
 
     setting = {
@@ -63,14 +63,19 @@ if __name__ == '__main__':
         # "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
-        'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 40000,
-        # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
-        "barXmin": 100, "longBar": 10, "n": 1, "fixhands": 2,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # 'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 10000,
+        # # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
+        # "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # 'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 10000,
         # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
         # 'strategyClass': 'DoubleFilterMAStrategy',
+
+        # 反转ATR抄底策略
+        'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
+        'strategyClass': 'AtrBottomFishStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')

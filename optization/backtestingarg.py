@@ -47,6 +47,11 @@ class BacktestingArg(object):
         self.param = dic['param']
         self.opts = OrderedDict(dic['opts'])
 
+        try:
+            self.startTradingDay = arrow.get(dic['startTradingDay']).datetime
+        except Exception:
+            self.startTradingDay = None
+
         # 保存这一批回测参数的参数
         self.btinfo = dic.copy()
         self.btinfo['datetime'] = arrow.now().datetime
@@ -56,6 +61,7 @@ class BacktestingArg(object):
         # 该组回测参数的参数
         self.setting = self.param.copy()
         self.setting['opts'] = self.opts
+
 
         # 回测模块的参数
         if not self.opts:
@@ -198,11 +204,14 @@ class BacktestingArg(object):
             'activeStartDate': {'$ne': None},
             'activeEndDate': {'$ne': None}
         }
+        if self.startTradingDay:
+            sql['activeStartDate'] = {'$gte': self.startTradingDay}
 
         cursor = self.contractCol.find(sql)
         cursor = cursor.sort('activeEndDate', -1)
 
         contracts = [c for c in cursor]
+
         if self.specialSymbols:
             self.log.info(u'只回测品种：{}'.format(u','.join(self.specialSymbols)))
             contracts = [c for c in contracts if c['underlyingSymbol'] in self.specialSymbols]
