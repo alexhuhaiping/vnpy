@@ -1,10 +1,5 @@
 # encoding: UTF-8
 
-"""
-一个震荡策略，使用通道信号（如唐奇安通道，布林带等）构建一个通道。
-突破大周期通道时开仓，并在小盈利时止盈，大浮亏时止损。
-意在构建一个小盈多赢的震荡策略。
-"""
 
 from __future__ import division
 
@@ -24,24 +19,20 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
 ########################################################################
-class ContrarianAtrStrategy(CtaTemplate):
-    """反转ATR策略"""
-    className = u'反转ATR策略'
+class AtrBottomFishStrategy(CtaTemplate):
+    """ATR反转后抄底，不设技术止损"""
+    className = u'反转ATR抄底策略'
     author = u'lamter'
 
     # 策略参数
-    longBar = 20
+    longBar = 20  #
     n = 1  # 高点 n atr 算作反转
-    risk = 0.05  # 每笔风险投入
-    flinch = 0  # 畏缩指标
     fixhands = None  # 固定手数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
-        'n',
         'longBar',
-        'risk',
         'fixhands',
     ])
 
@@ -49,35 +40,32 @@ class ContrarianAtrStrategy(CtaTemplate):
     high = None  # 高点
     low = None  # 低点
     atr = 0  # ATR
-    stop = None  # 止损投入
-    highBalance = None # 净值高点
 
     # 变量列表，保存了变量的名称
     _varList = [
-        'highBalance',
         'winCount',
         'loseCount',
         'high',
         'low',
         'hands',
         'atr',
-        'stop',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(ContrarianAtrStrategy, self).__init__(ctaEngine, setting)
+        super(AtrBottomFishStrategy, self).__init__(ctaEngine, setting)
 
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
         #     self.log.propagate = False
 
         self.hands = self.fixhands or 0
-        self.justOpen = False  # 刚开仓过
-        self.longStopOrder = None  # 开多停止单实例
-        self.shortStopOrder = None  # 开空停止单实例
+        self.justOpen = True
+
+        self.longPrice = None
+        self.shortPrice = None
 
     def initMaxBarNum(self):
         self.maxBarNum = self.longBar * 2
@@ -108,21 +96,14 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.bm.preBar = bar
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
-
         if len(initData) >= self.maxBarNum:
             self.log.info(u'初始化完成')
         else:
             self.log.info(u'初始化数据不足!')
 
-        if self.stop is None:
-            # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
-            self.updateStop()
-
         if self.bar:
             self.high = self.high or self.bar.close
             self.low = self.low or self.bar.close
-
-        self.highBalance = self.highBalance or self.rtBalance
 
         self.isCloseoutVaild = True
         self.putEvent()
@@ -146,9 +127,29 @@ class ContrarianAtrStrategy(CtaTemplate):
         if self.high and self.low:
             # 开仓单和平仓单
             self.cancelAll()
-            if self.isBackTesting():
-                self.orderOpenOnBar()
-            self.orderClose()
+            self.orderOnStart()
+
+    def orderOnStart(self):
+        # 开仓价
+        self.longPrice, self.shortPrice = self.getPrice()
+
+        self.updateHands()
+
+        if self.hands == 0:
+            return
+
+        if self.pos == 0:
+            # 同时挂多单和空单
+            self.buy(self.longPrice, self.hands)
+            self.short(self.shortPrice, self.hands)
+        elif self.pos > 0:
+            # 已有多仓，平多开空
+            self.sell(self.shortPrice, abs(self.pos))
+            self.short(self.shortPrice, self.hands)
+        elif self.pos < 0:
+            # 已有空仓，平空开多
+            self.buy(self.longPrice, abs(self.pos))
+            self.cover(self.longPrice, self.hands)
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -176,84 +177,112 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.closeout()
 
-        # 先撤单再下单
         if self.trading:
+            # 计算高低点
             if self.high is None and self.low is None:
                 self.high = bar.high
                 self.low = bar.low
             elif self.justOpen:
                 if self.pos > 0:
-                    self.high = max(bar.close, self.high)
-                elif self.pos < 0:
                     self.low = min(bar.close, self.low)
+                elif self.pos < 0:
+                    self.high = max(bar.close, self.high)
+
                 self.justOpen = False
             else:
                 self.high = max(bar.high, self.high)
                 self.low = min(bar.low, self.low)
 
-            # self.log.info(u'{} {} {} {} {} '.format(self.pos, self.high, bar.high, bar.low, self.low))
+                # self.log.info(u'{} {} {} {} {} '.format(self.pos, self.high, bar.high, bar.low, self.low))
 
-            self.cancelAll()
-            if self.isBackTesting():
-                self.orderOpenOnBar()  # 开仓单
+            if self.bar.datetime.hour == 14 and self.bar.datetime.minute >= 58:
+                # 清仓
+                self.cancelAll()
+                self.canOrder = False
+                self.clearAll()
+            elif bar.high - bar.low < self.atr:
+                # 下单/重新下单
+                # 先撤单再下单
+                self.orderOnBar()  # 开仓单
+
+                self.saveDB()
+
             else:
-                if self.pos == 0:
-                    self.orderOpenOnBar()  # 开仓单
-            self.orderClose()  # 平仓单
 
-            self.saveDB()
 
-    def orderOpenOnBar(self):
+    def orderOnBar(self):
         # 开仓价
+
         longPrice, shortPrice = self.getPrice()
 
         self.updateHands()
 
-        if self.pos >= 0:
-            # 多仓时反手
-            shortStopOrderID, = self.short(shortPrice, self.hands, stop=True)
-            self.shortStopOrder = self.ctaEngine.workingStopOrderDict[shortStopOrderID]
-        if self.pos <= 0:
-            longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
-            self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
+        if self.hands == 0:
+            return
 
-        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        # 价格变化了，需要撤单重新下单
+        if self.pos == 0:
+            # 同时挂多单和空单
+            if self.longPrice != longPrice or self.shortPrice != shortPrice:
+                # 价格变化了，撤单按重新下
+                self.cancelAll()
+                self.buy(longPrice, self.hands)
+                self.short(shortPrice, self.hands)
+        elif self.pos > 0:
+            # 已有多仓，平多开空
+            if self.shortPrice != shortPrice:
+                self.cancelAll()
+                self.sell(shortPrice, abs(self.pos))
+                self.short(shortPrice, self.hands)
+        else:  # self.pos < 0
+            # 已有空仓，平空开多
+            if self.longPrice != longPrice:
+                self.cancelAll()
+                self.buy(longPrice, abs(self.pos))
+                self.cover(longPrice, self.hands)
 
-    def orderOpenOnTrade(self):
+        self.longPrice, self.shortPrice = longPrice, shortPrice
+
+    def orderOnTrade(self):
+        if self.hands == 0:
+            return
+
         # 开仓价
+        longPrice, shortPrice = self.getPrice()
         self.updateHands()
 
-        if self.prePos > 0:
-            # 反手开空
-            self.short(self.bm.lastTick.lowerLimit, self.hands)
-        elif self.prePos < 0:
-            # 反手开多
-            self.buy(self.bm.lastTick.upperLimit, self.hands)
-        else:
-            self.log.warning(u'之前仓位为 pos == 0 无法判断反手方向')
+        if self.hands == 0:
+            return
 
-        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        # 价格变化了，需要撤单重新下单
+        if self.pos == 0:
+            # 同时挂多单和空单
+            if self.longPrice != longPrice or self.shortPrice != shortPrice:
+                # 价格变化了，撤单按重新下
+                self.cancelAll()
+                self.buy(longPrice, self.hands)
+                self.short(shortPrice, self.hands)
+        elif self.pos > 0:
+            # 已有多仓，平多开空
+            if self.shortPrice != shortPrice:
+                self.cancelAll()
+                self.sell(shortPrice, abs(self.pos))
+                self.short(shortPrice, self.hands)
+        else:  # self.pos < 0
+            # 已有空仓，平空开多
+            if self.longPrice != longPrice:
+                self.cancelAll()
+                self.buy(longPrice, abs(self.pos))
+                self.cover(longPrice, self.hands)
+
+        self.longPrice, self.shortPrice = longPrice, shortPrice
 
     def getPrice(self):
         # 更新高、低点
-        shortPrice = self.roundToPriceTick(self.high - self.atr * self.n)
-        longPrice = self.roundToPriceTick(self.low + self.atr * self.n)
-        return longPrice, shortPrice
-
-    def orderClose(self):
-        """
-        平仓单
-        :return:
-        """
-        if self.pos == 0:
-            return
-
-        longPrice, shortPrice = self.getPrice()
-
-        if self.pos > 0:
-            self.sell(shortPrice, abs(self.pos), stop=True)
-        elif self.pos < 0:
-            self.cover(longPrice, abs(self.pos), stop=True)
+        longPrice = self.roundToPriceTick(self.high - self.atr * self.n)
+        shortPrice = self.roundToPriceTick(self.low + self.atr * self.n)
+        # return longPrice + self.priceTick * 5, shortPrice - self.priceTick * 5
+        return longPrice , shortPrice
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
@@ -275,9 +304,6 @@ class ContrarianAtrStrategy(CtaTemplate):
 
         # 通道中线
         self.atr = am.atr(self.longBar)
-
-        # # 通道内最高点
-        # self.high, self.low = am.donchian(self.longBar)
 
         # 发出状态更新事件
         self.saveDB()
@@ -306,17 +332,15 @@ class ContrarianAtrStrategy(CtaTemplate):
         originCapital, charge, profile = self._onTrade(trade)
 
         # 重置高低点
-        if self.pos > 0:
-            # 开多了，开仓点设为高点，高点下跌 n ATR 反手
-            self.high = trade.price
-        elif self.pos < 0:
-            # 开空了，开仓点设为低点，低点反弹 n ATR 反手
-            self.low = trade.price
+        # if self.pos > 0:
+        #     # 开多了，开仓点设为底点，低点上涨 n ATR 止盈并反手
+        #     self.low = trade.price
+        # elif self.pos < 0:
+        #     # 开多了，开仓点设为高点，高点下跌 n ATR 止盈并反手
+        #     self.high = trade.price
 
         if self.pos == 0:
-            # log = u'{} {} {} v: {}\tp: {}\tb: {}'.format(trade.direction, trade.offset, trade.price, trade.volume,
-            #                                              profile, int(self.rtBalance))
-            # self.log.warning(log)
+            self.high = self.low = trade.price
 
             # 平仓了，开始对连胜连败计数
             if profile > 0:
@@ -326,50 +350,17 @@ class ContrarianAtrStrategy(CtaTemplate):
                 self.winCount = 0
                 self.loseCount += 1
 
-                # 重新计算风险投入
-                self.updateStop()
-
-            self.highBalance = max(self.highBalance, self.rtBalance)
-            self.log.info(u'highBalance:{}; rtBalance:{}'.format(self.highBalance, self.rtBalance))
-
-        if self.isBackTesting():
-            # 回测时
-            self.orderOpenOnTradBackting()
+        if self.pos == 0:
+            # 平仓成交，不处理
+            pass
         else:
-            # 实盘
-            if self.pos == 0:
-                self.orderOpenOnTrade()
-            else:
-                self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
-                self.cancelAll()
-                self.orderClose()
+            # 开仓成交
+            self.orderOnTrade()
+
+        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
         # 发出状态更新事件
         self.saveDB()
-        self.putEvent()
-
-        # if self.isBackTesting():
-        #     if arrow.get('2019-01-10 10:43:00+08') < self.bar.datetime < arrow.get('2019-01-10 10:46:00+08'):
-        #         print(u'{} {}'.format(self.atr, self.low))
-        #         self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
-
-    def orderOpenOnTradBackting(self):
-        if self.pos == 0:
-            # 直接更改开仓单
-            self.updateHands()
-            if self.longStopOrder:
-                self.longStopOrder.volume = self.hands
-            if self.shortStopOrder:
-                self.shortStopOrder.volume = self.hands
-        else:
-            # 开仓，撤单重发
-            self.cancelAll()
-            self.orderOpenOnBar()
-            self.orderClose()
-    # ----------------------------------------------------------------------
-    def onStopOrder(self, so):
-        """停止单推送"""
-
         self.putEvent()
 
     def updateHands(self):
@@ -388,53 +379,22 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = 0
             return
 
-        # 理论仓位
-        minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
-        if self.hands == 0:
-            self.hands = int(self.maxHands / 2)
-
-        # 仓位计算方法 ===========>
         # 固定仓位
         if self.fixhands is not None:
             # 有固定手数时直接使用固定手数
             self.hands = min(self.maxHands, self.fixhands)
             return
 
-        # 固定比例仓位,每2万本金对应1仓，不减仓
-        # if self.hands:
-        #     self.hands = max(int(self.capital / 20000), self.hands)
-        # else:
-        #     self.hands = self.fixhands
-        # self.hands = min(self.hands, self.maxHands)
-        # return
-
-        # 连败中一直轻仓，连胜一直满仓
-        # self.hands = 1 if self.loseCount else max(1, hands)
-
-        # 直接动态仓位
-        # self.hands = max(1, hands)
-
-        # 按连败次数加仓
-        # self.hands = self._calHandsByLoseCountPct(hands, self.flinch)
-
-        # 连败 flinch 次后满仓
-        # self.hands = self._calHandsByLoseCount(hands, self.flinch)
-        # <==================
     def toSave(self):
         """
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(ContrarianAtrStrategy, self).toSave()
+        dic = super(AtrBottomFishStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
 
-
     def loadCtaDB(self, document=None):
-        super(ContrarianAtrStrategy, self).loadCtaDB(document)
+        super(AtrBottomFishStrategy, self).loadCtaDB(document)
         self._loadVar(document)
-
-    def updateStop(self):
-        self.log.info(u'调整风险投入')
-        self.stop = self.capital * self.risk

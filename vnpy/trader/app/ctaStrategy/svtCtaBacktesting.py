@@ -466,6 +466,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.strategy.onInit()
         self.log.info(u'策略初始化完成')
 
+        self.dt = self.datas[0].datetime
+
         self.strategy.trading = True
         self.strategy.onStart()
         self.log.info(u'策略启动完成')

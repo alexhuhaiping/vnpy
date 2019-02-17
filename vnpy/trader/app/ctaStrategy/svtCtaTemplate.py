@@ -906,6 +906,18 @@ class CtaTemplate(vtCtaTemplate):
         # 一键撤单
         self.cancelAll()
 
+        self.clearAll()
+
+        if not self.isBackTesting():
+            self.log.warning(u'一键平仓')
+
+        self.isCloseoutVaild = False
+
+    def clearAll(self):
+        """
+        立即清仓
+        :return:
+        """
         # 下平仓单
         if self.pos > 0:
             # 平多
@@ -918,10 +930,6 @@ class CtaTemplate(vtCtaTemplate):
             volume = abs(self.pos)
             self.cover(price, volume)
 
-        if not self.isBackTesting():
-            self.log.warning(u'一键平仓')
-
-        self.isCloseoutVaild = False
 
     def toStatus(self):
         dic = {
