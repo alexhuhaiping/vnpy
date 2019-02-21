@@ -288,7 +288,7 @@ class DrEngine(object):
         self.eventEngine.register(EVENT_TICK, self.procecssTickEvent)
         self.eventEngine.register(EVENT_CONTRACT, self.subscribeDrContract)
         self.eventEngine.register(EVENT_MARGIN_RATE, self.updateMariginRate)
-        self.eventEngine.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
+        self.eventEngine.register(EVENT_COMMISSION_RATE, self.saveCacheCommissionRate)
 
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
@@ -447,16 +447,25 @@ class DrEngine(object):
 
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
-        self.log.info(u'更新保证金 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
         _filter = {'vtSymbol': marginRate.vtSymbol}
 
         _contract = collection.find_one(_filter)
         if 'marginRate' not in _contract:
+            self.log.info(u'添加保证金率 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
             collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
+        else:
+            activeEndDate = _contract.get('activeEndDate')
+            if activeEndDate:
+                if self.today - activeEndDate <= datetime.timedelta(days=3):
+                    preMarginRate = _contract['marginRate']
+                    if marginRate.marginRate != preMarginRate:
+                        self.log.info(
+                            u'更新保证金率 {} {}->{}'.format(marginRate.vtSymbol, preMarginRate, marginRate.marginRate))
+                        collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
 
-    def updateCommissionRate(self, event):
+    def saveCacheCommissionRate(self, event):
         """
-        更新保证金率
+        将手续费进行缓存
         :param event:
         :return:
         """
@@ -486,6 +495,7 @@ class DrEngine(object):
         for symbol in list(dic.keys()):
             if self.active:
                 self.log.info(u'查询 {} 手续费'.format(symbol))
+                # 每次查询，都要等待 saveCacheCommissionRate 回调完成手续费缓存
                 self.mainEngine.qryCommissionRate('CTP', symbol)
                 time.sleep(1.1)
             else:
@@ -493,12 +503,12 @@ class DrEngine(object):
                 self.log.info(u'服务停止了')
                 return
 
-        self.log.info(u'更新保证金到数据库')
+        # 手续费缓存完成，开始更新手续费信息
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
         for symbol, vtCr in self.vtCommissionRateBySymbol.items():
             if vtCr is None:
                 # 为什么而这里会是None
-                self.log.info(u'{} 未获得保证金更新'.format(symbol))
+                self.log.info(u'{} 未获得手续费更新'.format(symbol))
                 continue
 
             _filter = {'vtSymbol': symbol}
@@ -515,13 +525,27 @@ class DrEngine(object):
 
             }
 
-            for k in list(setting.keys()):
-                if k in _contract:
-                    setting.pop(k)
-            if setting:
-                # 将手续费保存到合约中
-                collection.update_one(_filter, {'$set': setting})
+            activeEndDate = _contract.get('activeEndDate')
+            for k in setting:
+                if k not in _contract:
+                    # 从来没有获得过手续费信息
+                    self.log.info(u'{} 新增手续费 {}'.format(symbol, str(setting)))
+                    collection.update_one(_filter, {'$set': setting})
+                    break
+            else:
+                # 已经有手续费信息了
+                if activeEndDate and self.today - activeEndDate <= datetime.timedelta(days=3):
+                    # 将手续费保存到合约中
+                    _setting = {}
+                    for k, c in setting.items():
+                        if _contract.get(k) != c:
+                            if not _setting:
+                                self.log.info(u'{} 更新手续费 '.format(symbol))
+                            _setting[k] = c
+                            self.log.info(u'{} {} {}->{}'.format(symbol, k, _contract.get(k), c))
+                    if _setting:
+                        collection.update_one(_filter, {'$set': _setting})
 
     def updateContractDetail(self):
-        self.getMarginRate()
+        # self.getMarginRate()
         self.getCommissionRate()

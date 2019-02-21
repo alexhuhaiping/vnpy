@@ -11,9 +11,13 @@ import os
 import decimal
 import json
 import time
+from bson.codec_options import CodecOptions
 import datetime as dt
 from datetime import datetime
+import pytz
 
+LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
+CODEC_OPTIONS = CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE)
 MAX_NUMBER = 10000000000000
 MAX_DECIMAL = 4
 
