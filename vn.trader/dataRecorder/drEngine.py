@@ -547,5 +547,5 @@ class DrEngine(object):
                         collection.update_one(_filter, {'$set': _setting})
 
     def updateContractDetail(self):
-        # self.getMarginRate()
+        self.getMarginRate()
         self.getCommissionRate()
