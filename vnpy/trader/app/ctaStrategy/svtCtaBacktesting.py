@@ -836,6 +836,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'日均收益率'] = dailyReturn
         self.dailyResult[u'收益标准差'] = returnStd
         self.dailyResult[u'夏普率'] = sharpeRatio
+        self.dailyResult[u'netPnl'] = list(df['netPnl'])
 
         if self.isOutputResult:
             self.printResult(self.dailyResult)
@@ -846,36 +847,51 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
         self.dailyResult[u'结算日'] = map(lambda d: d.value, pd.to_datetime(df.index))
 
+        assert len(self.dailyResult[u'netPnl']) == len(self.dailyResult[u'结算日'])
+
         if not self.isShowFig:
             return
 
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
-        subPlotNum = 6
-        pBalance = plt.subplot(subPlotNum, 1, 1)
+        subPlotCount = 0
+        subPlotNum = 7
+
+        subPlotCount += 1
+        pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
         pBalance.set_title('Balance {}'.format(self.symbol))
         df['balance'].plot(legend=True, grid=True)
 
-        pDrawdown = plt.subplot(subPlotNum, 1, 2)
+        subPlotCount += 1
+        pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
+        pBalance.set_title('Daily Pnl Cumsum {}'.format(self.symbol))
+        df['netPnl'].cumsum().plot(legend=True, grid=True)
+
+        subPlotCount += 1
+        pDrawdown = plt.subplot(subPlotNum, 1, subPlotCount)
         pDrawdown.set_title('Drawdown')
         pDrawdown.grid(True, color='gray')
         pDrawdown.fill_between(df['drawdown'].index, df['drawdown'].values)
 
-        pDrawdownPer = plt.subplot(subPlotNum, 1, 3)
+        subPlotCount += 1
+        pDrawdownPer = plt.subplot(subPlotNum, 1, subPlotCount)
         pDrawdownPer.set_title('DrawdownPer')
         pDrawdownPer.grid(True, color='gray')
         pDrawdownPer.fill_between(df['drawdownPer'].index, df['drawdownPer'].values)
 
-        pPnl = plt.subplot(subPlotNum, 1, 4)
+        subPlotCount += 1
+        pPnl = plt.subplot(subPlotNum, 1, subPlotCount)
         pPnl.set_title('Daily Pnl')
         df['netPnl'].plot(kind='bar', legend=False, grid=False, xticks=[])
 
-        pMp = plt.subplot(subPlotNum, 1, 5)
+        subPlotCount += 1
+        pMp = plt.subplot(subPlotNum, 1, subPlotCount)
         pMp.set_title('Daily MarginPer')
         df['marginPer'].plot(kind='bar', legend=False, grid=False, xticks=[])
 
-        pKDE = plt.subplot(subPlotNum, 1, 6)
+        subPlotCount += 1
+        pKDE = plt.subplot(subPlotNum, 1, subPlotCount)
         pKDE.set_title('Daily Pnl Distribution')
         df['netPnl'].hist(bins=50)
 
@@ -1053,11 +1069,14 @@ class BacktestingEngine(VTBacktestingEngine):
 
         timeList = []  # 时间序列
         pnlList = []  # 每笔盈亏序列
-        capitalList = []  # 盈亏汇总的时间序列
+        balanceList = [] # 盈亏汇总的时间序列
+        capitalList = []  # 资金时间序列
         drawdownList = []  # 回撤的时间序列
         drawdownPerList = []  # 回撤比率的时间序列
+        drawdownRatePerTradeList = []  # 单笔最大回撤率
         posList = []  # 仓位变化
-        marginList = []  # 保证金占用比例
+        marginList = []  # 保证金
+        marginRateList = []  # 保证金占用比例
 
         winningResult = 0  # 盈利次数
         losingResult = 0  # 亏损次数
@@ -1066,10 +1085,13 @@ class BacktestingEngine(VTBacktestingEngine):
         # pos = 0  # 总体持仓情况
 
         for result in resultList:
-            margin = abs(result.volume * self.size * result.entryPrice * self.marginRate.marginRate / capital)
-            capital += result.pnl
+            margin = abs(result.volume * self.size * result.entryPrice * self.marginRate.marginRate)
+            marginRate = margin / capital
+            capital += result.pnl # pnl 已经扣掉了滑点和手续费
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
+            drawdownRatePerTrade = min(0, result.pnl/margin) # 单笔最大回撤率
+
 
             pnlList.append(result.pnl)
             timeList.append(result.exitDt)  # 交易的时间戳使用平仓时间
@@ -1078,6 +1100,8 @@ class BacktestingEngine(VTBacktestingEngine):
             drawdownPerList.append(drawdown / maxCapital)
             posList.append(result.volume)
             marginList.append(margin)
+            marginRateList.append(marginRate)
+            drawdownRatePerTradeList.append(drawdownRatePerTrade)
 
             totalResult += 1
             totalTurnover += result.turnover
@@ -1121,14 +1145,20 @@ class BacktestingEngine(VTBacktestingEngine):
         d['drawdownList'] = drawdownList
         d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
+        d['winningResult'] = winningResult
+        d['losingResult'] = losingResult
+        d['totalWinning'] = totalWinning
+        d['totalLosing'] = totalLosing
         d['winLoseRate'] = - totalWinning / totalLosing if 0 != totalLosing else 0
         d['averageWinning'] = averageWinning
         d['averageLosing'] = averageLosing
         d['profitLossRatio'] = profitLossRatio
         d['posList'] = posList
         d['marginList'] = marginList
+        d['marginRateList'] = marginRateList
         d['tradeTimeList'] = tradeTimeList
         d['resultList'] = resultList
+        d['drawdownRatePerTradeList'] = drawdownRatePerTradeList
 
         return d
 
@@ -1145,17 +1175,33 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.tradeResult[u'第一笔交易'] = d['timeList'][0]
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
-        self.tradeResult[u'总交易次数'] = d['totalResult']
+        self.tradeResult[u'总交易次数'] = d['totalResult'] # 1次可以N手
 
         self.tradeResult[u'初始金'] = self.capital
         self.tradeResult[u'总盈亏'] = d['capital']
-        self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
-        self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
-        self.tradeResult[u'最大回撤率'] = min(d['drawdownPerList'])
+        self.tradeResult[u'总手续费'] = d['totalCommission']
+        self.tradeResult[u'总滑点'] = d['totalSlippage']
+        self.tradeResult[u'交易成本'] = d['totalSlippage'] + d['totalCommission']
+        self.tradeResult[u'纯盈亏'] = self.tradeResult[u'总盈亏'] - self.tradeResult[u'交易成本']
+        self.tradeResult[u'成本比例'] = self.tradeResult[u'交易成本'] / self.tradeResult[u'纯盈亏']
+        self.tradeResult[u'盈利次数'] = d['winningResult']
+        self.tradeResult[u'亏损次数'] = d['losingResult']
+        self.tradeResult[u'总盈利'] = d['totalWinning']
+        self.tradeResult[u'总亏损'] = d['totalLosing']
 
-        self.tradeResult[u'平均每笔盈利'] = d['capital'] / d['totalResult']
+
+        self.tradeResult[u'平均每笔盈亏'] = d['capital'] / d['totalResult']
         self.tradeResult[u'平均每笔滑点'] = d['totalSlippage'] / d['totalResult']
         self.tradeResult[u'平均每笔佣金'] = d['totalCommission'] / d['totalResult']
+        self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
+
+        self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
+
+        self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
+        self.tradeResult[u'单笔最大回撤率'] = min(d['drawdownRatePerTradeList'])
+        self.tradeResult[u'单笔最大回撤'] = min(d['pnlList'])
+        self.tradeResult[u'最大回撤率'] = self.tradeResult[u'最大回撤'] / self.tradeResult[u'平均每笔保证金']
+
 
         self.tradeResult[u'胜率'] = d['winningRate']
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
@@ -1171,6 +1217,7 @@ class BacktestingEngine(VTBacktestingEngine):
         balanceList = pd.Series(balanceList).pct_change()
         self.tradeResult[u'收益率曲线'] = list(balanceList.values[1:])
         self.tradeResult[u'成交单'] = [r.toReutlDB() for r in d['resultList']]
+        self.tradeResult[u'pnl'] = d['pnlList']
 
         if not self.isShowFig:
             return
@@ -1178,57 +1225,59 @@ class BacktestingEngine(VTBacktestingEngine):
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
-        subplotNum = 8
+        subplotNum = 9
+        subplotCount = 0
 
-        pCapital = plt.subplot(subplotNum, 1, 1)
-        pCapital.set_ylabel("capital")
-        pCapital.grid(True, color='gray')
-        pCapital.plot(d['capitalList'], color='r', lw=0.8)
+        subplotCount += 1
+        balance = plt.subplot(subplotNum, 1, subplotCount)
+        balance.set_ylabel("balance")
+        balance.grid(True, color='gray')
+        balance.plot(pd.Series(d['pnlList']).cumsum().values, color='r', lw=0.8)
 
-        pDD = plt.subplot(subplotNum, 1, 2)
+        # subplotCount += 1
+        # pCapital = plt.subplot(subplotNum, 1, subplotCount)
+        # pCapital.set_ylabel("capital")
+        # pCapital.grid(True, color='gray')
+        # pCapital.plot(d['capitalList'], color='r', lw=0.8)
+
+        subplotCount += 1
+        pDD = plt.subplot(subplotNum, 1, subplotCount)
         pDD.set_ylabel("DD")
         pDD.grid(True, color='gray')
         pDD.bar(range(len(d['drawdownList'])), d['drawdownList'], color='g')
 
-        pDDp = plt.subplot(subplotNum, 1, 3)
-        pDDp.set_ylabel("DDP")
-        pDDp.bar(range(len(d['drawdownPerList'])), d['drawdownPerList'], color='g')
+        # subplotCount += 1
+        # pDDp = plt.subplot(subplotNum, 1, subplotCount)
+        # pDDp.set_ylabel("DDP")
+        # pDDp.bar(range(len(d['drawdownPerList'])), d['drawdownPerList'], color='g')
 
-        pPnl = plt.subplot(subplotNum, 1, 4)
+        subplotCount += 1
+        pPnl = plt.subplot(subplotNum, 1, subplotCount)
         pPnl.set_ylabel("pnl")
         pPnl.hist(d['pnlList'], bins=50, color='c')
 
-        pPosition = plt.subplot(subplotNum, 1, 5)
-        pPosition.set_ylabel("Position")
-        pPosition.bar(range(len(d['posList'])), d['posList'], color='g')
+        # subplotCount += 1
+        # pPosition = plt.subplot(subplotNum, 1, subplotCount)
+        # pPosition.set_ylabel("Position")
+        # pPosition.bar(range(len(d['posList'])), d['posList'], color='g')
 
-        # 策略中记录的持仓变化
-        sPos = plt.subplot(subplotNum, 1, 6)
-        sPos.set_ylabel("sPos")
-        sPos.bar(range(len(self.strategy.posList)), self.strategy.posList, color='g')
+        # # 策略中记录的持仓变化
+        # subplotCount += 1
+        # sPos = plt.subplot(subplotNum, 1, subplotCount)
+        # sPos.set_ylabel("sPos")
+        # sPos.bar(range(len(self.strategy.posList)), self.strategy.posList, color='g')
 
-        pMargin = plt.subplot(subplotNum, 1, 7)
-        pMargin.set_ylabel("Margin")
-        pMargin.bar(range(len(d['marginList'])), d['marginList'], color='g')
-        # pMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
-
-        # 策略中记录的保证金
-        sMargin = plt.subplot(subplotNum, 1, 8)
-        sMargin.set_ylabel("sMargin")
+        # subplotCount += 1
+        # pMargin = plt.subplot(subplotNum, 1, subplotCount)
+        # pMargin.set_ylabel("Margin")
         # pMargin.bar(range(len(d['marginList'])), d['marginList'], color='g')
-        sMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
+        # # pMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
 
-        # pPos = plt.subplot(subplotNum, 1, 6)
-        # pPos.set_ylabel("Position")
-        # if d['posList'][-1] == 0:
-        #     del d['posList'][-1]
-        # tradeTimeIndex = [item.strftime("%m/%d %H:%M:%S") for item in d['tradeTimeList']]
-        # xindex = np.arange(0, len(tradeTimeIndex), np.int(len(tradeTimeIndex) / 10))
-        # tradeTimeIndex = map(lambda i: tradeTimeIndex[i], xindex)
-        # pPos.plot(d['posList'], color='k', drawstyle='steps-pre')
-        # pPos.set_ylim(-1.2, 1.2)
-        # plt.sca(pPos)
-        # plt.tight_layout()
-        # plt.xticks(xindex, tradeTimeIndex, rotation=30)  # 旋转15
+        # # 策略中记录的保证金
+        # subplotCount += 1
+        # sMargin = plt.subplot(subplotNum, 1, subplotCount)
+        # sMargin.set_ylabel("sMargin")
+        # # pMargin.bar(range(len(d['marginList'])), d['marginList'], color='g')
+        # sMargin.bar(range(len(self.strategy.marginList)), self.strategy.marginList, color='g')
 
         plt.show()

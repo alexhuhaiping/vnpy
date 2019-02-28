@@ -1,6 +1,5 @@
 # coding:utf-8
 import logging.config
-from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
@@ -47,11 +46,16 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    vtSymbol = 'AP905'
+    # vtSymbol = 'AP905'
+    vtSymbol = 'ni1905'
+    # vtSymbol = 'IF1901'
     # vtSymbol = 'AP805'
     # vtSymbol = 'rb1901'
 
     setting = {
+
+        # "barXmin": 30, 'capital': 100000,
+        # 'strategyClass': 'TestStrategy',
 
         # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
         # 'strategyClass': 'SvtBollChannelStrategy',
@@ -59,23 +63,18 @@ if __name__ == '__main__':
         # 'risk': 0.02, "barXmin":15,"flinch":2,"longBar":25,"stopLoss":1,"stopProfile":4,
         # 'strategyClass': 'OscillationDonchianStrategy',
 
-
-        # "barXmin": 60, "longBar": 10, "n": 1, "fixhands": 2,
-        # 'strategyClass': 'ContrarianAtrStrategy',
-
-        # 'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 10000,
-        # # "longBar": 20,  "barXmin": 10, # "fixhands": 5,
-        # "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
-        # 'strategyClass': 'ContrarianAtrStrategy',
-
         # 'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 10000,
         # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
         # 'strategyClass': 'DoubleFilterMAStrategy',
 
-        # 反转ATR抄底策略
-        'slippage': 4, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
-        'strategyClass': 'AtrBottomFishStrategy',
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        'barXmin': 120, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        'strategyClass': 'ContrarianAtrStrategy',
+
+        # # 反转ATR抄底策略
+        # 'slippage': 0, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
+        # 'strategyClass': 'AtrBottomFishStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -87,11 +86,11 @@ if __name__ == '__main__':
         isShowFig=False,
         isOutputResult=True,
     )
-    # 运行回测
+    # 运行回测`
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
     engine.showDailyResult()
-    engine.showBacktestingResult()
+    # engine.showBacktestingResult()
 
     # print(engine.tradeResult["成交单'][0]['entryDt'])
     # print(engine.tradeResult["成交单'][-1]['entryDt'])

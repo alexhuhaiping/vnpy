@@ -32,7 +32,8 @@ class BacktestingArg(object):
         self.log.addHandler(sh)
 
         # TODO 只回测指定的品种
-        self.specialSymbols = ['AP']
+        self.specialSymbols = ['ni']
+        # self.specialSymbols = []
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
@@ -321,7 +322,7 @@ class BacktestingArg(object):
 
         count = len(documents)
         self.btinfo['amount'] = count
-        if count > 1000:
+        if count > 10000:
             countStr = u'{}万'.format(count / 10000.)
         else:
             countStr = count
