@@ -44,7 +44,7 @@ class TestStrategy(CtaTemplate):
     def __init__(self, ctaEngine, setting):
         """Constructor"""
         super(TestStrategy, self).__init__(ctaEngine, setting)
-
+        self.isSell = False
     def initMaxBarNum(self):
         self.maxBarNum = 200
 
@@ -90,6 +90,7 @@ class TestStrategy(CtaTemplate):
         """启动策略（必须由用户继承实现）"""
         self.log.info(u'%s策略启动' % self.name)
         self.putEvent()
+        self.buy(12300, 2)
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -125,9 +126,6 @@ class TestStrategy(CtaTemplate):
         :return:
         """
         bar = xminBar
-
-        # 全撤之前发出的委托
-        self.cancelAll()
 
         # 保存K线数据
         am = self.am
@@ -196,7 +194,11 @@ class TestStrategy(CtaTemplate):
                 # 回测中爆仓了
                 self.capital = 0
 
-        # 成交后重新下单
+        if self.pos == 2:
+            self.sell(12500, 1)
+            self.sell(12600, 1)
+
+        self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
         # 发出状态更新事件
         self.saveDB()

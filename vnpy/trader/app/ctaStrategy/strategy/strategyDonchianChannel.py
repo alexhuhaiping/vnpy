@@ -367,7 +367,7 @@ class DonchianChannelStrategy(CtaTemplate):
         """Constructor"""
         super(DonchianChannelStrategy, self).__init__(ctaEngine, setting)
 
-        self.maxBarNum = max(self.in1, self.out1, self.in2, self.out2, self.atrPeriod)  # 最大的入场周期
+
         self.barCount = 0
         self.barList = []
         self.highList = []  # 最高价队列
@@ -391,6 +391,9 @@ class DonchianChannelStrategy(CtaTemplate):
         self.isRefreshOpenPrice = False
 
         self.totalPos = 0
+
+    def initMaxBarNum(self):
+        self.maxBarNum = max(self.in1, self.out1, self.in2, self.out2, self.atrPeriod)  # 最大的入场周期
 
     @property
     def highIn(self):
@@ -510,7 +513,7 @@ class DonchianChannelStrategy(CtaTemplate):
         :param bar1min:a
         :return:
         """
-        CtaTemplate.onBar(self, bar1min)
+        # CtaTemplate.onBar(self, bar1min)
 
         if not self.isNewBar():
             # 尚未累积到一个 new bar

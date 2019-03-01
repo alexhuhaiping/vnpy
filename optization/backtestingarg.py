@@ -32,7 +32,9 @@ class BacktestingArg(object):
         self.log.addHandler(sh)
 
         # TODO 只回测指定的品种
-        self.specialSymbols = ['AP']
+        # self.includeUnderlyingSymbols = ['ag', 'T', 'TF', 'au']
+        self.includeUnderlyingSymbols = []
+        self.excludeUnderlyingSymbols = ['eg']
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
@@ -46,6 +48,11 @@ class BacktestingArg(object):
 
         self.param = dic['param']
         self.opts = OrderedDict(dic['opts'])
+
+        try:
+            self.startTradingDay = arrow.get(dic['startTradingDay']).datetime
+        except Exception:
+            self.startTradingDay = None
 
         # 保存这一批回测参数的参数
         self.btinfo = dic.copy()
@@ -198,16 +205,23 @@ class BacktestingArg(object):
             'activeStartDate': {'$ne': None},
             'activeEndDate': {'$ne': None}
         }
+        if self.startTradingDay:
+            sql['activeStartDate'] = {'$gte': self.startTradingDay}
 
         cursor = self.contractCol.find(sql)
         cursor = cursor.sort('activeEndDate', -1)
 
         contracts = [c for c in cursor]
-        if self.specialSymbols:
-            self.log.info(u'只回测品种：{}'.format(u','.join(self.specialSymbols)))
-            contracts = [c for c in contracts if c['underlyingSymbol'] in self.specialSymbols]
+
+        if self.includeUnderlyingSymbols:
+            self.log.info(u'只回测品种：{}'.format(u','.join(self.includeUnderlyingSymbols)))
+            contracts = [c for c in contracts if c['underlyingSymbol'] in self.includeUnderlyingSymbols ]
         else:
             self.log.info(u'回测全品种')
+
+        if self.excludeUnderlyingSymbols:
+            self.log.info(u'不回测品种：{}'.format(u','.join(self.excludeUnderlyingSymbols)))
+            contracts = [c for c in contracts if c['underlyingSymbol'] not in self.excludeUnderlyingSymbols]
 
         # 依然还在上市的品种
         onMarketUS = set()
@@ -312,7 +326,7 @@ class BacktestingArg(object):
 
         count = len(documents)
         self.btinfo['amount'] = count
-        if count > 1000:
+        if count > 10000:
             countStr = u'{}万'.format(count / 10000.)
         else:
             countStr = count

@@ -67,6 +67,7 @@ class DrawTrade(object):
             **kwarg
         )
 
+
     def loadTrade(self):
         """
 
@@ -89,12 +90,14 @@ class DrawTrade(object):
 
         # 如果是指定日期
         df = self.matcher.df.copy()
+
         if self.startTradingDay:
             df = df[df.datetime >= self.startTradingDay]
-            if df.iloc[0].offset != u'开仓':
+            if df['offset'].iloc[0] != u'开仓':
                 df = self.matcher.df = df.iloc[1:]
         if self.endTradingDay:
             df = df[df.datetime <= self.endTradingDay]
+
         # 剔除指定的 TradeID
         # with open('/Users/lamter/workspace/SlaveO/svnpy/optization/droptradeid.json', 'r') as f:
         with open(self.dropTradeIDsFile, 'r') as f:
@@ -120,14 +123,14 @@ class DrawTrade(object):
         matcher.do()
         self.originTrl = matcher.originTrl
 
-    def draw(self, period='1T'):
+    def draw(self, period='1T', width=3000, height=1350):
         """
         重新绘制成交图
         :return:
         """
 
-        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=3000, height=1350)
-
+        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=width, height=height)
+        logging.info(u'生成成交图 {}'.format(self.drawFile))
         tradeOnKlinePlot.render(self.drawFile)
 
     @property
