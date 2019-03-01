@@ -32,8 +32,9 @@ class BacktestingArg(object):
         self.log.addHandler(sh)
 
         # TODO 只回测指定的品种
-        self.specialSymbols = ['ni']
-        # self.specialSymbols = []
+        # self.includeUnderlyingSymbols = ['ag', 'T', 'TF', 'au']
+        self.includeUnderlyingSymbols = []
+        self.excludeUnderlyingSymbols = ['eg']
 
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
@@ -62,7 +63,6 @@ class BacktestingArg(object):
         # 该组回测参数的参数
         self.setting = self.param.copy()
         self.setting['opts'] = self.opts
-
 
         # 回测模块的参数
         if not self.opts:
@@ -213,11 +213,15 @@ class BacktestingArg(object):
 
         contracts = [c for c in cursor]
 
-        if self.specialSymbols:
-            self.log.info(u'只回测品种：{}'.format(u','.join(self.specialSymbols)))
-            contracts = [c for c in contracts if c['underlyingSymbol'] in self.specialSymbols]
+        if self.includeUnderlyingSymbols:
+            self.log.info(u'只回测品种：{}'.format(u','.join(self.includeUnderlyingSymbols)))
+            contracts = [c for c in contracts if c['underlyingSymbol'] in self.includeUnderlyingSymbols ]
         else:
             self.log.info(u'回测全品种')
+
+        if self.excludeUnderlyingSymbols:
+            self.log.info(u'不回测品种：{}'.format(u','.join(self.excludeUnderlyingSymbols)))
+            contracts = [c for c in contracts if c['underlyingSymbol'] not in self.excludeUnderlyingSymbols]
 
         # 依然还在上市的品种
         onMarketUS = set()

@@ -46,11 +46,12 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    # vtSymbol = 'AP905'
-    vtSymbol = 'ni1905'
+    # vtSymbol = 'AP901'
+    # vtSymbol = 'ni1905'
     # vtSymbol = 'IF1901'
     # vtSymbol = 'AP805'
     # vtSymbol = 'rb1901'
+    vtSymbol = 'cu1904'
 
     setting = {
 
@@ -67,14 +68,19 @@ if __name__ == '__main__':
         # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
         # 'strategyClass': 'DoubleFilterMAStrategy',
 
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        'barXmin': 120, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        # 'barXmin': 120, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
-        # # 反转ATR抄底策略
-        # 'slippage': 0, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # "barXmin": 30, "longBar": 10, "n": 1, "fixhands": 1,
+        # # ATR反转抄底策略
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
         # 'strategyClass': 'AtrBottomFishStrategy',
+
+        # 唐奇安通道
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        "barXmin": 20, "fixhands": 1,
+        'strategyClass': 'DonchianChannelStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -90,7 +96,7 @@ if __name__ == '__main__':
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
     engine.showDailyResult()
-    # engine.showBacktestingResult()
+    engine.showBacktestingResult()
 
     # print(engine.tradeResult["成交单'][0]['entryDt'])
     # print(engine.tradeResult["成交单'][-1]['entryDt'])

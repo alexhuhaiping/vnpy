@@ -1182,7 +1182,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'总手续费'] = d['totalCommission']
         self.tradeResult[u'总滑点'] = d['totalSlippage']
         self.tradeResult[u'交易成本'] = d['totalSlippage'] + d['totalCommission']
-        self.tradeResult[u'纯盈亏'] = self.tradeResult[u'总盈亏'] - self.tradeResult[u'交易成本']
+        self.tradeResult[u'纯盈亏'] = self.tradeResult[u'总盈亏'] + self.tradeResult[u'交易成本']
         self.tradeResult[u'成本比例'] = self.tradeResult[u'交易成本'] / self.tradeResult[u'纯盈亏']
         self.tradeResult[u'盈利次数'] = d['winningResult']
         self.tradeResult[u'亏损次数'] = d['losingResult']

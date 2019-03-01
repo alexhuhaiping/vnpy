@@ -104,15 +104,29 @@ class DrawBacktestingTrade(object):
         child_runOptBoss.start()
 
         btInfoDic = self.btinfoCol.find_one({})
+        sleepSec = 1 if btInfoDic['amount'] < 10 else 60
+        b = arrow.now()
+        startNum = None
+        time.sleep(10)
         while True:
-            time.sleep(1)
             cursor = self.btresultCol.find()
             count = cursor.count()
-            print('result {}'.format(count))
+            startNum = startNum or count
+            try:
+                overCount = count - startNum
+                per = round(count * 1. / btInfoDic['amount'], 4)
+                e = arrow.now()
+                costTime = e - b
+                needTime = costTime / overCount * (btInfoDic['amount'] - count)
+                print(u'============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e))
+            except ZeroDivisionError:
+                import traceback
+                traceback.print_exc()
             if btInfoDic['amount'] == count:
                 # 已经全部回测完毕
                 break
             cursor.close()
+            time.sleep(sleepSec)
         child_runBackTesting.terminate()
         child_runOptBoss.terminate()
 
