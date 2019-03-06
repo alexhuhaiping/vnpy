@@ -10,6 +10,7 @@ from myplot.kline import *
 from drawbacktestingtrade import DrawBacktestingTrade
 from drawtrade import DrawTrade
 
+
 b = arrow.now()
 
 PERIOD = '1T'
@@ -52,10 +53,10 @@ dbt.runBacktesting()  # 批量回测
 # dbt.loadBar()# 加载数据并绘制成交图
 # dbt.draw(PERIOD)
 
-e = arrow.now()
-print(u'运行 {} -> {} 耗时 {}'.format(b, e, e - b))
-import os
-os.system('say "批量回测完成 耗时 {}"'.format(e-b))
+# e = arrow.now()
+# print(u'运行 {} -> {} 耗时 {}'.format(b, e, e - b))
+# import os
+# os.system('say "批量回测完成 耗时 {}"'.format(e-b))
 
 ###############################
 

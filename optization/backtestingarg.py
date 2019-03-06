@@ -31,11 +31,6 @@ class BacktestingArg(object):
         sh.setLevel(logging.INFO)
         self.log.addHandler(sh)
 
-        # TODO 只回测指定的品种
-        # self.includeUnderlyingSymbols = ['ag', 'T', 'TF', 'au']
-        self.includeUnderlyingSymbols = []
-        self.excludeUnderlyingSymbols = ['eg']
-
         self.config = ConfigParser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
 
@@ -48,6 +43,11 @@ class BacktestingArg(object):
 
         self.param = dic['param']
         self.opts = OrderedDict(dic['opts'])
+
+        # 只回测指定的品种
+        self.includeUnderlyingSymbols = dic.get('includeUnderlyingSymbols')
+        # self.includeUnderlyingSymbols = []
+        self.excludeUnderlyingSymbols = dic.get('excludeUnderlyingSymbols')
 
         try:
             self.startTradingDay = arrow.get(dic['startTradingDay']).datetime

@@ -3,6 +3,9 @@ import logging.config
 from vnpy.trader.app.ctaStrategy.svtCtaBacktesting import BacktestingEngine
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
+import tradingtime as tt
+import arrow
+tt.load_futures_tradingtime(arrow.get('2011-01-01').date())
 
 globals().update(STRATEGY_CLASS)
 
@@ -51,7 +54,8 @@ if __name__ == '__main__':
     # vtSymbol = 'IF1901'
     # vtSymbol = 'AP805'
     # vtSymbol = 'rb1901'
-    vtSymbol = 'cu1904'
+    # vtSymbol = 'cu1904'
+    vtSymbol = 'IH1902'
 
     setting = {
 
@@ -68,19 +72,20 @@ if __name__ == '__main__':
         # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
         # 'strategyClass': 'DoubleFilterMAStrategy',
 
-        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # 'barXmin': 120, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        # 'strategyClass': 'ContrarianAtrStrategy',
+        # ATR 反转策略
+        'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        'barXmin': 20, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
         # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
         # 'strategyClass': 'AtrBottomFishStrategy',
 
-        # 唐奇安通道
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        "barXmin": 20, "fixhands": 1,
-        'strategyClass': 'DonchianChannelStrategy',
+        # # 唐奇安通道
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        # "barXmin": 20, "fixhands": 1,
+        # 'strategyClass': 'DonchianChannelStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
