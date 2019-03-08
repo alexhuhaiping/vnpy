@@ -5,6 +5,7 @@ from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 import tradingtime as tt
 import arrow
+
 tt.load_futures_tradingtime(arrow.get('2011-01-01').date())
 
 globals().update(STRATEGY_CLASS)
@@ -49,43 +50,29 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    # vtSymbol = 'AP901'
-    # vtSymbol = 'ni1905'
-    # vtSymbol = 'IF1901'
-    # vtSymbol = 'AP805'
-    # vtSymbol = 'rb1901'
-    # vtSymbol = 'cu1904'
-    vtSymbol = 'IH1902'
+    # vtSymbol = 'AP810'
+    vtSymbol = 'rb1905'
+    # vtSymbol = 'rb1905'
 
     setting = {
 
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # "flinch": 2, "atrWindow": 30, "barXmin": 7, "bollDev": 3.2, "bollWindow": 28.0, "cciWindow": 10,"slMultiplier": 2.8,
-        # 'strategyClass': 'SvtBollChannelStrategy',
-
-        # 'risk': 0.02, "barXmin":15,"flinch":2,"longBar":25,"stopLoss":1,"stopProfile":4,
-        # 'strategyClass': 'OscillationDonchianStrategy',
-
-        # 'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 10000,
-        # 'trendMA': 5, 'barXmin': 60, 'longBar': 55, 'fixhands': 1,
-        # 'strategyClass': 'DoubleFilterMAStrategy',
-
-        # ATR 反转策略
-        'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        'barXmin': 20, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # # ATR 反转策略
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        # 'barXmin': 20, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
         # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
         # 'strategyClass': 'AtrBottomFishStrategy',
 
-        # # 唐奇安通道
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # "barXmin": 20, "fixhands": 1,
-        # 'strategyClass': 'DonchianChannelStrategy',
+        # 唐奇安通道
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "barXmin": 30, "fixhands": 1, 'BIG': False, 'UNITS': 4,
+        'strategyClass': 'ClassicalTurtleDonchianStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')

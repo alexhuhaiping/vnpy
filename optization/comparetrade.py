@@ -13,7 +13,7 @@ from drawtrade import DrawTrade
 
 b = arrow.now()
 
-PERIOD = '1T'
+PERIOD = '15T'
 originTrlList = []
 
 # ################################
@@ -36,7 +36,7 @@ try:
 except NameError:
     startTradingDay = None
     endTradingDay = None
-    # startTradingDay = arrow.get('2019-02-27 00:00:00+08').datetime
+    startTradingDay = arrow.get('2018-11-30 00:00:00+08').datetime
     # startTradingDay = arrow.get('2018-11-14 00:00:00+08').datetime
     # endTradingDay = arrow.get('2018-11-15 00:00:00+08').datetime
 
@@ -46,17 +46,19 @@ originTrlList.append(dbt)
 dbt.clearCollection()  # 清空数据库
 dbt.runArg()  # 生成参数
 dbt.runBacktesting()  # 批量回测
-
-# dbt.config.set('DrawBacktestingTrade', 'optsv', 'cu,"barXmin":5')
-# dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', 'cu')
-# dbt.loadTrade()   # 加载成交单
-# dbt.loadBar()# 加载数据并绘制成交图
-# dbt.draw(PERIOD)
-
 # e = arrow.now()
 # print(u'运行 {} -> {} 耗时 {}'.format(b, e, e - b))
 # import os
-# os.system('say "批量回测完成 耗时 {}"'.format(e-b))
+# costTime = e-b
+# os.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
+
+optsv = 'rb,"BIG":False,"UNITS":4,"barXmin":30'
+dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
+dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
+
+dbt.loadTrade()   # 加载成交单
+dbt.loadBar()# 加载数据并绘制成交图
+dbt.draw(PERIOD)
 
 ###############################
 

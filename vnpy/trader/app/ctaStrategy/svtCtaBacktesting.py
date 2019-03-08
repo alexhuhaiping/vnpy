@@ -1195,15 +1195,13 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'平均每笔佣金'] = d['totalCommission'] / d['totalResult']
         self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
 
-        self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
-
         self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
         self.tradeResult[u'单笔最大回撤率'] = min(d['drawdownRatePerTradeList'])
         self.tradeResult[u'单笔最大回撤'] = min(d['pnlList'])
         self.tradeResult[u'最大回撤率'] = self.tradeResult[u'最大回撤'] / self.tradeResult[u'平均每笔保证金']
 
-
         self.tradeResult[u'胜率'] = d['winningRate']
+        self.tradeResult[u'收益率'] = self.tradeResult[u'总盈亏'] / self.tradeResult[u'平均每笔保证金']
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']

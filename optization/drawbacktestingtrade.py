@@ -154,6 +154,7 @@ class DrawBacktestingTrade(object):
         # 截取回测始末日期，注释掉的话默认取全部主力日期
         logging.info(u'加载 bar')
         kwargs = dict(self.config.autoitems('ctp_mongo'))
+
         self.bars = mk.qryBarsMongoDB(
             underlyingSymbol=self.underlyingSymbol,
             startTradingDay=self.startTradingDay,
@@ -166,13 +167,15 @@ class DrawBacktestingTrade(object):
         加载成交单
         :return:
         """
-        logging.info(u'加载 成交单')
+        logging.info(u'从 {} 加载 成交单'.format(self.btresult))
         self.originTrl = mk.qryBtresultMongoDB(
             underlyingSymbol=self.underlyingSymbol,
             optsv=self.optsv,
             host=self.host, port=self.port, dbn=self.dbn, collection=self.btresult, username=self.username,
             password=self.password,
         )
+        if not self.originTrl:
+            logging.warning(u'未获得成交单')
 
     def draw(self, period='1T', width=3000, height=1350):
         """

@@ -49,10 +49,8 @@ class BacktestingArg(object):
         # self.includeUnderlyingSymbols = []
         self.excludeUnderlyingSymbols = dic.get('excludeUnderlyingSymbols')
 
-        try:
-            self.startTradingDay = arrow.get(dic['startTradingDay']).datetime
-        except Exception:
-            self.startTradingDay = None
+        startTradingDay = dic['startTradingDay']
+        self.startTradingDay = arrow.get(startTradingDay).datetime if startTradingDay else None
 
         # 保存这一批回测参数的参数
         self.btinfo = dic.copy()
