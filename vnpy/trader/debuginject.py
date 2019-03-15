@@ -27,7 +27,6 @@ def checkHands():
     # me.log.info('{}'.format(s.hands))
 
 
-
 def showLastTick():
     s = getStrategy(vtSymbol)
     s.log.info(u'{}'.format(s.bm.lastTick.datetime))
@@ -186,7 +185,6 @@ def sendStopProfileOrder():
     s.buy(price, volume, stop)
 
 
-
 def saveStrategy():
     s = getStrategy(vtSymbol)
     s.saveDB()
@@ -194,21 +192,6 @@ def saveStrategy():
 
 def showWorkingStopOrderDic():
     print(ce.workingStopOrderDict.keys())
-
-
-def showStopOrder():
-    sList = getStrategy(vtSymbol)
-    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
-    me.log.info(u'停止单数量{}'.format(len(ce.stopOrderDict)))
-    for os in ce.stopOrderDict.values():
-        if os.direction == u'多' and os.status == u'等待中':
-        # if os.direction == u'空' and os.status == u'等待中':
-        # if os.status == u'等待中':
-            os.price = 104460.0
-            log = u''
-            for k, v in os.toHtml().items():
-                log += u'{}:{} '.format(k, v)
-            me.log.info(log)
 
 
 def buy():
@@ -225,6 +208,8 @@ def buy():
         s.buy(price, volume, stop)
 
         s.log.debug(u'下单完成 {}'.format(price))
+
+
 def cover():
     sList = getStrategy(vtSymbol)
     # print(sList)
@@ -261,17 +246,39 @@ def orderToShow():
         for vtOrderID, order in s.orders.items():
             print('+++++++++++')
             for k, v in order.__dict__.items():
-                print(u'{} {}'.format(k,v))
+                print(u'{} {}'.format(k, v))
 
         orderList = s.ctaEngine.getAllOrderToShow(s.name)
         # print(len(orderList), len(s.orders))
         for order in orderList:
             print('+++++++++++')
             for k, v in order.items():
-                print(u'{} {}'.format(k,v))
+                print(u'{} {}'.format(k, v))
+
+            showStopOrder
+
+
+def showStopOrder():
+    sList = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
+    me.log.info(u'停止单数量{}'.format(len(ce.stopOrderDict)))
+    price = 3757.0
+    for os in stopOrderIDs:
+        if os.direction == u'空' and os.status == u'等待中':
+            # if os.direction == u'空' and os.status == u'等待中':
+            if os.status == u'等待中':
+                pass
+                os.price = price
+                # price += 1
+            log = u''
+            for k, v in os.toHtml().items():
+                log += u'{}:{} '.format(k, v)
+            me.log.info(log)
+
 
 # vtSymbol = 'AP905'
-vtSymbol = 'au1906'
+vtSymbol = 'rb1905'
 import logging
 
 
@@ -279,7 +286,7 @@ def run():
     load()
     return
     me.log.info('====================================================')
-    orderToShow()
+    showStopOrder()
 
     # cover()
     # sell()
@@ -288,7 +295,6 @@ def run():
     # showWorkingStopOrderDic()
     # saveStrategy()
 
-    # showStopOrder()
 
     # sendStopProfileOrder()
 
@@ -298,6 +304,7 @@ def run():
     # short()
 
 
+    # orderToShow()
 
 
     # strategyOrder()
@@ -315,7 +322,6 @@ def run():
     # testSaveTrade()
     # showLastTick()
     # showBar()
-    # showStopOrder()
     # closeout()
     # checkHands(me)
 

@@ -37,6 +37,7 @@ from vnpy.trader.vtFunction import getTempPath, getJsonPath, LOCAL_TIMEZONE
 from vnpy.trader.vtGateway import VtOrderData, VtTradeData
 from .ctaBase import *
 
+
 ########################################################################
 class BacktestingEngine(VTBacktestingEngine):
     """
@@ -388,8 +389,8 @@ class BacktestingEngine(VTBacktestingEngine):
         """载入历史数据"""
         self.loadHised = True
         collection = {
-            MINUTE_COL_NAME:self.ctpCol1minBar,
-            DAY_COL_NAME:self.ctpCol1dayBar,
+            MINUTE_COL_NAME: self.ctpCol1minBar,
+            DAY_COL_NAME: self.ctpCol1dayBar,
         }.get(self.collectionName)
 
         self.log.info(u'开始载入数据')
@@ -638,14 +639,17 @@ class BacktestingEngine(VTBacktestingEngine):
                         self.log.warning(u'异常的停止单抛弃 {}'.format(so))
                         del self.workingStopOrderDict[so.stopOrderID]
                 if isCrossed:
+                    self.log.info(u'撮合成功 {}'.format(so))
                     # 出现成交，重新整理停止单队列
-
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
-                    stopOrders = [so for so in stopOrders if so in preStopOrders and so.offset == OFFSET_OPEN]
+                    stopOrders = [so for so in stopOrders if
+                                  not (so not in preStopOrders and so in stopOrders and so.offset == OFFSET_OPEN)]
+                    self.log.info(u'再次撮合 {}'.format(len(stopOrders)))
                     break
+            if isCrossed:
+                isCrossed = False
             else:
-                # 一次成交都没有
                 break
 
         if count >= 100:
@@ -836,12 +840,15 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'日均收益率'] = dailyReturn
         self.dailyResult[u'收益标准差'] = returnStd
         self.dailyResult[u'夏普率'] = sharpeRatio
-        self.dailyResult[u'netPnl'] = list(df['netPnl'])
 
         if self.isOutputResult:
             self.printResult(self.dailyResult)
 
+        self.dailyResult[u'techIndBar'] = self.strategy.techIndBar
+        self.dailyResult[u'techIndLine'] = self.strategy.techIndLine
+
         # 收益率曲线
+        self.dailyResult[u'netPnl'] = list(df['netPnl'])
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
         self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
@@ -919,7 +926,6 @@ class BacktestingEngine(VTBacktestingEngine):
             if isinstance(v, float) or isinstance(v, int):
                 v = formatNumber(v)
             print(u'%s：\t%s' % (k, v))
-
 
     def calculateBacktestingResult(self):
         """
@@ -1069,7 +1075,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         timeList = []  # 时间序列
         pnlList = []  # 每笔盈亏序列
-        balanceList = [] # 盈亏汇总的时间序列
+        balanceList = []  # 盈亏汇总的时间序列
         capitalList = []  # 资金时间序列
         drawdownList = []  # 回撤的时间序列
         drawdownPerList = []  # 回撤比率的时间序列
@@ -1087,11 +1093,10 @@ class BacktestingEngine(VTBacktestingEngine):
         for result in resultList:
             margin = abs(result.volume * self.size * result.entryPrice * self.marginRate.marginRate)
             marginRate = margin / capital
-            capital += result.pnl # pnl 已经扣掉了滑点和手续费
+            capital += result.pnl  # pnl 已经扣掉了滑点和手续费
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
-            drawdownRatePerTrade = min(0, result.pnl/margin) # 单笔最大回撤率
-
+            drawdownRatePerTrade = min(0, result.pnl / margin)  # 单笔最大回撤率
 
             pnlList.append(result.pnl)
             timeList.append(result.exitDt)  # 交易的时间戳使用平仓时间
@@ -1175,7 +1180,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.tradeResult[u'第一笔交易'] = d['timeList'][0]
         self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
-        self.tradeResult[u'总交易次数'] = d['totalResult'] # 1次可以N手
+        self.tradeResult[u'总交易次数'] = d['totalResult']  # 1次可以N手
 
         self.tradeResult[u'初始金'] = self.capital
         self.tradeResult[u'总盈亏'] = d['capital']
@@ -1188,7 +1193,6 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'亏损次数'] = d['losingResult']
         self.tradeResult[u'总盈利'] = d['totalWinning']
         self.tradeResult[u'总亏损'] = d['totalLosing']
-
 
         self.tradeResult[u'平均每笔盈亏'] = d['capital'] / d['totalResult']
         self.tradeResult[u'平均每笔滑点'] = d['totalSlippage'] / d['totalResult']

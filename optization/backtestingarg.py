@@ -51,6 +51,13 @@ class BacktestingArg(object):
 
         startTradingDay = dic['startTradingDay']
         self.startTradingDay = arrow.get(startTradingDay).datetime if startTradingDay else None
+        if self.startTradingDay:
+            self.log.info('startTradingDay {}'.format(self.startTradingDay))
+
+        endTradingDay = dic['endTradingDay']
+        self.endTradingDay = arrow.get(endTradingDay).datetime if endTradingDay else None
+        if self.endTradingDay:
+            self.log.info('endTradingDay {}'.format(self.endTradingDay))
 
         # 保存这一批回测参数的参数
         self.btinfo = dic.copy()
@@ -201,11 +208,8 @@ class BacktestingArg(object):
         # 取主力合约
         sql = {
             'activeStartDate': {'$ne': None},
-            'activeEndDate': {'$ne': None}
+            'activeEndDate': {'$ne': None},
         }
-        if self.startTradingDay:
-            sql['activeStartDate'] = {'$gte': self.startTradingDay}
-
         cursor = self.contractCol.find(sql)
         cursor = cursor.sort('activeEndDate', -1)
 
@@ -213,10 +217,9 @@ class BacktestingArg(object):
 
         if self.includeUnderlyingSymbols:
             self.log.info(u'只回测品种：{}'.format(u','.join(self.includeUnderlyingSymbols)))
-            contracts = [c for c in contracts if c['underlyingSymbol'] in self.includeUnderlyingSymbols ]
+            contracts = [c for c in contracts if c['underlyingSymbol'] in self.includeUnderlyingSymbols]
         else:
             self.log.info(u'回测全品种')
-
         if self.excludeUnderlyingSymbols:
             self.log.info(u'不回测品种：{}'.format(u','.join(self.excludeUnderlyingSymbols)))
             contracts = [c for c in contracts if c['underlyingSymbol'] not in self.excludeUnderlyingSymbols]
@@ -230,6 +233,11 @@ class BacktestingArg(object):
             else:
                 pass
         self.log.info(u'共 {} 上市品种'.format(len(onMarketUS)))
+
+        if self.startTradingDay:
+            contracts = [c for c in contracts if c['activeStartDate'] >= self.startTradingDay]
+        if self.endTradingDay:
+            contracts = [c for c in contracts if c['activeStartDate'] <= self.endTradingDay]
 
         sumarization = hisfursum.summarize.Summarization(self.bar1dayCol, self.contractCol)
         # 日成交量在 n 亿以上的品种

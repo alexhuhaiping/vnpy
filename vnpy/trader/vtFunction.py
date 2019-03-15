@@ -170,6 +170,11 @@ class VnpyConfigParser(ConfigParser.SafeConfigParser):
             except ValueError:
                 pass
 
+            if o.upper() == 'TRUE':
+                return True
+            if o.upper() == 'FALSE':
+                return False
+
             if o.startswith('"') and o.endswith('"'):
                 o = o[1:-1]
             elif o.startswith("'") and o.endswith("'"):

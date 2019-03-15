@@ -7,13 +7,13 @@ from itertools import chain
 import arrow
 
 from myplot.kline import *
-from drawbacktestingtrade import DrawBacktestingTrade
-from drawtrade import DrawTrade
+from optization.drawbacktestingtrade import DrawBacktestingTrade
+from optization.drawtrade import DrawTrade
 
 
 b = arrow.now()
 
-PERIOD = '15T'
+PERIOD = '30T'
 originTrlList = []
 
 # ################################
@@ -36,51 +36,56 @@ try:
 except NameError:
     startTradingDay = None
     endTradingDay = None
-    startTradingDay = arrow.get('2018-11-30 00:00:00+08').datetime
+    # startTradingDay = arrow.get('2015-11-01 00:00:00+08').datetime
     # startTradingDay = arrow.get('2018-11-14 00:00:00+08').datetime
-    # endTradingDay = arrow.get('2018-11-15 00:00:00+08').datetime
+    # endTradingDay = arrow.get('2017-03-17 00:00:00+08').datetime
 
 dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTradingDay, endTradingDay=endTradingDay)
 originTrlList.append(dbt)
 
-dbt.clearCollection()  # 清空数据库
-dbt.runArg()  # 生成参数
-dbt.runBacktesting()  # 批量回测
+# dbt.clearCollection()  # 清空数据库
+# dbt.runArg()  # 生成参数
+# dbt.runBacktesting()  # 批量回测
 # e = arrow.now()
 # print(u'运行 {} -> {} 耗时 {}'.format(b, e, e - b))
 # import os
 # costTime = e-b
 # os.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
 
-optsv = 'rb,"BIG":False,"UNITS":4,"barXmin":30'
-dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
-dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
+# optsv = 'rb,"BIG":False,"UNITS":2,"barXmin":84'
+# dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
+# dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
+# # dbt.btresult = 'btresult_rb_ClassicalTurtleDonchian'
 
 dbt.loadTrade()   # 加载成交单
-dbt.loadBar()# 加载数据并绘制成交图
-dbt.draw(PERIOD)
+# dbt.loadIndLine()   # 加载技术指标
+# dbt.loadBar()# 加载数据并绘制成交图
+# dbt.draw(PERIOD)
 
 ###############################
 
-# ################################
-# # 模拟盘成交
-# # startTradingDay = drm.matcher.startTradingDay # 取实盘的第一笔成交开始做对比
-# startTradingDay = arrow.get('2016-11-14 00:00:00+08').datetime
-# dsim = DrawTrade('drawtrade_sim.ini', endTradingDay =startTradingDay )
-# originTrlList.append(dsim)
-# dsim.loadTrade()
-# dsim.filterTrade()
-# dsim.loadBar()
-# # dsim.draw(PERIOD, 2000, 1000)
+################################
+# 模拟盘成交
+try:
+    startTradingDay = drm.matcher.startTradingDay # 取实盘的第一笔成交开始做对比
+    # startTradingDay = arrow.get('2016-11-14 00:00:00+08').datetime
+except NameError:
+    startTradingDay = None
+dsim = DrawTrade('drawtrade_sim.ini', endTradingDay =startTradingDay)
+originTrlList.append(dsim)
+dsim.loadTrade()
+dsim.filterTrade()
+dsim.loadBar()
+# dsim.draw(PERIOD, 2000, 1000)
 # dsim.draw(PERIOD, )
-# ################################
+################################
 
-# originTrl = list(chain(
-#     *[d.originTrl for d in originTrlList]
+originTrl = list(chain(
+    *[d.originTrl for d in originTrlList]
 
-# ))
-# # # 合并绘制成交图
-# tradeOnKlinePlot = tradeOnKLine(
-#     PERIOD, drm.bars, originTrl
-# )
-# tradeOnKlinePlot.render(u'/Users/lamter/Downloads/叠加成交图.html')
+))
+# # 合并绘制成交图
+tradeOnKlinePlot = tradeOnKLine(
+    PERIOD, dsim.bars, originTrl, []
+)
+tradeOnKlinePlot.render(u'/Users/lamter/Downloads/叠加成交图.html')

@@ -282,7 +282,7 @@ class CtaEngine(VtCtaEngine):
                             so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
                             for vtOrderID in vtOrderIDList:
-                                self.log.info(u'stopPriceSlippage - vtOrderID: {} so.price: {}'.format(vtOrderID, so.price))
+                                # self.log.info(u'stopPriceSlippage - vtOrderID: {} so.price: {}'.format(vtOrderID, so.price))
                                 self.stopPriceSlippage[vtOrderID] = so.price
 
                             # # 将状态设置为有停止单

@@ -57,6 +57,9 @@ class DrawBacktestingTrade(object):
         # self.endTradingDay = arrow.get(
         #     '{} 00:00:00+08:00'.format(endTradingDay)).datetime if endTradingDay else None
 
+        self.originTrl = None
+        self.originIndLine = None
+
         # K线的选取范围，也决定了成交图的范围
         self.startTradingDay = startTradingDay
         self.endTradingDay = endTradingDay
@@ -173,17 +176,34 @@ class DrawBacktestingTrade(object):
             optsv=self.optsv,
             host=self.host, port=self.port, dbn=self.dbn, collection=self.btresult, username=self.username,
             password=self.password,
+            items={'成交单': 1}
         )
+
         if not self.originTrl:
             logging.warning(u'未获得成交单')
+
+    def loadIndLine(self):
+        """
+        加载线型技术指标
+        :return:
+        """
+        logging.info(u'从 {} 加载 技术指标'.format(self.btresult))
+        self.originIndLine = mk.qryBtresultMongoDB(
+            underlyingSymbol=self.underlyingSymbol,
+            optsv=self.optsv,
+            host=self.host, port=self.port, dbn=self.dbn, collection=self.btresult, username=self.username,
+            password=self.password,
+            items={'techIndLine': 1}
+        )
+        if not self.originIndLine:
+            logging.warning(u'未获得线技术指标')
 
     def draw(self, period='1T', width=3000, height=1350):
         """
         绘制成交图
         :return:
         """
-
-        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=width, height=height)
+        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, self.originIndLine, title=self.title, width=width, height=height)
         if '{optsv}' in self.backtestingdrawfile:
             f = self.backtestingdrawfile.format(optsv=self.optsv)
         else:

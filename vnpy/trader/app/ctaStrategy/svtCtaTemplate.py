@@ -419,9 +419,17 @@ class CtaTemplate(vtCtaTemplate):
         )
 
     def varList2Html(self):
-        return OrderedDict(
-            ((k, getattr(self, k)) for k in self.varList)
-        )
+        orderDic = OrderedDict()
+        for k in self.varList:
+            v = getattr(self, k)
+            if isinstance(v, list):
+                v = ' - '.join([str(i) for i in v])
+            elif isinstance(v, dict):
+                v = ' - '.join([u'{}:{}'.format(_k, _v) for _k, _v in v.items()])
+
+            orderDic[k] = v
+
+        return orderDic
 
     def balance2Html(self):
         return OrderedDict(
@@ -462,7 +470,7 @@ class CtaTemplate(vtCtaTemplate):
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrderToShow(self.name)
-            stopOrders.sort(key=lambda s: (s.direction, s.stopProfile))
+            stopOrders.sort(key=lambda s: (s.direction, s.stopProfile, -s.price))
             units = [so.toHtml(self.bm.lastTick) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
@@ -1125,13 +1133,14 @@ class CtaTemplate(vtCtaTemplate):
 
     def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
         # if trade.offset in OFFSET_CLOSE_LIST:
-        print(self.bar.datetime)
+        # print(self.bar.datetime)
         textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
         textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
         textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
         textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
         textList.append(u'**********************')
-        print(u'\n'.join(textList))
+        # print(u'\n'.join(textList))
+        return u'\n'.join(textList)
 
     def loadBarOnInit(self):
         """
