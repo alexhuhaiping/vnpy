@@ -165,7 +165,7 @@ class CtaEngine(VtCtaEngine):
                 doc = [i for i in cursor]
                 doc.sort(key=lambda bar: bar['datetime'])
                 documents.append(doc)
-                loadBarNum += cursor.count()
+                loadBarNum += len(doc)
                 if loadBarNum > barAmount:
                     # 数量够了， 跳出循环
                     break
@@ -179,38 +179,27 @@ class CtaEngine(VtCtaEngine):
         documents.reverse()
         documents = list(chain(*documents))  # 衔接成一个 list
 
-        # documents = self.clearBeforeBar(documents, collectionName)
-
         # 加载指定数量barAmount的 bar
         l = []
+        timestamp = ((9, 0, 0), (21, 0, 0))
+        preKline = None
         for d in documents[-barAmount:]:
             bar = VtBarData()
             bar.load(d)
+            if (bar.datetime.hour, bar.datetime.minute, bar.datetime.second) in timestamp:
+                preKline = bar
+                self.log.info(u'剔除K线 {}'.format(bar.datetime))
+                continue
+            if preKline:
+                # 聚合到下一根K线上，可能是 9:02 ，不一定是9:01
+                bar.high = max(preKline.high, bar.high)
+                bar.open = preKline.open
+                bar.low = min(preKline.low, bar.low)
+                bar.volume += preKline.volume
+                preKline = None 
             l.append(bar)
 
         return l
-
-    def clearBeforeBar(self, documents, collectionName):
-        """
-        剔除 9:00 和 21:00 的不合理K线
-        :return:
-        """
-        if collectionName == MINUTE_COL_NAME:
-            timestamp = ((9, 0, 0), (21, 0, 0))
-            preKline = None
-            for k in documents[:]:
-                if (k.datetime.hour, k.datetime.minute, k.datetime.second) in timestamp:
-                    # 取出提前开始的K线 9:00
-                    preKline = k
-                    documents.remove(k)
-                if preKline:
-                    # 聚合到下一根K线上，可能是 9:02 ，不一定是9:01
-                    k.high = max(preKline.high, k.high)
-                    k.open = preKline.open
-                    k.low = min(preKline.low, k.low)
-                    k.volume += preKline.volume
-                    preKline = None
-            self.log.info(u'剔除过早的K线')
 
     def callStrategyFunc(self, strategy, func, params=None):
         """调用策略的函数，若触发异常则捕捉"""
