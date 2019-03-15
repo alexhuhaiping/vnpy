@@ -64,6 +64,7 @@ class CtaTemplate(vtCtaTemplate):
         'floatProfile',
         'rtBalance',
         'marginRatio',
+        'margin',
     ]
 
     # 成交状态
@@ -446,7 +447,6 @@ class CtaTemplate(vtCtaTemplate):
                 ('param', param),
                 ('var', var),
             )
-
             orderDic = OrderedDict(items)
 
             if self.preBar:
@@ -543,6 +543,13 @@ class CtaTemplate(vtCtaTemplate):
                 return self.marginRate
             else:
                 return 0.9
+    @property
+    def margin(self):
+
+        if self.bar:
+            return self.roundToPriceTick(self.marginRate * self.bar.close * self.size)
+        else:
+            return None
 
     def getCommission(self, price, volume, offset):
         """
@@ -1123,7 +1130,7 @@ class CtaTemplate(vtCtaTemplate):
                 u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
             )
 
-            self.log.warning(u'\n'.join(textList))
+            self.log.info(u'\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了

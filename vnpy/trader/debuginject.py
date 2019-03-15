@@ -263,18 +263,24 @@ def showStopOrder():
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
     stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
     me.log.info(u'停止单数量{}'.format(len(ce.stopOrderDict)))
-    price = 3757.0
+    price = 3749.0
     for os in stopOrderIDs:
         if os.direction == u'空' and os.status == u'等待中':
             # if os.direction == u'空' and os.status == u'等待中':
             if os.status == u'等待中':
                 pass
                 os.price = price
-                # price += 1
+                price -= 2
             log = u''
             for k, v in os.toHtml().items():
                 log += u'{}:{} '.format(k, v)
             me.log.info(log)
+
+
+def checkMargin():
+    sList = getStrategy(vtSymbol)
+    s = sList[0]
+    print(s.marginRate)
 
 
 # vtSymbol = 'AP905'
@@ -286,6 +292,7 @@ def run():
     load()
     return
     me.log.info('====================================================')
+    # checkMargin()
     showStopOrder()
 
     # cover()
