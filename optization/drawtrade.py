@@ -129,7 +129,9 @@ class DrawTrade(object):
         :return:
         """
 
-        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, title=self.title, width=width, height=height)
+        originIndLine = []
+        tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, originIndLine, title=self.title, width=width, height=height)
+
         logging.info(u'生成成交图 {}'.format(self.drawFile))
         tradeOnKlinePlot.render(self.drawFile)
 

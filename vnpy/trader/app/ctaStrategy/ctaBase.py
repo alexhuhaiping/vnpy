@@ -110,7 +110,6 @@ class VtStopOrder(object):
 class StopOrder(VtStopOrder):
     def __init__(self):
         super(StopOrder, self).__init__()
-        self.unit = None
         self.vtOrderID = None # 触发后，触发后对应的停止单
         self.unit = None # 绑定的对应的 unit
         self.priority = 0 # 同样价格时，成交的优先级。值越小越优先触发
@@ -144,12 +143,15 @@ class StopOrder(VtStopOrder):
             ('priority', self.priority),
             ('stopProfile', self.stopProfile),
         ]
+        if self.unit:
+            items.append(('unit', self.unit.index))
+
         if tick:
             # 距离开仓的价差
             if self.direction == DIRECTION_LONG:
-                items.append(('dist', tick.askPrice1 - self.price))
+                items.append(('dist', self.price - tick.askPrice1))
             if self.direction == DIRECTION_SHORT:
-                items.append(('dist', tick.bidPrice1 - self.price))
+                items.append(('dist', self.price - tick.bidPrice1))
 
         orderDic = OrderedDict()
         for k, v in items:
@@ -164,4 +166,5 @@ class StopOrder(VtStopOrder):
                 except:
                     pass
             orderDic[k] = v
+
         return orderDic

@@ -64,6 +64,7 @@ class CtaTemplate(vtCtaTemplate):
         'floatProfile',
         'rtBalance',
         'marginRatio',
+        'margin',
     ]
 
     # 成交状态
@@ -134,6 +135,11 @@ class CtaTemplate(vtCtaTemplate):
         self.winCount = 0  # 连胜计数
         self.loseCount = 0  # 连败计数
         self.slight = False  # 轻重仓标记
+
+        # 曲线型技术指标
+        self.techIndLine = {}  # 缓存技术指标 {'indexName': [['datetime_1', 'datetime_2', ……], ['price_1':, 'price_2]], }
+        # 柱图型技术指标
+        self.techIndBar = {}  # 缓存技术指标 {'indexName': [['datetime_1', 'datetime_2', ……], ['value_1':, 'value_2]], }
 
     @property
     def floatProfile(self):
@@ -414,9 +420,17 @@ class CtaTemplate(vtCtaTemplate):
         )
 
     def varList2Html(self):
-        return OrderedDict(
-            ((k, getattr(self, k)) for k in self.varList)
-        )
+        orderDic = OrderedDict()
+        for k in self.varList:
+            v = getattr(self, k)
+            if isinstance(v, list):
+                v = ' - '.join([str(i) for i in v])
+            elif isinstance(v, dict):
+                v = ' - '.join([u'{}:{}'.format(_k, _v) for _k, _v in v.items()])
+
+            orderDic[k] = v
+
+        return orderDic
 
     def balance2Html(self):
         return OrderedDict(
@@ -433,7 +447,6 @@ class CtaTemplate(vtCtaTemplate):
                 ('param', param),
                 ('var', var),
             )
-
             orderDic = OrderedDict(items)
 
             if self.preBar:
@@ -457,7 +470,7 @@ class CtaTemplate(vtCtaTemplate):
 
             # 本地停止单
             stopOrders = self.ctaEngine.getAllStopOrderToShow(self.name)
-            stopOrders.sort(key=lambda s: (s.direction, s.stopProfile))
+            stopOrders.sort(key=lambda s: (s.direction, s.stopProfile, -s.price))
             units = [so.toHtml(self.bm.lastTick) for so in stopOrders]
             orderDic['stopOrder'] = pd.DataFrame(units).to_html()
 
@@ -530,6 +543,13 @@ class CtaTemplate(vtCtaTemplate):
                 return self.marginRate
             else:
                 return 0.9
+    @property
+    def margin(self):
+
+        if self.bar:
+            return self.roundToPriceTick(self.marginRate * self.bar.close * self.size)
+        else:
+            return None
 
     def getCommission(self, price, volume, offset):
         """
@@ -930,7 +950,6 @@ class CtaTemplate(vtCtaTemplate):
             volume = abs(self.pos)
             self.cover(price, volume)
 
-
     def toStatus(self):
         dic = {
             'pos': self.pos,
@@ -1077,7 +1096,7 @@ class CtaTemplate(vtCtaTemplate):
         if trade.splippage and trade.splippage / self.priceTick <= overSplipage:
             self.log.warning(
                 u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
-                                                                      trade.splippage, self.priceTick, overSplipage))
+                                                                       trade.splippage, self.priceTick, overSplipage))
 
     def _onTrade(self, trade):
         """
@@ -1111,7 +1130,7 @@ class CtaTemplate(vtCtaTemplate):
                 u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
             )
 
-            self.log.warning(u'\n'.join(textList))
+            self.log.info(u'\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
@@ -1121,13 +1140,14 @@ class CtaTemplate(vtCtaTemplate):
 
     def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
         # if trade.offset in OFFSET_CLOSE_LIST:
-            print(self.bar.datetime)
-            textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
-            textList.append(u'**********************')
-            print(u'\n'.join(textList))
+        # print(self.bar.datetime)
+        textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
+        textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
+        textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
+        textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+        textList.append(u'**********************')
+        # print(u'\n'.join(textList))
+        return u'\n'.join(textList)
 
     def loadBarOnInit(self):
         """
@@ -1162,6 +1182,7 @@ class CtaTemplate(vtCtaTemplate):
         else:
             self.log.info(u'初始化数据不足!')
 
+
 ########################################################################
 class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
     def onBar(self, bar1min):
@@ -1176,8 +1197,8 @@ class BarManager(VtBarManager):
         self.strategy = strategy
         self.preBar = None  # 前一个1分钟K线对象
         self.preXminBar = None  # 前一个X分钟K线对象
-        self.hourBar = None # 当前1小时K线
-        self.preHourBar = None # 前一个1小时K线
+        self.hourBar = None  # 当前1小时K线
+        self.preHourBar = None  # 前一个1小时K线
 
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
@@ -1316,8 +1337,6 @@ class BarManager(VtBarManager):
 
             # 推送
             self.onhourBar(self.hourBar)
-
-
 
     def updateXminBar(self, bar):
         """
