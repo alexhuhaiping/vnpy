@@ -849,6 +849,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 收益率曲线
         self.dailyResult[u'netPnl'] = list(df['netPnl'])
+        self.dailyResult[u'netPnlp'] = list(df['netPnlp'])
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
         self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
@@ -863,7 +864,7 @@ class BacktestingEngine(VTBacktestingEngine):
         fig = plt.figure(figsize=(10, 16))
 
         subPlotCount = 0
-        subPlotNum = 7
+        subPlotNum = 8
 
         subPlotCount += 1
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
@@ -874,6 +875,11 @@ class BacktestingEngine(VTBacktestingEngine):
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
         pBalance.set_title('Daily Pnl Cumsum {}'.format(self.symbol))
         df['netPnl'].cumsum().plot(legend=True, grid=True)
+        
+        subPlotCount += 1
+        pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
+        pBalance.set_title('Daily Pnlp Cumsum {}'.format(self.symbol))
+        df['netPnlp'].cumsum().plot(legend=True, grid=True)
 
         subPlotCount += 1
         pDrawdown = plt.subplot(subPlotNum, 1, subPlotCount)

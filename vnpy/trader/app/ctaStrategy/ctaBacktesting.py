@@ -1244,6 +1244,9 @@ class DailyResult(VTDailyResult):
     def __init__(self, date, closePrice):
         super(DailyResult, self).__init__(date, closePrice)
         self.margin = 0  # 收盘时保证金
+        self.positionPnlp = 0 #
+        self.netPnlp = 0 # 净收益率
+
 
     def calculatePnl(self, openPosition=0, size=1, rate=None, slippage=0, marginRate=None):
         """
@@ -1259,6 +1262,7 @@ class DailyResult(VTDailyResult):
         self.openPosition = openPosition
         # 开盘持仓 * size * (当日收盘价 - self.previousClose)
         self.positionPnl = self.openPosition * size * (self.closePrice - self.previousClose)
+        self.positionPnlp = self.positionPnl / self.previousClose if self.previousClose != 0 else 0
         self.closePosition = self.openPosition
 
         # 交易部分
@@ -1272,35 +1276,47 @@ class DailyResult(VTDailyResult):
             else:
                 posChange = -trade.volume
 
-            self.tradingPnl += posChange * (self.closePrice - trade.price) * size
+            tradingPnl = posChange * (self.closePrice - trade.price) * size
             self.closePosition += posChange
             # self.turnover += trade.price * trade.volume * size
 
             # 计算手续费
+            commission = 0
             if trade.offset == OFFSET_CLOSE:
                 if closeToday:
                     # 直接使用平今手续费
-                    self.commission += rate(trade.price, trade.volume, OFFSET_CLOSETODAY)
+                    commission += rate(trade.price, trade.volume, OFFSET_CLOSETODAY)
                 else: # self.openPosition != 0
                     if self.closePosition == 0:
                         closeToday = True
                     elif self.closePosition > 0 != self.openPosition > 0:
                         # 昨天的仓位还没平完
                         closeToday = True
-                    self.commission += rate(trade.price, trade.volume, trade.offset)
+                    commission += rate(trade.price, trade.volume, trade.offset)
 
             else:
                 # 开仓 手续费
-                self.commission += rate(trade.price, trade.volume, trade.offset)
+                commission += rate(trade.price, trade.volume, trade.offset)
 
+            self.commission += commission
+            self.tradingPnl += tradingPnl
+            _slippage = trade.volume * size * slippage
+            self.slippage += _slippage
 
-            self.slippage += trade.volume * size * slippage
+            preClose = self.previousClose if self.previousClose != 0 else self.closePrice
+            pnlp = (tradingPnl - _slippage - commission) / preClose
+            self.netPnlp += pnlp
+            print(u' {}\t{}\t{}\t{}\t{}'.format(trade.tradingDay.date(), tradingPnl, round(pnlp, 4), preClose, self.netPnlp))
 
         self.turnover = self.closePrice * self.closePosition * size
 
         # 汇总
         self.totalPnl = self.tradingPnl + self.positionPnl
         self.netPnl = self.totalPnl - self.commission - self.slippage
+        self.netPnlp += self.positionPnlp
+        print(
+            u' {}\t{}\t{}'.format(self.date, round(self.netPnlp, 4), self.closePrice)
+        )
 
         self.margin = abs(self.closePosition * size * self.closePrice * marginRate.marginRate)
 
