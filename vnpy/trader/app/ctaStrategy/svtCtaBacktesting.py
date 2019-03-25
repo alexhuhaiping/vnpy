@@ -819,12 +819,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.dailyResult[u'起始资金'] = self.capital
         self.dailyResult[u'结束资金'] = endBalance
-        self.dailyResult[u'最大保证金占用'] = maxMarginPer
+        self.dailyResult[u'最大保证金占用率'] = maxMarginPer
 
         self.dailyResult[u'总收益率'] = totalReturn
         self.dailyResult[u'总盈亏'] = totalNetPnl
         self.dailyResult[u'日最大回撤'] = maxDrawdown
-        self.dailyResult[u'日最大回撤比例'] = maxDrawdownPer
+        self.dailyResult[u'日最大回撤率'] = maxDrawdownPer
 
         self.dailyResult[u'总手续费'] = totalCommission
         self.dailyResult[u'总滑点'] = totalSlippage
@@ -850,6 +850,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         self.dailyResult[u'netPnl'] = list(df['netPnl'])
         self.dailyResult[u'netPnlp'] = list(df['netPnlp'])
+
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
         self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
@@ -930,7 +931,13 @@ class BacktestingEngine(VTBacktestingEngine):
             if isinstance(v, dict) or isinstance(v, list):
                 continue
             if isinstance(v, float) or isinstance(v, int):
-                v = formatNumber(v)
+                if u'率' in k and k not in (u'夏普率'):
+                    v *= 100
+                    v = formatNumber(v)
+                    v += '%'
+                else:
+                    v = formatNumber(v)
+
             print(u'%s：\t%s' % (k, v))
 
     def calculateBacktestingResult(self):
@@ -1081,11 +1088,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         timeList = []  # 时间序列
         pnlList = []  # 每笔盈亏序列
+        pnlpList = []  # 每笔盈亏率序列
         balanceList = []  # 盈亏汇总的时间序列
         capitalList = []  # 资金时间序列
         drawdownList = []  # 回撤的时间序列
-        drawdownPerList = []  # 回撤比率的时间序列
-        drawdownRatePerTradeList = []  # 单笔最大回撤率
+        # drawdownPerList = []  # 回撤比率的时间序列
+        # drawdownRatePerTradeList = []  # 单笔最大回撤率
         posList = []  # 仓位变化
         marginList = []  # 保证金
         marginRateList = []  # 保证金占用比例
@@ -1102,20 +1110,21 @@ class BacktestingEngine(VTBacktestingEngine):
             capital += result.pnl  # pnl 已经扣掉了滑点和手续费
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
-            drawdownRatePerTrade = min(0, result.pnl / margin)  # 单笔最大回撤率
+            # drawdownRatePerTrade = min(0, result.pnl / margin)  # 单笔最大回撤率
 
             pnlList.append(result.pnl)
+            pnlpList.append(result.pnlp)
             timeList.append(result.exitDt)  # 交易的时间戳使用平仓时间
             capitalList.append(capital)
             drawdownList.append(drawdown)
-            drawdownPerList.append(drawdown / maxCapital)
+            # drawdownPerList.append(drawdown / maxCapital)
             posList.append(result.volume)
             marginList.append(margin)
             marginRateList.append(marginRate)
-            drawdownRatePerTradeList.append(drawdownRatePerTrade)
+            # drawdownRatePerTradeList.append(drawdownRatePerTrade)
 
             totalResult += 1
-            totalTurnover += result.turnover
+            totalTurnover += abs(result.turnover)
             totalCommission += result.commission
             totalSlippage += result.slippage
 
@@ -1145,16 +1154,17 @@ class BacktestingEngine(VTBacktestingEngine):
         d['capital'] = capital - self.capital
         d['maxCapital'] = maxCapital
         d['drawdown'] = drawdown
-        d['maxDrawdownPer'] = abs(min(drawdownPerList))
+        # d['maxDrawdownPer'] = abs(min(drawdownPerList))
         d['totalResult'] = totalResult
         d['totalTurnover'] = totalTurnover
         d['totalCommission'] = totalCommission
         d['totalSlippage'] = totalSlippage
         d['timeList'] = timeList
         d['pnlList'] = pnlList
+        d['pnlpList'] = pnlpList
         d['capitalList'] = capitalList
         d['drawdownList'] = drawdownList
-        d['drawdownPerList'] = drawdownPerList
+        # d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
         d['winningResult'] = winningResult
         d['losingResult'] = losingResult
@@ -1169,7 +1179,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['marginRateList'] = marginRateList
         d['tradeTimeList'] = tradeTimeList
         d['resultList'] = resultList
-        d['drawdownRatePerTradeList'] = drawdownRatePerTradeList
+        # d['drawdownRatePerTradeList'] = drawdownRatePerTradeList
 
         return d
 
@@ -1194,7 +1204,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'总滑点'] = d['totalSlippage']
         self.tradeResult[u'交易成本'] = d['totalSlippage'] + d['totalCommission']
         self.tradeResult[u'纯盈亏'] = self.tradeResult[u'总盈亏'] + self.tradeResult[u'交易成本']
-        self.tradeResult[u'成本比例'] = self.tradeResult[u'交易成本'] / self.tradeResult[u'纯盈亏']
+        self.tradeResult[u'成本比例'] = 1 if self.tradeResult[u'纯盈亏'] == 0 else self.tradeResult[u'交易成本'] / self.tradeResult[u'纯盈亏']
         self.tradeResult[u'盈利次数'] = d['winningResult']
         self.tradeResult[u'亏损次数'] = d['losingResult']
         self.tradeResult[u'总盈利'] = d['totalWinning']
@@ -1206,12 +1216,19 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
 
         self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
-        self.tradeResult[u'单笔最大回撤率'] = min(d['drawdownRatePerTradeList'])
+        # self.tradeResult[u'单笔最大回撤率1'] = min(d['drawdownRatePerTradeList'])
+        self.tradeResult[u'单笔最大回撤率'] = min(d['pnlpList'])
+
         self.tradeResult[u'单笔最大回撤'] = min(d['pnlList'])
-        self.tradeResult[u'最大回撤率'] = self.tradeResult[u'最大回撤'] / self.tradeResult[u'平均每笔保证金']
+        # self.tradeResult[u'最大回撤率'] = self.tradeResult[u'最大回撤'] / self.tradeResult[u'平均每笔保证金']
+        pnlp = pd.Series(d['pnlpList']).cumsum()
+        maxPnlp = pnlp.cummax()
+        dropdown = pnlp - maxPnlp
+        self.tradeResult[u'最大回撤率'] = min(dropdown)
 
         self.tradeResult[u'胜率'] = d['winningRate']
-        self.tradeResult[u'收益率'] = self.tradeResult[u'总盈亏'] / self.tradeResult[u'平均每笔保证金']
+        # self.tradeResult[u'收益率'] = self.tradeResult[u'总盈亏'] / self.tradeResult[u'平均每笔保证金']
+        self.tradeResult[u'收益率'] = d['pnlpList'][-1]
         self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
         self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
         self.tradeResult[u'盈亏比'] = d['profitLossRatio']
@@ -1226,6 +1243,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult[u'收益率曲线'] = list(balanceList.values[1:])
         self.tradeResult[u'成交单'] = [r.toReutlDB() for r in d['resultList']]
         self.tradeResult[u'pnl'] = d['pnlList']
+        self.tradeResult[u'pnlp'] = d['pnlpList']
 
         if not self.isShowFig:
             return
@@ -1233,7 +1251,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
-        subplotNum = 9
+        subplotNum = 3
         subplotCount = 0
 
         subplotCount += 1
@@ -1253,6 +1271,12 @@ class BacktestingEngine(VTBacktestingEngine):
         pDD.set_ylabel("DD")
         pDD.grid(True, color='gray')
         pDD.bar(range(len(d['drawdownList'])), d['drawdownList'], color='g')
+
+        # subplotCount += 1
+        # pDD = plt.subplot(subplotNum, 1, subplotCount)
+        # pDD.set_ylabel("DDp")
+        # pDD.grid(True, color='gray')
+        # pDD.bar(range(len(dropdown)), list(dropdown), color='g')
 
         # subplotCount += 1
         # pDDp = plt.subplot(subplotNum, 1, subplotCount)

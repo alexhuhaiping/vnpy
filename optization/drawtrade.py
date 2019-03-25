@@ -81,6 +81,7 @@ class DrawTrade(object):
             **kwarg
         )
 
+
     def filterTrade(self):
         """
         过滤掉成交单中的东西

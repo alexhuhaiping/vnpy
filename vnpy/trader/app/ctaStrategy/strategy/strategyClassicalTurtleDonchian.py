@@ -670,9 +670,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.putEvent()
 
     def setBig(self):
+        self.log.info(u'进入大周期')
         self.big = True
 
     def setSmall(self):
+        self.log.info(u'进入小周期')
         self.big = False
         self.smallLongInList = []  # 大周期中的小周期开仓价
         self.smallShortInList = []  # 大周期中的小周期开仓价

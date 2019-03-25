@@ -1160,6 +1160,8 @@ class TradingResult(VtTradingResult):
         self.pnl = ((self.exitPrice - self.entryPrice) * volume * size
                     - self.commission - self.slippage)  # 净盈亏
 
+        self.pnlp = self.pnl / (self.entryPrice * size)
+
         # assert isinstance(rate, VtCommissionRate)
         # # 手续费成本
         # # 按成交额算
@@ -1258,16 +1260,16 @@ class DailyResult(VTDailyResult):
         :param marginRate:
         :return:
         """
+        preClose = self.previousClose if self.previousClose != 0 else self.closePrice
 
         self.openPosition = openPosition
         # 开盘持仓 * size * (当日收盘价 - self.previousClose)
         self.positionPnl = self.openPosition * size * (self.closePrice - self.previousClose)
-        self.positionPnlp = self.positionPnl / self.previousClose if self.previousClose != 0 else 0
+        self.positionPnlp = (self.positionPnl / (self.previousClose* size)) if self.previousClose != 0 else 0
         self.closePosition = self.openPosition
 
         # 交易部分
         self.tradeCount = len(self.tradeList)
-        CLOSE_OFFSET_LIST = [OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY]
         closeToday = self.openPosition == 0 # 开始时没有持仓，则往今日内之后的平仓均为平今
 
         for trade in self.tradeList:
@@ -1303,10 +1305,12 @@ class DailyResult(VTDailyResult):
             _slippage = trade.volume * size * slippage
             self.slippage += _slippage
 
-            preClose = self.previousClose if self.previousClose != 0 else self.closePrice
-            pnlp = (tradingPnl - _slippage - commission) / preClose
-            self.netPnlp += pnlp
-            print(u' {}\t{}\t{}\t{}\t{}'.format(trade.tradingDay.date(), tradingPnl, round(pnlp, 4), preClose, self.netPnlp))
+            netPnlp = (tradingPnl - _slippage - commission) / (preClose * size)
+            self.netPnlp += netPnlp
+            # print(
+            #     u'{} {} {}% {} {} {}'.format(self.date, round(self.netPnlp * 100, 2) , round(netPnlp * 100, 2) , tradingPnl, trade.volume, preClose)
+            # )
+
 
         self.turnover = self.closePrice * self.closePosition * size
 
@@ -1314,9 +1318,10 @@ class DailyResult(VTDailyResult):
         self.totalPnl = self.tradingPnl + self.positionPnl
         self.netPnl = self.totalPnl - self.commission - self.slippage
         self.netPnlp += self.positionPnlp
-        print(
-            u' {}\t{}\t{}'.format(self.date, round(self.netPnlp, 4), self.closePrice)
-        )
+        # print(
+        #     u'{} {}% {} {}'.format(self.date, round(self.netPnlp, 4) * 100, self.netPnl, self.previousClose)
+        # )
+        # print('===========')
 
         self.margin = abs(self.closePosition * size * self.closePrice * marginRate.marginRate)
 
