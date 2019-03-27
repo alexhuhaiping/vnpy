@@ -1093,7 +1093,7 @@ class CtaTemplate(vtCtaTemplate):
         """
         # 滑点过大警告, 滑点超过 - overSplipage 算作滑点过大
         overSplipage = -self._setting.get('overSplipage', self.overSplipage)
-        if trade.splippage and trade.splippage / self.priceTick <= overSplipage:
+        if trade.splippage and trade.splippage / self.priceTick < overSplipage:
             self.log.warning(
                 u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
                                                                        trade.splippage, self.priceTick, overSplipage))

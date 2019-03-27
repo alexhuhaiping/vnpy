@@ -123,8 +123,7 @@ class DrawBacktestingTrade(object):
                 needTime = costTime / overCount * (btInfoDic['amount'] - count)
                 print(u'============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e))
             except ZeroDivisionError:
-                import traceback
-                traceback.print_exc()
+                pass
             if btInfoDic['amount'] == count:
                 # 已经全部回测完毕
                 break

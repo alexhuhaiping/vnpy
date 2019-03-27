@@ -212,6 +212,9 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 此处先调用 self.onXminBar
         self.bm.updateXminBar(bar)
 
+        if not self.trading:
+            return
+
         if self.isCloseoutVaild and self.rtBalance < 0:
             # 爆仓，一键平仓
             self.closeout()
@@ -667,9 +670,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.putEvent()
 
     def setBig(self):
+        self.log.info(u'进入大周期')
         self.big = True
 
     def setSmall(self):
+        self.log.info(u'进入小周期')
         self.big = False
         self.smallLongInList = []  # 大周期中的小周期开仓价
         self.smallShortInList = []  # 大周期中的小周期开仓价
