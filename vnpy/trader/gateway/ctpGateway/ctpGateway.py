@@ -414,13 +414,11 @@ class CtpMdApi(MdApi):
         tick.askVolume1 = data['AskVolume1']
 
         # 大商所日期转换
-        if tick.exchange is EXCHANGE_DCE:
+        if tick.exchange == EXCHANGE_DCE:
             newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()  # 最新tick时间戳
 
             # 如果新tick的时间小于夜盘分隔，且上一个tick的时间大于夜盘分隔，则意味着越过了12点
-            if (self.tickTime and
-                        newTime < NIGHT_TRADING and
-                        self.tickTime > NIGHT_TRADING):
+            if (self.tickTime and newTime < NIGHT_TRADING and self.tickTime > NIGHT_TRADING):
                 self.tradingDt += timedelta(1)  # 日期加1
                 self.tradingDate = self.tradingDt.strftime('%Y%m%d')  # 生成新的日期字符串
 

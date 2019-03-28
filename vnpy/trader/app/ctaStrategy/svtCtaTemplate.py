@@ -1033,9 +1033,12 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         now = event.dict_['now']
+        # print(u'{} {} {}'.format(now, self.lastTickTime, now - self.lastTickTime> self.tickMaxLostTime))
         if now - self.lastTickTime > self.tickMaxLostTime:
             # 超时未推送 tick
+            # print(181818181)
             if tt.get_trading_status(self.vtSymbol, now) == tt.continuous_auction:
+                # print(19191919)
                 # 且处于连续竞价中
                 # 重新订阅
                 self.log.warning(u'超时未推送 tick, 重新订阅')
@@ -1044,6 +1047,7 @@ class CtaTemplate(vtCtaTemplate):
             return
 
     def updateLastTickTime(self, tick):
+        # print(tick.time, tick.askPrice1, tick.askVolume1)
         self.lastTickTime = max(self.lastTickTime, tick.datetime)
 
     def _calHandsByLoseCountPct(self, hands, flinch):
