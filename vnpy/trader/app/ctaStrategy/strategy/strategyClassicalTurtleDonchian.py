@@ -53,6 +53,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         'ATR_N',
         'UNITS',
         'BIG',
+        'fixhands',
     ])
 
     # 策略变量
