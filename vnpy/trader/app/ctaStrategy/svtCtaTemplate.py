@@ -92,6 +92,9 @@ class CtaTemplate(vtCtaTemplate):
         if not isinstance(self.barXmin, int):
             raise ValueError(u'barXmin should be int.')
 
+        self.lastTickTime = arrow.now()  # 最后一个 tick 的时间
+        self.tickMaxLostTime = datetime.timedelta(seconds=60)  # 1分钟没有收到 tick 就要重新订阅
+
         self.stopOrdering = Event()  # 停止单锁定
         self.stopOrderingCount = 0  # 停止单锁定计数
         self.saving = False  # 是否可以存库了
@@ -543,6 +546,7 @@ class CtaTemplate(vtCtaTemplate):
                 return self.marginRate
             else:
                 return 0.9
+
     @property
     def margin(self):
 
@@ -790,6 +794,8 @@ class CtaTemplate(vtCtaTemplate):
         en = self.ctaEngine.mainEngine.eventEngine
         en.register(EVENT_MARGIN_RATE, self.updateMarginRate)
         en.register(EVENT_COMMISSION_RATE, self.updateCommissionRate)
+        en.register(EVENT_TIMER, self.onTimer)
+
         # en.register(EVENT_TRADE, self.saveTrade)
 
     def updateMarginRate(self, event):
@@ -1021,6 +1027,25 @@ class CtaTemplate(vtCtaTemplate):
                     return True
         return False
 
+    def onTimer(self, event):
+        """
+        时钟事件，每秒推送
+        :return:
+        """
+        now = event.dict_['now']
+        if now - self.lastTickTime > self.tickMaxLostTime:
+            # 超时未推送 tick
+            if tt.get_trading_status(self.vtSymbol, now) == tt.continuous_auction:
+                # 且处于连续竞价中
+                # 重新订阅
+                self.log.warning(u'超时未推送 tick, 重新订阅')
+                self.ctaEngine.reSubscribe(self.vtSymbol)
+            self.lastTickTime = now
+            return
+
+    def updateLastTickTime(self, tick):
+        self.lastTickTime = max(self.lastTickTime, tick.datetime)
+
     def _calHandsByLoseCountPct(self, hands, flinch):
         """
         随着连败按照比例加仓
@@ -1141,7 +1166,8 @@ class CtaTemplate(vtCtaTemplate):
     def printOutOnTrade(self, trade, OFFSET_CLOSE_LIST, originCapital, charge, profile):
         # if trade.offset in OFFSET_CLOSE_LIST:
         # print(self.bar.datetime)
-        textList = [u'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
+        textList = [
+            u'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
         textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
         textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
         textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
