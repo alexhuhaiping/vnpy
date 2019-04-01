@@ -80,7 +80,7 @@ statusMapReverse = {v: k for k, v in statusMap.items()}
 symbolExchangeDict = {}
 
 # 夜盘交易时间段分隔判断
-NIGHT_TRADING = datetime(1900, 1, 1, 20).time()
+NIGHT_TRADING = datetime(1900, 1, 1, 20, 50).time()
 
 
 ########################################################################
@@ -280,7 +280,6 @@ class CtpMdApi(MdApi):
 
         self.tradingDt = None  # 交易日datetime对象
         self.tradingDate = EMPTY_STRING  # 交易日期字符串
-        self.tickTime = None  # 最新行情time对象
         self.today = todayDate()
         self.todayStr = self.today.strftime('%Y%m%d')
 
@@ -419,21 +418,8 @@ class CtpMdApi(MdApi):
         if tick.exchange == EXCHANGE_DCE:
             newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()  # 最新tick时间戳
             # 如果新tick的时间小于夜盘分隔，且上一个tick的时间大于夜盘分隔，则意味着越过了12点
-            # if (self.tickTime and newTime < NIGHT_TRADING and self.tickTime > NIGHT_TRADING):
-            #     self.tradingDt += timedelta(1)  # 日期加1
-            #     self.tradingDate = self.tradingDt.strftime('%Y%m%d')  # 生成新的日期字符串
-            # tick.date = self.tradingDate  # 使用本地维护的日期
-
-
-            if self.tickTime and self.tickTime > newTime:
-                # 过0点之前，newTime > self.tickTime, 零点则 newTime == 00:00:00.000 < self.tickTime 23:59:59.500
-                # 更新日期
-                self.today += timedelta(days=1)
-                self.todayStr = self.today.strftime('%Y%m%d')
-
-            tick.date = self.todayStr
-
-            self.tickTime = newTime  # 更新上一个tick时间
+            if NIGHT_TRADING <= newTime:
+                tick.date = self.todayStr  # 使用本地维护的日期
 
         dt = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
         tick.datetime = arrow.get('{}+08:00'.format(dt)).datetime
@@ -1121,7 +1107,7 @@ class svtCtpTdApi(TdApi):
 
         trade.orderID = data['OrderRef']
         # trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
-        trade.vtOrderID = self.getVtOrderID(trade.orderID, trade.symbol )
+        trade.vtOrderID = self.getVtOrderID(trade.orderID, trade.symbol)
 
         # 方向
         trade.direction = directionMapReverse.get(data['Direction'], '')
@@ -1555,7 +1541,7 @@ class svtCtpTdApi(TdApi):
 
         self.gateway.onLog(log)
 
-    def getVtOrderID(self, orderRef,symbol):
+    def getVtOrderID(self, orderRef, symbol):
         vtOrderID = '.'.join([self.gatewayName, symbol, str(orderRef)])
         return vtOrderID
 

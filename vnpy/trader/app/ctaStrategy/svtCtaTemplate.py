@@ -1270,6 +1270,7 @@ class BarManager(VtBarManager):
         if self.lastTick is None and not self.strategy.isBackTesting():
             # 第一个 tick 就比当前时间偏离，则
             if abs((tick.datetime - arrow.now().datetime).total_seconds()) > 60 * 10:
+                self.log.warning(u'剔除异常 tick {}'.format(tick.datetime))
                 return
 
         # 剔除错误数据
