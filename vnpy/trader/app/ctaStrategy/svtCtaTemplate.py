@@ -66,6 +66,7 @@ class CtaTemplate(vtCtaTemplate):
         'marginRatio',
         'margin',
         'size',
+        'exchange',
     ]
 
     # 成交状态
@@ -102,6 +103,7 @@ class CtaTemplate(vtCtaTemplate):
         self.barCollection = MINUTE_COL_NAME  # MINUTE_COL_NAME OR DAY_COL_NAME
         self._priceTick = None
         self._size = None  # 每手的单位
+        self._exchange = None  # 交易所
         self.balanceList = OrderedDict()
 
         self._pos = 0
@@ -610,6 +612,18 @@ class CtaTemplate(vtCtaTemplate):
 
         assert isinstance(self._size, float) or isinstance(self._size, int)
         return self._size
+
+    @property
+    def exchange(self):
+        if self._exchange is None:
+            if self.isBackTesting():
+                # 回测中
+                self._exchange = u'未知交易所'
+            else:
+                # 实盘
+                self._exchange = self.contract.exchange
+
+        return self._exchange
 
     def onXminBar(self, xminBar):
         raise NotImplementedError(u'尚未定义')
