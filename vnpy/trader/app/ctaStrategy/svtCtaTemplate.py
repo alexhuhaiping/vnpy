@@ -65,6 +65,7 @@ class CtaTemplate(vtCtaTemplate):
         'rtBalance',
         'marginRatio',
         'margin',
+        'size',
     ]
 
     # 成交状态
