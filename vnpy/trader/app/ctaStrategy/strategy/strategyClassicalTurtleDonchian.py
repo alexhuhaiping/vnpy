@@ -428,11 +428,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         self.atr = self.roundToPriceTick(am.atr(self.ATR_N))
 
-        msg = u''
-        for k in self._varList:
-            v = getattr(self, k)
-            msg += u'{}:{}\t'.format(k, v)
-        self.log.info(msg)
+        # msg = u''
+        # for k in self._varList:
+        #     v = getattr(self, k)
+        #     msg += u'{}:{}\t'.format(k, v)
+        # self.log.info(msg)
 
         if not am.inited:
             return
