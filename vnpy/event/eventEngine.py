@@ -6,6 +6,7 @@ from Queue import Queue, Empty
 from threading import Thread
 from time import sleep
 from collections import defaultdict
+import arrow
 
 import traceback
 try:
@@ -110,7 +111,7 @@ class EventEngine(object):
         """向事件队列中存入计时器事件"""
         # 创建计时器事件
         event = Event(type_=EVENT_TIMER)
-        
+
         # 向队列中存入计时器事件
         self.put(event)    
 
@@ -261,7 +262,7 @@ class EventEngine2(object):
         while self.__timerActive:
             # 创建计时器事件
             event = Event(type_=EVENT_TIMER)
-        
+
             # 向队列中存入计时器事件
             self.put(event)    
             
@@ -352,9 +353,10 @@ class Event:
         """Constructor"""
         self.type_ = type_      # 事件类型
         self.dict_ = {}         # 字典用于保存具体的事件数据
+        if type_ == EVENT_TIMER:
+            self.dict_['now'] = arrow.now().datetime
 
-
-#----------------------------------------------------------------------
+        #----------------------------------------------------------------------
 def test():
     """测试函数"""
     import sys

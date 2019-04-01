@@ -18,7 +18,7 @@ import traceback
 
 from vnpy.api.ctp import MdApi, TdApi, defineDict
 from vnpy.trader.vtGateway import *
-from vnpy.trader.vtFunction import getJsonPath, getTempPath
+from vnpy.trader.vtFunction import getJsonPath, getTempPath, todayDate
 from vnpy.trader.vtConstant import GATEWAYTYPE_FUTURES
 from .language import text
 
@@ -281,6 +281,8 @@ class CtpMdApi(MdApi):
         self.tradingDt = None  # 交易日datetime对象
         self.tradingDate = EMPTY_STRING  # 交易日期字符串
         self.tickTime = None  # 最新行情time对象
+        self.today = todayDate()
+        self.todayStr = self.today.strftime('%Y%m%d')
 
     # ----------------------------------------------------------------------
     def onFrontConnected(self):
@@ -414,19 +416,25 @@ class CtpMdApi(MdApi):
         tick.askVolume1 = data['AskVolume1']
 
         # 大商所日期转换
-        if tick.exchange is EXCHANGE_DCE:
+        if tick.exchange == EXCHANGE_DCE:
             newTime = datetime.strptime(tick.time, '%H:%M:%S.%f').time()  # 最新tick时间戳
-
             # 如果新tick的时间小于夜盘分隔，且上一个tick的时间大于夜盘分隔，则意味着越过了12点
-            if (self.tickTime and
-                        newTime < NIGHT_TRADING and
-                        self.tickTime > NIGHT_TRADING):
-                self.tradingDt += timedelta(1)  # 日期加1
-                self.tradingDate = self.tradingDt.strftime('%Y%m%d')  # 生成新的日期字符串
+            # if (self.tickTime and newTime < NIGHT_TRADING and self.tickTime > NIGHT_TRADING):
+            #     self.tradingDt += timedelta(1)  # 日期加1
+            #     self.tradingDate = self.tradingDt.strftime('%Y%m%d')  # 生成新的日期字符串
+            # tick.date = self.tradingDate  # 使用本地维护的日期
 
-            tick.date = self.tradingDate  # 使用本地维护的日期
+
+            if self.tickTime and self.tickTime > newTime:
+                # 过0点之前，newTime > self.tickTime, 零点则 newTime == 00:00:00.000 < self.tickTime 23:59:59.500
+                # 更新日期
+                self.today += timedelta(days=1)
+                self.todayStr = self.today.strftime('%Y%m%d')
+
+            tick.date = self.todayStr
 
             self.tickTime = newTime  # 更新上一个tick时间
+
         dt = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
         tick.datetime = arrow.get('{}+08:00'.format(dt)).datetime
         self.gateway.onTick(tick)

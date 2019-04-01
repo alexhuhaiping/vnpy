@@ -466,8 +466,8 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 return
 
         if self.smallUnits == 0:
-            self.smallLongInList = [self.upIn + i * self.ADD_ATR for i in range(self.UNITS)]
-            self.smallShortInList = [self.downIn - i * self.ADD_ATR for i in range(self.UNITS)]
+            self.smallLongInList = [self.roundToPriceTick(self.upIn + i * self.ADD_ATR) for i in range(self.UNITS)]
+            self.smallShortInList = [self.roundToPriceTick(self.downIn - i * self.ADD_ATR) for i in range(self.UNITS)]
 
         if self.pos == 0:
             # 更新入场指标

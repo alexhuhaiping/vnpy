@@ -653,6 +653,7 @@ class CtaEngine(VtCtaEngine):
             # 逐个推送到策略实例中
             l = self.tickStrategyDict[tick.vtSymbol]
             for strategy in l:
+                self.callStrategyFunc(strategy, strategy.updateLastTickTime, tick)
                 self.callStrategyFunc(strategy, strategy.onTick, tick)
 
     def _heartBeat(self, event):
@@ -728,6 +729,12 @@ class CtaEngine(VtCtaEngine):
 
             # 仅对 ag 和 T 的tick推送进行心跳
             self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
+
+    def reSubscribe(self, vtSymbol):
+        req = VtSubscribeReq()
+        contract = self.mainEngine.getContract(vtSymbol)
+        req.symbol = contract.symbol
+        self.mainEngine.subscribe(req, contract.gatewayName)
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
         log = u'{} 停止单 {} {} {} {} {}'.format(vtSymbol, strategy.name, orderType, price, volume, stopProfile)

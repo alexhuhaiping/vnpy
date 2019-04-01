@@ -282,9 +282,15 @@ def checkMargin():
     s = sList[0]
     print(s.marginRate)
 
+def reSubscribe():
+    sList = getStrategy(vtSymbol)
+    for s in sList:
+        if s.name == u'焦炭_经典海龟120min':
+            break
+    print(s.name)
 
 # vtSymbol = 'AP905'
-vtSymbol = 'rb1905'
+vtSymbol = 'j1905'
 import logging
 
 
@@ -292,8 +298,10 @@ def run():
     load()
     return
     me.log.info('====================================================')
+    reSubscribe()
+
     # checkMargin()
-    showStopOrder()
+    # showStopOrder()
 
     # cover()
     # sell()
