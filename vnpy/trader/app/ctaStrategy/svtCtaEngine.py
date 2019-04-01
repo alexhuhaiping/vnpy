@@ -188,7 +188,7 @@ class CtaEngine(VtCtaEngine):
             bar.load(d)
             if (bar.datetime.hour, bar.datetime.minute, bar.datetime.second) in timestamp:
                 preKline = bar
-                self.log.info(u'剔除K线 {}'.format(bar.datetime))
+                self.log.info(u'剔除K线 {} {}'.format(bar.vtSymbol, bar.datetime))
                 continue
             if preKline:
                 # 聚合到下一根K线上，可能是 9:02 ，不一定是9:01
