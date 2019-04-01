@@ -420,9 +420,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         am.updateBar(bar)
 
-        if not am.inited:
-            return
-
         # 计算唐奇安指标
         self.upIn, self.downIn = self.getUpDown(self.UP_IN, self.DOWN_IN)
         self.downOut, self.upOut = self.getUpDown(self.DOWN_OUT, self.UP_OUT)
@@ -431,11 +428,14 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         self.atr = self.roundToPriceTick(am.atr(self.ATR_N))
 
-        # msg = u''
-        # for k in self._varList:
-        #     v = getattr(self, k)
-        #     msg += u'{}:{}\t'.format(k, v)
-        # self.log.info(msg)
+        msg = u''
+        for k in self._varList:
+            v = getattr(self, k)
+            msg += u'{}:{}\t'.format(k, v)
+        self.log.info(msg)
+
+        if not am.inited:
+            return
 
         self.saveTechIndOnXminBar(bar.datetime)
 
