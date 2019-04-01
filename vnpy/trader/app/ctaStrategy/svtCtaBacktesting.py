@@ -65,6 +65,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
         self.marginRate = None  # 保证金比例对象 VtMarginRate()
+        self.margin = None # 最后保证金
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
         self.isOutputResult = True  # 回测后输出结果时是否展示图片
@@ -712,6 +713,12 @@ class BacktestingEngine(VTBacktestingEngine):
 
         return stopOrders
 
+    def getOrder(self, vtOrderID):
+        vtOrder = self.limitOrderDict.get(vtOrderID)
+        if vtOrder is None:
+            vtOrder = self.stopOrderDict.get(vtOrderID)
+        return vtOrder
+
     # ----------------------------------------------------------------------
     def calculateDailyResult(self):
         """计算按日统计的交易结果"""
@@ -732,6 +739,7 @@ class BacktestingEngine(VTBacktestingEngine):
             dailyResult.calculatePnl(openPosition, self.size, self.strategy.getCommission, self.slippage,
                                      self.marginRate)
             openPosition = dailyResult.closePosition
+            self.margin = dailyResult.closePrice * self.size * self.marginRate.marginRate
 
         # 生成DataFrame
         resultDict = {k: [] for k in DailyResult(None, None).__dict__.keys()}
@@ -745,12 +753,6 @@ class BacktestingEngine(VTBacktestingEngine):
         resultDf = resultDf.set_index('date')
 
         return resultDf
-
-    def getOrder(self, vtOrderID):
-        vtOrder = self.limitOrderDict.get(vtOrderID)
-        if vtOrder is None:
-            vtOrder = self.stopOrderDict.get(vtOrderID)
-        return vtOrder
 
     # ----------------------------------------------------------------------
     def showDailyResult(self, df=None):
@@ -820,6 +822,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult[u'起始资金'] = self.capital
         self.dailyResult[u'结束资金'] = endBalance
         self.dailyResult[u'最大保证金占用率'] = maxMarginPer
+        self.dailyResult[u'保证金'] = self.margin
 
         self.dailyResult[u'总收益率'] = totalReturn
         self.dailyResult[u'总盈亏'] = totalNetPnl
