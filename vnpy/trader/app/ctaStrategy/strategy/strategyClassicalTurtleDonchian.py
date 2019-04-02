@@ -183,11 +183,19 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 撤所有的单
         self.cancelAll()
 
+        # 开盘前再下单
+        self.orderUntilTradingTime()
+
+        self.putEvent()
+
+    def _orderOnThreading(self):
+        """
+        开盘前5秒下单
+        :return:
+        """
         # 下单
         self.orderOpenOnStart()
         self.orderCloseOnStart()
-
-        self.putEvent()
 
     # ----------------------------------------------------------------------
     def onStop(self):
