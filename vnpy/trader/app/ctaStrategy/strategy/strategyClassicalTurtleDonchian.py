@@ -677,10 +677,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 下平仓单
         self.orderCloseOnTrade()
 
-        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
+
+        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
 
     def setBig(self):
         self.log.info(u'进入大周期')
