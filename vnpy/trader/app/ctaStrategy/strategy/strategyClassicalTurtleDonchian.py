@@ -40,6 +40,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     BIG_DOWN_IN = BIG_UP_IN = 55  # 大周期入场
     BIG_DOWN_OUT = BIG_UP_OUT = 20  # 大周期离场
     ATR_N = 20  # ATR 长度
+    BIG_ATR_N = 55   # 大周期 ATR 长度
     fixhands = 1  # 固定手数
     UNITS = 4  # 分仓数量
     ADD_ATR = 0.5  # 每 0.5 ATR 加仓一次
@@ -50,7 +51,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'DOWN_IN', 'UP_IN', 'DOWN_OUT', 'UP_OUT', 'BIG_DOWN_IN', 'BIG_UP_IN', 'BIG_UP_OUT', 'BIG_DOWN_OUT',
-        'ATR_N',
+        'ATR_N','BIG_ATR_N',
         'UNITS',
         'BIG',
         'fixhands',
@@ -66,6 +67,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     bigUpOut = None  # 多离场
     bigDownOut = None  # 低点离场
     atr = None  # ATR 值
+    bigAtr = None  # 大周期 ATR 值
     big = False  # 是否处于大周期，开启默认处于小周期
     smallLongInList = []  # 大周期中的小周期开仓价
     smallShortInList = []  # 大周期中的小周期开仓价
@@ -83,6 +85,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         'bigUpOut',
         'bigDownOut',
         'atr',
+        'bigAtr',
         'big',
         'smallLongInList',
         'smallShortInList',
@@ -183,11 +186,19 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 撤所有的单
         self.cancelAll()
 
+        # 开盘前再下单
+        self.orderUntilTradingTime()
+
+        self.putEvent()
+
+    def _orderOnThreading(self):
+        """
+        开盘前5秒下单
+        :return:
+        """
         # 下单
         self.orderOpenOnStart()
         self.orderCloseOnStart()
-
-        self.putEvent()
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -427,6 +438,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.bigDownOut, self.bigUpOut = self.getUpDown(self.BIG_DOWN_OUT, self.BIG_UP_OUT)
 
         self.atr = self.roundToPriceTick(am.atr(self.ATR_N))
+        self.bigAtr = self.roundToPriceTick(am.atr(self.BIG_ATR_N))
 
         # msg = u''
         # for k in self._varList:
@@ -473,7 +485,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             # 更新入场指标
             # 空仓时才更新，一旦开仓，所有入场指标都固定
             for u in self.units:
-                u.atr = self.roundToPriceTick(self.atr)
+                u.atr = self.roundToPriceTick(self.bigAtr if self.isBig else self.atr)
                 longIn, shortIn = (self.bigUpIn, self.bigDownIn) if self.isBig else (self.upIn, self.downIn)
                 # 直接根据公式 轨道 ± n * ATR 来计算开仓价格
                 # 当 pos != 0，即已经开仓后，其他的 Unit 的开仓价格不再变化
@@ -665,10 +677,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 下平仓单
         self.orderCloseOnTrade()
 
-        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
+
+        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
 
     def setBig(self):
         self.log.info(u'进入大周期')
