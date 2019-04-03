@@ -51,9 +51,9 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     # vtSymbol = 'AP810'
-    vtSymbol = 'p1309'
+    vtSymbol = 'rb1905'
+    # vtSymbol = 'p1309'
     # vtSymbol = 'ni1901'
-
     # vtSymbol = 'ru1705'
 
     setting = {
@@ -71,8 +71,8 @@ if __name__ == '__main__':
         # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
         # 'strategyClass': 'AtrBottomFishStrategy',
 
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 3,
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 100, 'BIG': True, 'UNITS': 4,
         'strategyClass': 'ClassicalTurtleDonchianStrategy',
     }
 
