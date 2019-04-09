@@ -5,6 +5,7 @@ cd ..
 
 ## Run docker container, mapping the ssh and vnc ports, then run bash terminal:
 docker run --name vnpy_bash --rm \
+
     -v `pwd`:/srv/vnpy \
     -p 2222:22 \
     -it vnpy:latest \
