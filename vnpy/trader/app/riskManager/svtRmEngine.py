@@ -7,7 +7,7 @@
 3. 单笔委托的委托数量控制
 '''
 
-from __future__ import division
+
 import json
 import logging
 
@@ -21,10 +21,10 @@ class RmEngine(SvtRmEngine):
         self.marginRatioWarning = EMPTY_FLOAT
 
         super(RmEngine, self).__init__(mainEngine, eventEngine)
-        self.log.info(u'加载风控模块')
+        self.log.info('加载风控模块')
 
     def writeRiskLog(self, content):
-        self.log.warning(u'{}'.format(content))
+        self.log.warning('{}'.format(content))
         super(RmEngine, self).writeRiskLog(content)
 
     def checkRisk(self, orderReq, gatewayName):
@@ -42,7 +42,7 @@ class RmEngine(SvtRmEngine):
         # 检查保证金比例
         if gatewayName in self.marginRatioDict and self.marginRatioDict[gatewayName] >= self.marginRatioWarning:
             self.log.warning(
-                u'{}接口保证金占比{}，超过预警值{}'.format(
+                '{}接口保证金占比{}，超过预警值{}'.format(
                     gatewayName,
                     self.marginRatioDict[gatewayName],
                     self.marginRatioWarning
@@ -52,7 +52,7 @@ class RmEngine(SvtRmEngine):
     def loadSetting(self):
         with open(self.settingFilePath) as f:
             d = json.load(f)
-            for k, v in d.items():
+            for k, v in list(d.items()):
                 setattr(self, k, v)
 
     def toSaveSetting(self):

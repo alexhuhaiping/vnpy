@@ -5,11 +5,11 @@ import multiprocessing
 import signal
 import threading
 import traceback
-import ConfigParser
-from Queue import Empty
+import configparser
+from queue import Empty
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from optworker import childProcess
+from .optworker import childProcess
 
 
 class WorkService(object):
@@ -21,7 +21,7 @@ class WorkService(object):
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
@@ -30,7 +30,7 @@ class WorkService(object):
         try:
             cpu_count = self.config.getint('worker', 'cpu')
             self.cpuCount = min(cpu_count, self.cpuCount)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
 
         self.logs = {}
@@ -49,7 +49,7 @@ class WorkService(object):
             self.logs[w.name] = logging.getLogger(w.name)
 
         self.logging = True
-        self.log.info(u'即将启动 {} 个svnpy优化算力'.format(self.cpuCount))
+        self.log.info('即将启动 {} 个svnpy优化算力'.format(self.cpuCount))
 
         # 输出日志
         # self.logForever = threading.Thread(name='log', target=self._log)
@@ -59,7 +59,7 @@ class WorkService(object):
             signal.siginterrupt(sig, False)
 
     def start(self):
-        self.log.warning(u'分布式回测算力加入'.format(self.config.get('slavem', 'localhost')))
+        self.log.warning('分布式回测算力加入'.format(self.config.get('slavem', 'localhost')))
         # self.logForever.start()
         for w in self.workers:
             time.sleep(0.5)
@@ -74,7 +74,7 @@ class WorkService(object):
         threading.Timer(0, stop).start()
 
         for w in self.workers:
-            self.log.info(u'等待 {} {} 结束'.format(w.name, id(w)))
+            self.log.info('等待 {} {} 结束'.format(w.name, id(w)))
             w.join(1)
 
         self.logging = False
@@ -93,7 +93,7 @@ class WorkService(object):
                 self.log.critical(traceback.format_exc())
                 raise
 
-        self.log.info(u'完全退出')
+        self.log.info('完全退出')
 
 
 if __name__ == '__main__':

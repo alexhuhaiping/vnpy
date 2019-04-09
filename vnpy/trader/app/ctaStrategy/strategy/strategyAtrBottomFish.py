@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 
-from __future__ import division
+
 
 from threading import Timer
 from collections import OrderedDict
@@ -21,8 +21,8 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 ########################################################################
 class AtrBottomFishStrategy(CtaTemplate):
     """ATR反转后抄底，不设技术止损"""
-    className = u'反转ATR抄底策略'
-    author = u'lamter'
+    className = '反转ATR抄底策略'
+    author = 'lamter'
 
     # 策略参数
     longBar = 20  #
@@ -73,12 +73,12 @@ class AtrBottomFishStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -97,9 +97,9 @@ class AtrBottomFishStrategy(CtaTemplate):
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         if self.bar:
             self.high = self.high or self.bar.close
@@ -112,7 +112,7 @@ class AtrBottomFishStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             # 实盘，可以存库。
@@ -155,7 +155,7 @@ class AtrBottomFishStrategy(CtaTemplate):
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.saveDB()
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -329,15 +329,15 @@ class AtrBottomFishStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            message = u''
-            for k, v in order.rawData.items():
-                message += u'{}:{}\n'.format(k, v)
+            message = ''
+            for k, v in list(order.rawData.items()):
+                message += '{}:{}\n'.format(k, v)
             log(message)
 
             # 补发
             self.orderUntilTradingTime()
 
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):

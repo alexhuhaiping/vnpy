@@ -23,8 +23,8 @@ def loadStrategyModule(moduleName):
                 v = module.__getattribute__(k)
                 STRATEGY_CLASS[k] = v
     except:
-        print '-' * 20
-        print ('Failed to import strategy file %s:' %moduleName)
+        print('-' * 20)
+        print(('Failed to import strategy file %s:' %moduleName))
         traceback.print_exc()    
 
 

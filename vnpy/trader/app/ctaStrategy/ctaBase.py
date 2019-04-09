@@ -10,15 +10,15 @@ from collections import OrderedDict
 
 # 常量定义
 # CTA引擎中涉及到的交易方向类型
-CTAORDER_BUY = u'买开'
-CTAORDER_SELL = u'卖平'
-CTAORDER_SHORT = u'卖开'
-CTAORDER_COVER = u'买平'
+CTAORDER_BUY = '买开'
+CTAORDER_SELL = '卖平'
+CTAORDER_SHORT = '卖开'
+CTAORDER_COVER = '买平'
 
 # 本地停止单状态
-STOPORDER_WAITING = u'等待中'
-STOPORDER_CANCELLED = u'已撤销'
-STOPORDER_TRIGGERED = u'已触发'
+STOPORDER_WAITING = '等待中'
+STOPORDER_CANCELLED = '已撤销'
+STOPORDER_TRIGGERED = '已触发'
 
 # 本地停止单前缀
 STOPORDERPREFIX = 'CtaStopOrder.'
@@ -41,15 +41,15 @@ EVENT_CTA_STRATEGY = 'eCtaStrategy.'    # CTA策略状态变化事件
 
 # 常量定义
 # CTA引擎中涉及到的交易方向类型
-CTAORDER_BUY = u'买开'
-CTAORDER_SELL = u'卖平'
-CTAORDER_SHORT = u'卖开'
-CTAORDER_COVER = u'买平'
+CTAORDER_BUY = '买开'
+CTAORDER_SELL = '卖平'
+CTAORDER_SHORT = '卖开'
+CTAORDER_COVER = '买平'
 
 # 本地停止单状态
-STOPORDER_WAITING = u'等待中'
-STOPORDER_CANCELLED = u'已撤销'
-STOPORDER_TRIGGERED = u'已触发'
+STOPORDER_WAITING = '等待中'
+STOPORDER_CANCELLED = '已撤销'
+STOPORDER_TRIGGERED = '已触发'
 
 # 本地停止单前缀
 STOPORDERPREFIX = 'CtaStopOrder.'
@@ -116,14 +116,14 @@ class StopOrder(VtStopOrder):
         self.stopProfile = False # 是否为止盈停止单
 
     def __str__(self):
-        s = u'< StopOrder '
-        s += u'{} '.format(self.stopOrderID)
-        s += u'({}) '.format(self.priority)
-        s += u'{} '.format(self.offset)
-        s += u'{} '.format(self.direction)
-        s += u'{} @ {} '.format(self.volume, self.price)
-        s += u'{} '.format(self.status)
-        s += u'>'
+        s = '< StopOrder '
+        s += '{} '.format(self.stopOrderID)
+        s += '({}) '.format(self.priority)
+        s += '{} '.format(self.offset)
+        s += '{} '.format(self.direction)
+        s += '{} @ {} '.format(self.volume, self.price)
+        s += '{} '.format(self.status)
+        s += '>'
         return s
 
     def toHtml(self, tick=None):
@@ -158,7 +158,7 @@ class StopOrder(VtStopOrder):
             if isinstance(v, float):
                 try:
                     # 尝试截掉过长的浮点数
-                    v = u'%0.3f' % v
+                    v = '%0.3f' % v
                     while v.endswith('0'):
                         v = v[:-1]
                     if v.endswith('.'):

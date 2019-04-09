@@ -4,10 +4,10 @@ import os
 import logging
 import threading
 import time
-from Queue import Empty
+from queue import Empty
 import pytz
 from bson.codec_options import CodecOptions
-import ConfigParser
+import configparser
 import multiprocessing
 import signal
 import datetime
@@ -15,7 +15,7 @@ import traceback
 import requests
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 
@@ -26,8 +26,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-import optcomment
-from optchild import child
+from . import optcomment
+from .optchild import child
 
 
 class Optimization(object):
@@ -41,7 +41,7 @@ class Optimization(object):
         self.logQueue = logQueue
         self.name = name
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
@@ -80,7 +80,7 @@ class Optimization(object):
             self.childStoped.set()
 
     def start(self):
-        self.log.info(u'启动 {}'.format(self.name))
+        self.log.info('启动 {}'.format(self.name))
         self.run()
 
     def run(self):
@@ -89,16 +89,16 @@ class Optimization(object):
                 self._run()
             except Exception:
                 self.log.critical(traceback.format_exc())
-                self.log.critical(u'异常退出')
+                self.log.critical('异常退出')
                 break
-        self.log.info(u'{} 退出'.format(self.name))
+        self.log.info('{} 退出'.format(self.name))
         self.stop()
 
     def _run(self):
         # 长时间闲置，关闭子进程
         if self.child is not None and time.time() - self.lastTime > 60 * 10:
             # 闲置超过10分钟
-            self.log.info(u'算力闲置，关闭子进程')
+            self.log.info('算力闲置，关闭子进程')
             self.dropChild()
 
         # 尝试获取任务
@@ -119,16 +119,16 @@ class Optimization(object):
 
         data = r.text
 
-        if data == u'版本不符':
-            self.log.error(u'版本不符')
+        if data == '版本不符':
+            self.log.error('版本不符')
             self.setLongWait()
             return
-        if data == u'没有任务':
-            self.log.info(u'没有回测任务')
+        if data == '没有任务':
+            self.log.info('没有回测任务')
             self.setLongWait()
             return
-        if data == u'':
-            self.log.error(u'没有提供版本号')
+        if data == '':
+            self.log.error('没有提供版本号')
             self.setLongWait()
             return
 
@@ -137,11 +137,11 @@ class Optimization(object):
         setting = data['setting']
         if setting is None:
             # 没有得到任务，放弃
-            self.log.debug(u'optserver 没有任务')
+            self.log.debug('optserver 没有任务')
             self.setLongWait()
             return
 
-        self.log.info(u'开始运行回测 {vtSymbol} {optsv}'.format(**setting))
+        self.log.info('开始运行回测 {vtSymbol} {optsv}'.format(**setting))
 
         # 在子进程中运行回测
         result = self.dobacktesting(setting)
@@ -151,7 +151,7 @@ class Optimization(object):
         # 重置闲置时间
         self.lastTime = time.time()
 
-        self.log.info(u'回测结束')
+        self.log.info('回测结束')
         sendInterval = 0
         while not self.stoped.wait(sendInterval):
             try:
@@ -179,7 +179,7 @@ class Optimization(object):
 
     def setLongWait(self):
         # 长时间待机
-        self.log.info(u'长待机')
+        self.log.info('长待机')
         self.interval = 60 * 5
         # self.interval = 0.1
 
@@ -212,7 +212,7 @@ class Optimization(object):
         self.childRunCount = 0
         # 开始子进程
         self.child.start()
-        self.log.info(u'使用新子进程')
+        self.log.info('使用新子进程')
 
     def dobacktesting(self, setting):
         vtSymbol = setting['vtSymbol']
@@ -222,9 +222,9 @@ class Optimization(object):
 
         if self.child and vtSymbol == self.lastSymbol:
             # 还存在可重复利用的子进程，不需要重新生成子进程
-            self.log.info(u'重复利用子进程')
+            self.log.info('重复利用子进程')
             self.childRunCount += 1
-            self.log.info(u'子进程复用 {} 次'.format(self.childRunCount))
+            self.log.info('子进程复用 {} 次'.format(self.childRunCount))
             pass
         else:  # 生成新的子进程
             self.dropChild()
@@ -247,7 +247,7 @@ class Optimization(object):
                 if sec > 60:
                     sec = 0
                     # 超过1分钟都没完成回测
-                    self.log.info(u'回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
+                    self.log.info('回测 {vtSymbol} {optsv} 超过1分钟未完成'.format(**setting))
                     # 重新生成子进程
                     self.dropChild()
                     self.newChild()
@@ -256,7 +256,7 @@ class Optimization(object):
                     self.tasks.put(setting)
         else:
             # 服务正常关闭
-            self.log.info(u'算力线程退出')
+            self.log.info('算力线程退出')
             return
 
         self.lastSymbol = vtSymbol
@@ -283,7 +283,7 @@ class Optimization(object):
         url = self.getBtrUrl()
         r = requests.post(url, data=data)
         if r.status_code != 200:
-            raise ValueError(u'返回码异常')
+            raise ValueError('返回码异常')
 
         # 正常完成回测，继续下一个
         self.setShortWait()
@@ -297,7 +297,7 @@ def childProcess(name, stoped, logQueue, config=None):
 if __name__ == '__main__':
     # w = Optimization()
     # w.start()
-    import Queue
+    import queue
 
     stoped = multiprocessing.Event()
     logQueue = multiprocessing.Queue()

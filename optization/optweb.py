@@ -14,18 +14,18 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     from flask import Flask, request
 
     try:
-        import Queue as queue
+        import queue as queue
     except ImportError:
         import queue
 
     try:
-        import cPickle as pickle
+        import pickle as pickle
     except ImportError:
         import pickle
 
-    import optcomment
+    from . import optcomment
     log = optcomment.Logger(logQueue)
-    log.warning(u'启动web服务')
+    log.warning('启动web服务')
     app = Flask(__name__)
     PORT = 30050
 
@@ -41,7 +41,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     def beat(data):
         localHash = optcomment.saltedByHash('test', salt)
         if data == str(localHash):
-            return u''
+            return ''
 
     @app.route('/getsetting/<gitHash>/')
     def requestSetting(gitHash):
@@ -52,20 +52,20 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
         """
         try:
             if not gitHash:
-                log.debug(u'没有提供版本号')
-                return u''
+                log.debug('没有提供版本号')
+                return ''
 
             if gitHash != localGitHash:
-                log.debug(u'版本不符')
-                return u'版本不符'
+                log.debug('版本不符')
+                return '版本不符'
 
             # 校验通过，尝试返回需要回测的参数
             try:
                 setting = tasksQueue.get(timeout=1)
             except queue.Empty:
-                return u'没有任务'
+                return '没有任务'
 
-            log.info(u'{vtSymbol} {optsv}'.format(**setting))
+            log.info('{vtSymbol} {optsv}'.format(**setting))
             data = {
                 'setting': setting,
             }
@@ -87,7 +87,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
         localHash = optcomment.saltedByHash(dataPickle, salt)
 
         if str(localHash) != originHash:
-            logger.warning(u'hash不符合')
+            logger.warning('hash不符合')
             return
 
         result = pickle.loads(dataPickle.encode('utf-8'))['result']
@@ -95,7 +95,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
         try:
             resultQueue.put(result, timeout=5)
         except queue.Full:
-            log.warning(u'缓存回测结果超时')
+            log.warning('缓存回测结果超时')
             return
 
         return ''
@@ -103,7 +103,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     # server = make_server('0.0.0.0', PORT, app)
 
     def shutdown(signalnum, frame):
-        log.info(u'web关闭中……')
+        log.info('web关闭中……')
         server.stop(timeout=3)
 
     for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -113,7 +113,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     server = WSGIServer(('', PORT), app)
     server.serve_forever()
 
-    log.info(u'web关闭')
+    log.info('web关闭')
 
 
 if __name__ == '__main__':

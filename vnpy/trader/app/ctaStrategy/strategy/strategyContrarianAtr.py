@@ -6,7 +6,7 @@
 意在构建一个小盈多赢的震荡策略。
 """
 
-from __future__ import division
+
 
 from threading import Timer
 from collections import OrderedDict
@@ -26,8 +26,8 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 ########################################################################
 class ContrarianAtrStrategy(CtaTemplate):
     """反转ATR策略"""
-    className = u'反转ATR策略'
-    author = u'lamter'
+    className = '反转ATR策略'
+    author = 'lamter'
 
     # 策略参数
     longBar = 20
@@ -85,12 +85,12 @@ class ContrarianAtrStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -110,9 +110,9 @@ class ContrarianAtrStrategy(CtaTemplate):
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         if self.stop is None:
             # 要在读库完成后，设置止损额度，以便控制投入资金的仓位
@@ -131,7 +131,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             # 实盘，可以存库。
@@ -154,7 +154,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.saveDB()
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -217,7 +217,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
 
-        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
 
     def orderOpenOnTrade(self):
         # 开仓价
@@ -230,9 +230,9 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 反手开多
             self.buy(self.bm.lastTick.upperLimit, self.hands)
         else:
-            self.log.warning(u'之前仓位为 pos == 0 无法判断反手方向')
+            self.log.warning('之前仓位为 pos == 0 无法判断反手方向')
 
-        self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
 
     def getPrice(self):
         # 更新高、低点
@@ -289,15 +289,15 @@ class ContrarianAtrStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            message = u''
-            for k, v in order.rawData.items():
-                message += u'{}:{}\n'.format(k, v)
+            message = ''
+            for k, v in list(order.rawData.items()):
+                message += '{}:{}\n'.format(k, v)
             log(message)
 
             # 补发
             self.orderUntilTradingTime()
 
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -330,7 +330,7 @@ class ContrarianAtrStrategy(CtaTemplate):
                 self.updateStop()
 
             self.highBalance = max(self.highBalance, self.rtBalance)
-            self.log.info(u'highBalance:{}; rtBalance:{}'.format(self.highBalance, self.rtBalance))
+            self.log.info('highBalance:{}; rtBalance:{}'.format(self.highBalance, self.rtBalance))
 
         if self.isBackTesting():
             # 回测时
@@ -340,7 +340,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             if self.pos == 0:
                 self.orderOpenOnTrade()
             else:
-                self.log.info(u'high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+                self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
                 self.cancelAll()
                 self.orderClose()
 
@@ -436,5 +436,5 @@ class ContrarianAtrStrategy(CtaTemplate):
         self._loadVar(document)
 
     def updateStop(self):
-        self.log.info(u'调整风险投入')
+        self.log.info('调整风险投入')
         self.stop = self.capital * self.risk

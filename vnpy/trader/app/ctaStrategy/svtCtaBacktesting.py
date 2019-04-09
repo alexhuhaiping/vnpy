@@ -4,9 +4,9 @@
 本文件中包含的是CTA模块的回测引擎，回测引擎的API和CTA引擎一致，
 可以使用和实盘相同的代码进行回测。
 '''
-from __future__ import division
 
-from itertools import imap
+
+
 from collections import OrderedDict
 import time
 import logging
@@ -17,7 +17,7 @@ import pytz
 import copy
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 
@@ -111,7 +111,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.initData = self._resample(self.barPeriod, self._initData)
     #     self.datas = self._resample(self.barPeriod, self._datas)
     def initMongoDB(self):
-        print(u'globalSetting: {}'.format(settingFilePath))
+        print(('globalSetting: {}'.format(settingFilePath)))
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
 
@@ -260,15 +260,15 @@ class BacktestingEngine(VTBacktestingEngine):
         """
         if isinstance(startDate, datetime):
             self.startDate = startDate
-        elif isinstance(startDate, str) or isinstance(startDate, unicode):
+        elif isinstance(startDate, str) or isinstance(startDate, str):
             self.startDate = arrow.get(startDate).datetime
         else:
-            err = u'未知的回测起始日期 {}'.format(str(startDate))
+            err = '未知的回测起始日期 {}'.format(str(startDate))
             self.log.critical(err)
             raise ValueError(err)
 
         if self.startDate.strftime('%H:%M:%S.%f') != '00:00:00.000000':
-            msg = u'startdate 必须为一个零点的日期'
+            msg = 'startdate 必须为一个零点的日期'
             self.log.critical(msg)
             raise ValueError(msg)
 
@@ -284,15 +284,15 @@ class BacktestingEngine(VTBacktestingEngine):
 
         if isinstance(endDate, datetime):
             self.endDate = endDate
-        elif isinstance(endDate, str) or isinstance(endDate, unicode):
+        elif isinstance(endDate, str) or isinstance(endDate, str):
             self.endDate = arrow.get(endDate).datetime
         else:
-            err = u'未知的回测结束日期 {}'.format(str(endDate))
+            err = '未知的回测结束日期 {}'.format(str(endDate))
             self.log.critical(err)
             raise ValueError(err)
 
         if self.endDate.strftime('%H:%M:%S.%f') != '00:00:00.000000':
-            msg = u'endDate 必须为一个零点的日期'
+            msg = 'endDate 必须为一个零点的日期'
             self.log.critical(msg)
             raise ValueError(msg)
 
@@ -303,7 +303,7 @@ class BacktestingEngine(VTBacktestingEngine):
         """
         periodTypes = ['T', 'H', 'D']
         if barPeriod[-1] not in periodTypes:
-            raise ValueError(u'周期应该为 {} , 如 15T 是15分钟K线这种格式'.format(str(periodTypes)))
+            raise ValueError('周期应该为 {} , 如 15T 是15分钟K线这种格式'.format(str(periodTypes)))
 
         self.barPeriod = barPeriod
 
@@ -336,7 +336,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 手续费率
         vtCom = VtCommissionRate()
 
-        for k, v in contractDic.items():
+        for k, v in list(contractDic.items()):
             if hasattr(vtCon, k):
                 setattr(vtCon, k, v)
 
@@ -355,7 +355,7 @@ class BacktestingEngine(VTBacktestingEngine):
         startDate = contractDic['activeStartDate']
         endDate = contractDic['activeEndDate']
         if startDate is None:
-            err = u'{} 不是主力合约'.format(self.symbol)
+            err = '{} 不是主力合约'.format(self.symbol)
             self.log.error(err)
             raise ValueError(err)
         self.setStartDate(startDate)  # 设置回测用的数据起始日期
@@ -394,7 +394,7 @@ class BacktestingEngine(VTBacktestingEngine):
             DAY_COL_NAME: self.ctpCol1dayBar,
         }.get(self.collectionName)
 
-        self.log.info(u'开始载入数据')
+        self.log.info('开始载入数据')
 
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
@@ -407,7 +407,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         initCursor = collection.find(flt, {'_id': 0})
         initCount = initCursor.count()
-        self.log.info(u'预计加载数据 {}'.format(initCount))
+        self.log.info('预计加载数据 {}'.format(initCount))
 
         # 将数据从查询指针中读取出，并生成列表
         self.datas = []  # 清空initData列表
@@ -421,7 +421,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.clearBeforeBar()
 
-        self.log.info(u'载入完成')
+        self.log.info('载入完成')
 
     def clearBeforeBar(self):
         """
@@ -442,7 +442,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     k.low = min(preKline.low, k.low)
                     k.volume += preKline.volume
                     preKline = None
-            self.log.info(u'剔除过早的K线')
+            self.log.info('剔除过早的K线')
 
     # ----------------------------------------------------------------------
     def runBacktesting(self):
@@ -462,19 +462,19 @@ class BacktestingEngine(VTBacktestingEngine):
             dataClass = VtTickData
             func = self.newTick
 
-        self.log.info(u'开始回测')
+        self.log.info('开始回测')
 
         self.strategy.inited = True
         self.strategy.onInit()
-        self.log.info(u'策略初始化完成')
+        self.log.info('策略初始化完成')
 
         self.dt = self.datas[0].datetime
 
         self.strategy.trading = True
         self.strategy.onStart()
-        self.log.info(u'策略启动完成')
+        self.log.info('策略启动完成')
 
-        self.log.info(u'开始回放数据')
+        self.log.info('开始回放数据')
 
         for data in self.datas:
             td = data.tradingDay
@@ -485,10 +485,10 @@ class BacktestingEngine(VTBacktestingEngine):
                 try:
                     func(data)
                 except:
-                    self.log.error(u'异常 bar: {}'.format(data.datetime))
+                    self.log.error('异常 bar: {}'.format(data.datetime))
                     raise
 
-        self.log.info(u'数据回放结束')
+        self.log.info('数据回放结束')
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
@@ -507,7 +507,7 @@ class BacktestingEngine(VTBacktestingEngine):
         initDataNum = len(initDatas)
 
         if initDataNum < needBarNum:
-            self.log.info(u'{} 预加载的 bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
+            self.log.info('{} 预加载的 bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
             return initDatas
 
         # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
@@ -637,16 +637,16 @@ class BacktestingEngine(VTBacktestingEngine):
                     isCrossed = _crossStopOrder(so)
                 else:
                     if so.stopOrderID in self.workingStopOrderDict:
-                        self.log.warning(u'异常的停止单抛弃 {}'.format(so))
+                        self.log.warning('异常的停止单抛弃 {}'.format(so))
                         del self.workingStopOrderDict[so.stopOrderID]
                 if isCrossed:
-                    self.log.info(u'撮合成功 {}'.format(so))
+                    self.log.info('撮合成功 {}'.format(so))
                     # 出现成交，重新整理停止单队列
                     preStopOrders, stopOrders = stopOrders, self.getAllStopOrdersSorted()
                     # 新的开仓单不加入
                     stopOrders = [so for so in stopOrders if
                                   not (so not in preStopOrders and so in stopOrders and so.offset == OFFSET_OPEN)]
-                    self.log.info(u'再次撮合 {}'.format(len(stopOrders)))
+                    self.log.info('再次撮合 {}'.format(len(stopOrders)))
                     break
             if isCrossed:
                 isCrossed = False
@@ -654,7 +654,7 @@ class BacktestingEngine(VTBacktestingEngine):
                 break
 
         if count >= 100:
-            self.log.warning(u'订单量过大 {}'.format(count))
+            self.log.warning('订单量过大 {}'.format(count))
 
     def getAllStopOrdersSorted(self):
         """
@@ -666,7 +666,7 @@ class BacktestingEngine(VTBacktestingEngine):
         shortOpenStopOrders = []
         longCloseStopOrders = []
         stopOrders = []
-        for so in self.workingStopOrderDict.values():
+        for so in list(self.workingStopOrderDict.values()):
             if so.direction == DIRECTION_LONG:
                 if so.offset == OFFSET_OPEN:
                     # 买开
@@ -683,7 +683,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     longCloseStopOrders.append(so)
             else:
                 stopOrders.append(so)
-                self.log.error(u'未知的停止单方向 {}'.format(so.direction))
+                self.log.error('未知的停止单方向 {}'.format(so.direction))
 
         # 根据触发价排序，优先触发更优的
         # 买开
@@ -724,7 +724,7 @@ class BacktestingEngine(VTBacktestingEngine):
         """计算按日统计的交易结果"""
 
         # 将成交添加到每日交易结果中
-        for trade in self.tradeDict.values():
+        for trade in list(self.tradeDict.values()):
             date = trade.tradingDay.date()
             dailyResult = self.dailyResultDict[date]
             dailyResult.addTrade(trade)
@@ -732,7 +732,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 遍历计算每日结果
         previousClose = 0
         openPosition = 0
-        for dailyResult in self.dailyResultDict.values():
+        for dailyResult in list(self.dailyResultDict.values()):
             dailyResult.previousClose = previousClose
             previousClose = dailyResult.closePrice
 
@@ -742,9 +742,9 @@ class BacktestingEngine(VTBacktestingEngine):
             self.margin = dailyResult.closePrice * self.size * self.marginRate.marginRate
 
         # 生成DataFrame
-        resultDict = {k: [] for k in DailyResult(None, None).__dict__.keys()}
-        for dailyResult in self.dailyResultDict.values():
-            for k, v in dailyResult.__dict__.items():
+        resultDict = {k: [] for k in list(DailyResult(None, None).__dict__.keys())}
+        for dailyResult in list(self.dailyResultDict.values()):
+            for k, v in list(dailyResult.__dict__.items()):
                 resultDict[k].append(v)
 
         resultDf = pd.DataFrame.from_dict(resultDict)
@@ -812,54 +812,54 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 输出统计结果
 
-        self.dailyResult[u'首个交易日'] = startDate
-        self.dailyResult[u'最后交易日'] = endDate
+        self.dailyResult['首个交易日'] = startDate
+        self.dailyResult['最后交易日'] = endDate
 
-        self.dailyResult[u'总交易日'] = totalDays
-        self.dailyResult[u'盈利交易日'] = profitDays
-        self.dailyResult[u'亏损交易日'] = lossDays
+        self.dailyResult['总交易日'] = totalDays
+        self.dailyResult['盈利交易日'] = profitDays
+        self.dailyResult['亏损交易日'] = lossDays
 
-        self.dailyResult[u'起始资金'] = self.capital
-        self.dailyResult[u'结束资金'] = endBalance
-        self.dailyResult[u'最大保证金占用率'] = maxMarginPer
-        self.dailyResult[u'保证金'] = self.margin
+        self.dailyResult['起始资金'] = self.capital
+        self.dailyResult['结束资金'] = endBalance
+        self.dailyResult['最大保证金占用率'] = maxMarginPer
+        self.dailyResult['保证金'] = self.margin
 
-        self.dailyResult[u'总收益率'] = totalReturn
-        self.dailyResult[u'总盈亏'] = totalNetPnl
-        self.dailyResult[u'日最大回撤'] = maxDrawdown
-        self.dailyResult[u'日最大回撤率'] = maxDrawdownPer
+        self.dailyResult['总收益率'] = totalReturn
+        self.dailyResult['总盈亏'] = totalNetPnl
+        self.dailyResult['日最大回撤'] = maxDrawdown
+        self.dailyResult['日最大回撤率'] = maxDrawdownPer
 
-        self.dailyResult[u'总手续费'] = totalCommission
-        self.dailyResult[u'总滑点'] = totalSlippage
-        self.dailyResult[u'总成交金额'] = totalTurnover
-        self.dailyResult[u'总成交笔数'] = totalTradeCount
+        self.dailyResult['总手续费'] = totalCommission
+        self.dailyResult['总滑点'] = totalSlippage
+        self.dailyResult['总成交金额'] = totalTurnover
+        self.dailyResult['总成交笔数'] = totalTradeCount
 
-        self.dailyResult[u'日均盈亏'] = dailyNetPnl
-        self.dailyResult[u'日均手续费'] = dailyCommission
-        self.dailyResult[u'日均滑点'] = dailySlippage
-        self.dailyResult[u'日均成交金额'] = dailyTurnover
-        self.dailyResult[u'日均成交笔数'] = dailyTradeCount
+        self.dailyResult['日均盈亏'] = dailyNetPnl
+        self.dailyResult['日均手续费'] = dailyCommission
+        self.dailyResult['日均滑点'] = dailySlippage
+        self.dailyResult['日均成交金额'] = dailyTurnover
+        self.dailyResult['日均成交笔数'] = dailyTradeCount
 
-        self.dailyResult[u'日均收益率'] = dailyReturn
-        self.dailyResult[u'收益标准差'] = returnStd
-        self.dailyResult[u'夏普率'] = sharpeRatio
+        self.dailyResult['日均收益率'] = dailyReturn
+        self.dailyResult['收益标准差'] = returnStd
+        self.dailyResult['夏普率'] = sharpeRatio
 
         if self.isOutputResult:
             self.printResult(self.dailyResult)
 
-        self.dailyResult[u'techIndBar'] = self.strategy.techIndBar
-        self.dailyResult[u'techIndLine'] = self.strategy.techIndLine
+        self.dailyResult['techIndBar'] = self.strategy.techIndBar
+        self.dailyResult['techIndLine'] = self.strategy.techIndLine
 
         # 收益率曲线
-        self.dailyResult[u'netPnl'] = list(df['netPnl'])
-        self.dailyResult[u'netPnlp'] = list(df['netPnlp'])
+        self.dailyResult['netPnl'] = list(df['netPnl'])
+        self.dailyResult['netPnlp'] = list(df['netPnlp'])
 
         balanceList = [self.capital] + list(df['balance'].values)
         balanceList = pd.Series(balanceList).pct_change()
-        self.dailyResult[u'日收益率'] = balanceList.values[1:].tolist()
-        self.dailyResult[u'结算日'] = map(lambda d: d.value, pd.to_datetime(df.index))
+        self.dailyResult['日收益率'] = balanceList.values[1:].tolist()
+        self.dailyResult['结算日'] = [d.value for d in pd.to_datetime(df.index)]
 
-        assert len(self.dailyResult[u'netPnl']) == len(self.dailyResult[u'结算日'])
+        assert len(self.dailyResult['netPnl']) == len(self.dailyResult['结算日'])
 
         if not self.isShowFig:
             return
@@ -922,26 +922,26 @@ class BacktestingEngine(VTBacktestingEngine):
         :return:
         """
         if result is self.dailyResult:
-            print('-' * 30)
-            print(u'{} 计算按日统计结果'.format(self.symbol))
-            print('-' * 30)
+            print(('-' * 30))
+            print(('{} 计算按日统计结果'.format(self.symbol)))
+            print(('-' * 30))
         elif result is self.tradeResult:
-            print('-' * 30)
-            print(u'{} 逐笔计算回测结果'.format(self.symbol))
-            print('-' * 30)
+            print(('-' * 30))
+            print(('{} 逐笔计算回测结果'.format(self.symbol)))
+            print(('-' * 30))
 
-        for k, v in result.items():
+        for k, v in list(result.items()):
             if isinstance(v, dict) or isinstance(v, list):
                 continue
             if isinstance(v, float) or isinstance(v, int):
-                if u'率' in k and k not in (u'夏普率'):
+                if '率' in k and k not in ('夏普率'):
                     v *= 100
                     v = formatNumber(v)
                     v += '%'
                 else:
                     v = formatNumber(v)
 
-            print(u'%s：\t%s' % (k, v))
+            print(('%s：\t%s' % (k, v)))
 
     def calculateBacktestingResult(self):
         """
@@ -957,7 +957,7 @@ class BacktestingEngine(VTBacktestingEngine):
         tradeTimeList = []  # 每笔成交时间戳
         posList = [0]  # 每笔成交后的持仓情况
 
-        for trade in self.tradeDict.values():
+        for trade in list(self.tradeDict.values()):
             # 复制成交对象，因为下面的开平仓交易配对涉及到对成交数量的修改
             # 若不进行复制直接操作，则计算完后所有成交的数量会变成0
             trade = copy.copy(trade)
@@ -1074,7 +1074,7 @@ class BacktestingEngine(VTBacktestingEngine):
 
             # 检查是否有交易
         if not resultList:
-            self.log.info(u'无交易结果')
+            self.log.info('无交易结果')
             return {}
 
         # resultList.sort(key=lambda r: r.datetime)
@@ -1194,48 +1194,48 @@ class BacktestingEngine(VTBacktestingEngine):
             self.d = d
         # 输出
         if not d:
-            self.log.info(u'没有回测结果')
+            self.log.info('没有回测结果')
             return
 
-        self.tradeResult[u'第一笔交易'] = d['timeList'][0]
-        self.tradeResult[u'最后一笔交易'] = d['timeList'][-1]
-        self.tradeResult[u'总交易次数'] = d['totalResult']  # 1次可以N手
+        self.tradeResult['第一笔交易'] = d['timeList'][0]
+        self.tradeResult['最后一笔交易'] = d['timeList'][-1]
+        self.tradeResult['总交易次数'] = d['totalResult']  # 1次可以N手
 
-        self.tradeResult[u'初始金'] = self.capital
-        self.tradeResult[u'总盈亏'] = d['capital']
-        self.tradeResult[u'总手续费'] = d['totalCommission']
-        self.tradeResult[u'总滑点'] = d['totalSlippage']
-        self.tradeResult[u'交易成本'] = d['totalSlippage'] + d['totalCommission']
-        self.tradeResult[u'纯盈亏'] = self.tradeResult[u'总盈亏'] + self.tradeResult[u'交易成本']
-        self.tradeResult[u'成本比例'] = 1 if self.tradeResult[u'纯盈亏'] == 0 else self.tradeResult[u'交易成本'] / self.tradeResult[u'纯盈亏']
-        self.tradeResult[u'盈利次数'] = d['winningResult']
-        self.tradeResult[u'亏损次数'] = d['losingResult']
-        self.tradeResult[u'总盈利'] = d['totalWinning']
-        self.tradeResult[u'总亏损'] = d['totalLosing']
+        self.tradeResult['初始金'] = self.capital
+        self.tradeResult['总盈亏'] = d['capital']
+        self.tradeResult['总手续费'] = d['totalCommission']
+        self.tradeResult['总滑点'] = d['totalSlippage']
+        self.tradeResult['交易成本'] = d['totalSlippage'] + d['totalCommission']
+        self.tradeResult['纯盈亏'] = self.tradeResult['总盈亏'] + self.tradeResult['交易成本']
+        self.tradeResult['成本比例'] = 1 if self.tradeResult['纯盈亏'] == 0 else self.tradeResult['交易成本'] / self.tradeResult['纯盈亏']
+        self.tradeResult['盈利次数'] = d['winningResult']
+        self.tradeResult['亏损次数'] = d['losingResult']
+        self.tradeResult['总盈利'] = d['totalWinning']
+        self.tradeResult['总亏损'] = d['totalLosing']
 
-        self.tradeResult[u'平均每笔盈亏'] = d['capital'] / d['totalResult']
-        self.tradeResult[u'平均每笔滑点'] = d['totalSlippage'] / d['totalResult']
-        self.tradeResult[u'平均每笔佣金'] = d['totalCommission'] / d['totalResult']
-        self.tradeResult[u'平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
+        self.tradeResult['平均每笔盈亏'] = d['capital'] / d['totalResult']
+        self.tradeResult['平均每笔滑点'] = d['totalSlippage'] / d['totalResult']
+        self.tradeResult['平均每笔佣金'] = d['totalCommission'] / d['totalResult']
+        self.tradeResult['平均每笔保证金'] = sum(d['marginList']) / len(d['marginList'])
 
-        self.tradeResult[u'最大回撤'] = min(d['drawdownList'])
+        self.tradeResult['最大回撤'] = min(d['drawdownList'])
         # self.tradeResult[u'单笔最大回撤率1'] = min(d['drawdownRatePerTradeList'])
-        self.tradeResult[u'单笔最大回撤率'] = min(d['pnlpList'])
+        self.tradeResult['单笔最大回撤率'] = min(d['pnlpList'])
 
-        self.tradeResult[u'单笔最大回撤'] = min(d['pnlList'])
+        self.tradeResult['单笔最大回撤'] = min(d['pnlList'])
         # self.tradeResult[u'最大回撤率'] = self.tradeResult[u'最大回撤'] / self.tradeResult[u'平均每笔保证金']
         pnlp = pd.Series(d['pnlpList']).cumsum()
         maxPnlp = pnlp.cummax()
         dropdown = pnlp - maxPnlp
-        self.tradeResult[u'最大回撤率'] = min(dropdown)
+        self.tradeResult['最大回撤率'] = min(dropdown)
 
-        self.tradeResult[u'胜率'] = d['winningRate']
+        self.tradeResult['胜率'] = d['winningRate']
         # self.tradeResult[u'收益率'] = self.tradeResult[u'总盈亏'] / self.tradeResult[u'平均每笔保证金']
-        self.tradeResult[u'收益率'] = d['pnlpList'][-1]
-        self.tradeResult[u'盈利交易平均值'] = d['averageWinning']
-        self.tradeResult[u'亏损交易平均值'] = d['averageLosing']
-        self.tradeResult[u'盈亏比'] = d['profitLossRatio']
-        self.tradeResult[u'总盈亏比'] = d['winLoseRate']
+        self.tradeResult['收益率'] = d['pnlpList'][-1]
+        self.tradeResult['盈利交易平均值'] = d['averageWinning']
+        self.tradeResult['亏损交易平均值'] = d['averageLosing']
+        self.tradeResult['盈亏比'] = d['profitLossRatio']
+        self.tradeResult['总盈亏比'] = d['winLoseRate']
 
         if self.isOutputResult:
             self.printResult(self.tradeResult)
@@ -1243,10 +1243,10 @@ class BacktestingEngine(VTBacktestingEngine):
         # 收益率曲线
         balanceList = [self.capital] + d['capitalList']
         balanceList = pd.Series(balanceList).pct_change()
-        self.tradeResult[u'收益率曲线'] = list(balanceList.values[1:])
-        self.tradeResult[u'成交单'] = [r.toReutlDB() for r in d['resultList']]
-        self.tradeResult[u'pnl'] = d['pnlList']
-        self.tradeResult[u'pnlp'] = d['pnlpList']
+        self.tradeResult['收益率曲线'] = list(balanceList.values[1:])
+        self.tradeResult['成交单'] = [r.toReutlDB() for r in d['resultList']]
+        self.tradeResult['pnl'] = d['pnlList']
+        self.tradeResult['pnlp'] = d['pnlpList']
 
         if not self.isShowFig:
             return
@@ -1273,7 +1273,7 @@ class BacktestingEngine(VTBacktestingEngine):
         pDD = plt.subplot(subplotNum, 1, subplotCount)
         pDD.set_ylabel("DD")
         pDD.grid(True, color='gray')
-        pDD.bar(range(len(d['drawdownList'])), d['drawdownList'], color='g')
+        pDD.bar(list(range(len(d['drawdownList']))), d['drawdownList'], color='g')
 
         # subplotCount += 1
         # pDD = plt.subplot(subplotNum, 1, subplotCount)

@@ -8,7 +8,7 @@ from collections import OrderedDict
 import pytz
 from bson.codec_options import CodecOptions
 from itertools import product
-import ConfigParser
+import configparser
 import datetime
 
 from pymongo import MongoClient
@@ -31,7 +31,7 @@ class BacktestingArg(object):
         sh.setLevel(logging.INFO)
         self.log.addHandler(sh)
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         configPath = getJsonPath(optfile, __file__)
 
         # 指定回测参数的 collection
@@ -63,7 +63,7 @@ class BacktestingArg(object):
         self.btinfo = dic.copy()
         self.btinfo['datetime'] = arrow.now().datetime
 
-        self.log.info(u'group: {}'.format(self.param['group']))
+        self.log.info('group: {}'.format(self.param['group']))
 
         # 该组回测参数的参数
         self.setting = self.param.copy()
@@ -71,7 +71,7 @@ class BacktestingArg(object):
 
         # 回测模块的参数
         if not self.opts:
-            err = u'未设置需要优化的参数'
+            err = '未设置需要优化的参数'
             self.log.critical(err)
             raise ValueError(err)
 
@@ -132,7 +132,7 @@ class BacktestingArg(object):
         colName = self.config.get('backtesting_mongo', 'btarg')
         btinfoColName = self.config.get('backtesting_mongo', 'btinfo')
 
-        self.log.info(u'即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
+        self.log.info('即将到把回测参数导入到 {}:{}/{}/{}'.format(host, port, dbn, colName))
         # seconds = 3
         # while seconds > 0:
         #     self.log.info('{}'.format(seconds))
@@ -174,8 +174,8 @@ class BacktestingArg(object):
 
     def createStrategyArgsGroup(self):
         # 参数名的列表
-        nameList = self.opts.keys()
-        paramList = self.opts.values()
+        nameList = list(self.opts.keys())
+        paramList = list(self.opts.values())
 
         # 使用迭代工具生产参数对组合
         productList = list(product(*paramList))
@@ -183,7 +183,7 @@ class BacktestingArg(object):
         # 把参数对组合打包到一个个字典组成的列表中
         settingList = []
         for p in productList:
-            d = dict(zip(nameList, p))
+            d = dict(list(zip(nameList, p)))
             settingList.append(d)
 
         # 策略参数组合
@@ -216,12 +216,12 @@ class BacktestingArg(object):
         contracts = [c for c in cursor]
 
         if self.includeUnderlyingSymbols:
-            self.log.info(u'只回测品种：{}'.format(u','.join(self.includeUnderlyingSymbols)))
+            self.log.info('只回测品种：{}'.format(','.join(self.includeUnderlyingSymbols)))
             contracts = [c for c in contracts if c['underlyingSymbol'] in self.includeUnderlyingSymbols]
         else:
-            self.log.info(u'回测全品种')
+            self.log.info('回测全品种')
         if self.excludeUnderlyingSymbols:
-            self.log.info(u'不回测品种：{}'.format(u','.join(self.excludeUnderlyingSymbols)))
+            self.log.info('不回测品种：{}'.format(','.join(self.excludeUnderlyingSymbols)))
             contracts = [c for c in contracts if c['underlyingSymbol'] not in self.excludeUnderlyingSymbols]
 
         # 依然还在上市的品种
@@ -232,7 +232,7 @@ class BacktestingArg(object):
                 onMarketUS.add(c['underlyingSymbol'])
             else:
                 pass
-        self.log.info(u'共 {} 上市品种'.format(len(onMarketUS)))
+        self.log.info('共 {} 上市品种'.format(len(onMarketUS)))
 
         if self.startTradingDay:
             contracts = [c for c in contracts if c['activeStartDate'] >= self.startTradingDay]
@@ -270,7 +270,7 @@ class BacktestingArg(object):
             usSet.add(us)
             availbeContracts.append(c)
 
-        self.log.info(u'共 {} 个品种'.format(len(usSet)))
+        self.log.info('共 {} 个品种'.format(len(usSet)))
 
         self.btinfo['underlyingSymbols'] = list(usSet)
         self.btinfo['symbols'] = [c['symbol'] for c in availbeContracts]
@@ -333,10 +333,10 @@ class BacktestingArg(object):
         count = len(documents)
         self.btinfo['amount'] = count
         if count > 10000:
-            countStr = u'{}万'.format(count / 10000.)
+            countStr = '{}万'.format(count / 10000.)
         else:
             countStr = count
-        self.log.info(u'生成 {} 组参数'.format(countStr))
+        self.log.info('生成 {} 组参数'.format(countStr))
 
         # 删掉同名的参数组
         self.argCol.delete_many(self.getFlt())
@@ -350,7 +350,7 @@ class BacktestingArg(object):
             count += once
             start, end = end, end + once
 
-            self.log.info(u'{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
+            self.log.info('{}/{} {}%'.format(count, over, round((count * 100. / over), 2)))
         self.argCol.insert_many(documents[start:])
 
     def checkArg(self):
@@ -369,7 +369,7 @@ class BacktestingArg(object):
         else:
             binfo = self.btinfoCol.find_one(sql)
             if binfo:
-                raise ValueError(u'已经存在同名的参数组{}'.format(self.group))
+                raise ValueError('已经存在同名的参数组{}'.format(self.group))
 
 
 if __name__ == '__main__':
@@ -381,7 +381,7 @@ if __name__ == '__main__':
     # argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_rb_oscillationDonchian.json'
     # optfile = 'optimizeHome.ini'
 
-    logging.info(u'即将使用 {} 的配置'.format(optfile))
+    logging.info('即将使用 {} 的配置'.format(optfile))
     time.sleep(5)
 
     b = BacktestingArg(argFileName, optfile)

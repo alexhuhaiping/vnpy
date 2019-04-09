@@ -14,7 +14,7 @@ from datetime import datetime
 from time import sleep
 from copy import copy
 from threading import Condition
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 from time import sleep
 
@@ -28,11 +28,11 @@ priceTypeMap['buy'] = (DIRECTION_LONG, PRICETYPE_LIMITPRICE)
 priceTypeMap['buy_market'] = (DIRECTION_LONG, PRICETYPE_MARKETPRICE)
 priceTypeMap['sell'] = (DIRECTION_SHORT, PRICETYPE_LIMITPRICE)
 priceTypeMap['sell_market'] = (DIRECTION_SHORT, PRICETYPE_MARKETPRICE)
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 委托状态印射
 statusMap = {}
@@ -75,7 +75,7 @@ spotSymbolMap['ETH_usd'] = ETH_USD_SPOT
 spotSymbolMap['ltc_cny'] = LTC_CNY_SPOT
 spotSymbolMap['btc_cny'] = BTC_CNY_SPOT
 spotSymbolMap['eth_cny'] = ETH_CNY_SPOT
-spotSymbolMapReverse = {v: k for k, v in spotSymbolMap.items()}
+spotSymbolMapReverse = {v: k for k, v in list(spotSymbolMap.items())}
 
 
 ############################################
@@ -130,7 +130,7 @@ class OkcoinGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -145,7 +145,7 @@ class OkcoinGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -162,7 +162,7 @@ class OkcoinGateway(VtGateway):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'接口初始化成功'
+        log.logContent = '接口初始化成功'
         self.onLog(log)
         
         # 启动查询
@@ -293,14 +293,14 @@ class Api(vnokcoin.OkCoinApi):
             return
         
         self.gateway.connected = False
-        self.writeLog(u'服务器连接断开')
+        self.writeLog('服务器连接断开')
         
         # 重新连接
         if self.active:
             
             def reconnect():
                 while not self.gateway.connected:            
-                    self.writeLog(u'等待10秒后重新连接')
+                    self.writeLog('等待10秒后重新连接')
                     sleep(10)
                     if not self.gateway.connected:
                         self.reconnect()
@@ -312,7 +312,7 @@ class Api(vnokcoin.OkCoinApi):
     def onOpen(self, ws):       
         """连接成功"""
         self.gateway.connected = True
-        self.writeLog(u'服务器连接成功')
+        self.writeLog('服务器连接成功')
         
         # 连接后查询账户和委托数据
         self.spotUserInfo()

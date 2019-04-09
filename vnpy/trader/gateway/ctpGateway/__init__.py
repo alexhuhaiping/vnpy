@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 from vnpy.trader import vtConstant
-from ctpGateway import CtpGateway
+from vnpy.trader.gateway.ctpGateway.ctpGateway import CtpGateway
 
 gatewayClass = CtpGateway
 gatewayName = 'CTP'

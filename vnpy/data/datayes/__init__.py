@@ -1,1 +1,1 @@
-from vndatayes import DatayesApi
+from .vndatayes import DatayesApi

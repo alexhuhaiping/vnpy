@@ -47,10 +47,10 @@ def main():
                 n = line.index('//')
                 line = line[:n]
 
-            print no, ':', line
+            print(no, ':', line)
 
             content = line.split('\t')
-            print content
+            print(content)
 
             typedef = content[1]
             type_ = typedefDict[typedef]

@@ -53,9 +53,9 @@ class DrawTrade(object):
         if self.matcher:
             # 优先使用默认的日期，默认日期为 None 时使用成交单的日期
             startTradingDay = self.startTradingDay or self.matcher.startTradingDay
-            logging.info(u'根据成交单范围选取 K线 startTradingDay: {}'.format(startTradingDay))
+            logging.info('根据成交单范围选取 K线 startTradingDay: {}'.format(startTradingDay))
             endTradingDay = self.endTradingDay or self.matcher.endTradingDay
-            logging.info(u'根据成交单范围选取 K线 endTradingDay: {}'.format(endTradingDay))
+            logging.info('根据成交单范围选取 K线 endTradingDay: {}'.format(endTradingDay))
         else:
             startTradingDay = self.startTradingDay
             endTradingDay = self.endTradingDay
@@ -94,7 +94,7 @@ class DrawTrade(object):
 
         if self.startTradingDay:
             df = df[df.datetime >= self.startTradingDay]
-            if df['offset'].iloc[0] != u'开仓':
+            if df['offset'].iloc[0] != '开仓':
                 df = self.matcher.df = df.iloc[1:]
         if self.endTradingDay:
             df = df[df.datetime <= self.endTradingDay]
@@ -114,7 +114,7 @@ class DrawTrade(object):
                         if not r:
                             tradeIDs.remove(dfTradeID)
                     if _filter:
-                        logging.info(u'\t{symbol}\t{name}\t剔除成交'.format(**d))
+                        logging.info('\t{symbol}\t{name}\t剔除成交'.format(**d))
                         df = df[pd.Series(_filter, df.index)]
                     # 每次只处理一个合约
                     break
@@ -133,12 +133,12 @@ class DrawTrade(object):
         originIndLine = []
         tradeOnKlinePlot = tradeOnKLine(period, self.bars, self.originTrl, originIndLine, title=self.title, width=width, height=height)
 
-        logging.info(u'生成成交图 {}'.format(self.drawFile))
+        logging.info('生成成交图 {}'.format(self.drawFile))
         tradeOnKlinePlot.render(self.drawFile)
 
     @property
     def title(self):
-        return u'成交' + u' '.join(self.sql.values())
+        return '成交' + ' '.join(list(self.sql.values()))
 
 
     @staticmethod

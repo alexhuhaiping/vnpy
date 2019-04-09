@@ -2,7 +2,8 @@
 
 # 重载sys模块，设置默认字符串编码方式为utf8
 import sys
-reload(sys)
+import importlib
+importlib.reload(sys)
 sys.setdefaultencoding('utf8')
 
 from time import sleep
@@ -26,11 +27,11 @@ def main():
     le.addConsoleHandler()
     le.addFileHandler()
 
-    le.info(u'服务器进程启动')
+    le.info('服务器进程启动')
     
     # 创建事件引擎
     ee = EventEngine2()
-    le.info(u'事件引擎创建成功')
+    le.info('事件引擎创建成功')
     
     # 创建主引擎
     me = MainEngine(ee)
@@ -42,10 +43,10 @@ def main():
     me.addApp(ctaStrategy)
     me.addApp(rpcService)
     
-    le.info(u'主引擎创建成功')
+    le.info('主引擎创建成功')
     
     # 阻塞运行
-    le.info(u'服务器启动成功')
+    le.info('服务器启动成功')
     while 1:
         sleep(1)
 

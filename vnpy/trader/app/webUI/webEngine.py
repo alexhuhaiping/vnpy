@@ -23,7 +23,7 @@ class ServerThread(Thread):
             PORT = globalSetting['webPORT']
         except Exception:
             PORT = 38080
-            logging.warning(u'未配置web端口，使用默认端口38080')
+            logging.warning('未配置web端口，使用默认端口38080')
         self.srv = make_server('0.0.0.0', PORT, app)
         self.ctx = app.app_context()
         self.ctx.push()
@@ -50,7 +50,7 @@ class WebEngine(object):
         self.serverThread.start()
 
     def stop(self):
-        self.log.info(u'webEngine 即将关闭')
+        self.log.info('webEngine 即将关闭')
         self.serverThread.shutdown()
 
 
@@ -70,24 +70,24 @@ def showCtaStrategy():
         from vnpy.trader.app.ctaStrategy import CtaEngine
         assert isinstance(ctaApp, CtaEngine)
 
-    dic = {u'策略个数': 0, u'总权益': 0}
+    dic = {'策略个数': 0, '总权益': 0}
 
     html = pd.DataFrame(ctaApp.accountToHtml()).to_html()
     html += '</br>'
 
     try:
-        ctaApp.log.info(u'开始刷新 strategy 页面')
+        ctaApp.log.info('开始刷新 strategy 页面')
         strategyList = list(ctaApp.strategyDict.items())
         strategyList.sort(key=lambda s: s[0])
         for ctaName, ctaStrategy in strategyList:
-            dic[u'策略个数'] += 1
-            dic[u'总权益'] += int(ctaStrategy.rtBalance)
+            dic['策略个数'] += 1
+            dic['总权益'] += int(ctaStrategy.rtBalance)
 
             html += ctaName
             html += '</br>'
             html += ctaStrategy.className
             html += '</br>'
-            for index, data in ctaStrategy.toHtml().items():
+            for index, data in list(ctaStrategy.toHtml().items()):
                 if isinstance(data, dict):
                     html += pd.DataFrame([data], index=[index]).to_html()
                 else:
@@ -98,7 +98,7 @@ def showCtaStrategy():
             html += '</br>'
 
         html = pd.DataFrame([dic]).to_html() + '</br>' + html
-        ctaApp.log.info(u'获得 strategy 页面')
+        ctaApp.log.info('获得 strategy 页面')
 
     except:
         err = traceback.format_exc() + '</br>' * 2

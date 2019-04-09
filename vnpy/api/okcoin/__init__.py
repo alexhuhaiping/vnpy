@@ -1,3 +1,3 @@
 # encoding: UTF-8
 
-from vnokcoin import OkCoinApi
+from .vnokcoin import OkCoinApi

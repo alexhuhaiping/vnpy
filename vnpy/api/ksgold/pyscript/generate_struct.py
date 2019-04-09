@@ -47,7 +47,7 @@ def main():
                 n = line.index('//')
                 line = line[:n]
 
-            print no, ':', line
+            print(no, ':', line)
 
             content = line.split('\t')
 

@@ -14,9 +14,9 @@ import arrow
 import pymongo
 from mystring import MyConfigParser
 
-import optserver
-import backtestingarg
-import optboss
+from . import optserver
+from . import backtestingarg
+from . import optboss
 
 # 输出日志的级别
 logging.basicConfig(level=logging.INFO)
@@ -87,9 +87,9 @@ class DrawBacktestingTrade(object):
         self.btresultCol.delete_many({})
 
     def runArg(self):
-        logging.info(u'即将使用 {} 的配置'.format(self.optfile))
+        logging.info('即将使用 {} 的配置'.format(self.optfile))
         b = backtestingarg.BacktestingArg(self.argFileName, self.optfile)
-        logging.info(u'生成参数')
+        logging.info('生成参数')
         b.start()
 
     def runBacktesting(self):
@@ -121,7 +121,7 @@ class DrawBacktestingTrade(object):
                 e = arrow.now()
                 costTime = e - b
                 needTime = costTime / overCount * (btInfoDic['amount'] - count)
-                print(u'============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e))
+                print(('============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e)))
             except ZeroDivisionError:
                 pass
             if btInfoDic['amount'] == count:
@@ -147,14 +147,14 @@ class DrawBacktestingTrade(object):
         :return:
         """
         time.sleep(2)
-        logging.info(u'启动批量回测算力')
+        logging.info('启动批量回测算力')
         server = optboss.WorkService(optfile)
         server.start()
 
     def loadBar(self):
         # 加载K线
         # 截取回测始末日期，注释掉的话默认取全部主力日期
-        logging.info(u'加载 bar')
+        logging.info('加载 bar')
         kwargs = dict(self.config.autoitems('ctp_mongo'))
 
         self.bars = mk.qryBarsMongoDB(
@@ -169,7 +169,7 @@ class DrawBacktestingTrade(object):
         加载成交单
         :return:
         """
-        logging.info(u'从 {} 加载 成交单'.format(self.btresult))
+        logging.info('从 {} 加载 成交单'.format(self.btresult))
         self.originTrl = mk.qryBtresultMongoDB(
             underlyingSymbol=self.underlyingSymbol,
             optsv=self.optsv,
@@ -179,14 +179,14 @@ class DrawBacktestingTrade(object):
         )
 
         if not self.originTrl:
-            logging.warning(u'未获得成交单')
+            logging.warning('未获得成交单')
 
     def loadIndLine(self):
         """
         加载线型技术指标
         :return:
         """
-        logging.info(u'从 {} 加载 技术指标'.format(self.btresult))
+        logging.info('从 {} 加载 技术指标'.format(self.btresult))
         self.originIndLine = mk.qryBtresultMongoDB(
             underlyingSymbol=self.underlyingSymbol,
             optsv=self.optsv,
@@ -195,7 +195,7 @@ class DrawBacktestingTrade(object):
             items={'techIndLine': 1}
         )
         if not self.originIndLine:
-            logging.warning(u'未获得线技术指标')
+            logging.warning('未获得线技术指标')
 
     def draw(self, period='1T', width=3000, height=1350):
         """
@@ -207,12 +207,12 @@ class DrawBacktestingTrade(object):
             f = self.backtestingdrawfile.format(optsv=self.optsv)
         else:
             f = self.backtestingdrawfile
-        logging.info(u'生成成交图 {}'.format(f))
+        logging.info('生成成交图 {}'.format(f))
         tradeOnKlinePlot.render(f)
 
     @property
     def title(self):
-        return u'回测' + u'{}'.format(self.optsv)
+        return '回测' + '{}'.format(self.optsv)
 
 if __name__ == '__main__':
     dbt = DrawBacktestingTrade()

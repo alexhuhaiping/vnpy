@@ -88,9 +88,9 @@ def main():
         fcpp.close()
         fpy.close()
 
-        print u'data_type.py生成过程完成'
+        print('data_type.py生成过程完成')
     except:
-        print u'data_type.py生成过程出错'
+        print('data_type.py生成过程出错')
 
 
 if __name__ == '__main__':

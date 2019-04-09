@@ -4,7 +4,7 @@
 MA 策略
 """
 
-from __future__ import division
+
 
 import time
 
@@ -22,7 +22,7 @@ class MAStrategy(CtaTemplate):
 
     """
     className = 'MAStrategy'
-    author = u'lamter'
+    author = 'lamter'
     # 策略参数
     period = 5  # 几根均线
     initDays = 10  # 初始化数据所用的天数
@@ -64,26 +64,26 @@ class MAStrategy(CtaTemplate):
             waitContractSeconds += 1
             if waitContractSeconds > 10:
                 self.inited = False
-                self.log.error(u'策略未能订阅合约 {}'.format(self.vtSymbol))
+                self.log.error('策略未能订阅合约 {}'.format(self.vtSymbol))
                 return
-            self.log.info(u'等待合约 {}'.format(self.vtSymbol))
+            self.log.info('等待合约 {}'.format(self.vtSymbol))
             time.sleep(1)
         else:
-            self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
+            self.log.info('订阅合约 {} 成功'.format(self.vtSymbol))
 
         self.putEvent()
 
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'MA 演示仓策略启动')
+        self.writeCtaLog('MA 演示仓策略启动')
         if __debug__:
-            self.log.debug(u'测试下单')
+            self.log.debug('测试下单')
             self.sendOrder(CTAORDER_BUY, 3900, self.hands, stop=True)
         self.putEvent()
 
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'MA 演示策略停止')
+        self.writeCtaLog('MA 演示策略停止')
         self.putEvent()
 
     def onTick(self, tick):
@@ -129,10 +129,10 @@ class MAStrategy(CtaTemplate):
             # 向上突破，做多
             if self.pos < 0:
                 # 有空仓，先平仓
-                self.log.info(u'反手 平空')
+                self.log.info('反手 平空')
                 stopOrderID = self.sendOrder(CTAORDER_COVER, self.bar1min.high, self.pos, stop=True)
                 # 在开仓
-                self.log.info(u'开多')
+                self.log.info('开多')
                 self.sendOrder(CTAORDER_BUY, self.bar1min.low, self.hands, stop=True)
             else:
                 addHands = self.pos - self.hands
@@ -143,10 +143,10 @@ class MAStrategy(CtaTemplate):
             # 均线之下，做空
             if self.pos > 0:
                 # 有空仓，先平仓
-                self.log.info(u'反手 平多')
+                self.log.info('反手 平多')
                 self.sendOrder(CTAORDER_SELL, self.bar1min.low, -self.pos, stop=True)
                 # 在开仓
-                self.log.info(u'开空')
+                self.log.info('开空')
                 self.sendOrder(CTAORDER_SHORT, self.bar1min.high, self.hands, stop=True)
             else:
                 addHands = abs(self.pos) - self.hands
@@ -156,16 +156,16 @@ class MAStrategy(CtaTemplate):
             pass
 
     def onTrade(self, trade):
-        self.log.debug(u'=======================')
-        for k, v in trade.__dict__.items():
-            self.log.debug(u'{}\t{}'.format(k, v))
+        self.log.debug('=======================')
+        for k, v in list(trade.__dict__.items()):
+            self.log.debug('{}\t{}'.format(k, v))
 
     def onOrder(self, order):
-        self.log.debug(u'=======================')
-        for k, v in order.__dict__.items():
-            self.log.debug(u'{}\t{}'.format(k, v))
+        self.log.debug('=======================')
+        for k, v in list(order.__dict__.items()):
+            self.log.debug('{}\t{}'.format(k, v))
 
     def onStopOrder(self, so):
-        self.log.debug(u'=======================')
-        for k, v in so.__dict__.items():
-            self.log.debug(u'{}\t{}'.format(k, v))
+        self.log.debug('=======================')
+        for k, v in list(so.__dict__.items()):
+            self.log.debug('{}\t{}'.format(k, v))

@@ -4,17 +4,17 @@ import traceback
 import time
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 try:
-    import Queue as queue
+    import queue as queue
 except ImportError:
     import queue
 from threading import Event, Thread
 import pytz
 from bson.codec_options import CodecOptions
-import ConfigParser
+import configparser
 import logging.config
 import multiprocessing
 import signal
@@ -27,8 +27,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-import optweb
-import optcomment
+from . import optweb
+from . import optcomment
 
 
 class OptimizeService(object):
@@ -59,7 +59,7 @@ class OptimizeService(object):
         # self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
@@ -114,9 +114,9 @@ class OptimizeService(object):
             args=(self.pid, self.gitHash, self.salt, self.logQueue, self.tasksQueue, self.resultQueue)
         )
 
-        self.createTaskForever = Thread(name=u'createTask', target=self.__createTaskForever)
-        self.saveResultForever = Thread(name=u'saveResult', target=self.__saveResultForever)
-        self.weblogForever = Thread(name=u'logWeb', target=self.__logWebForever)
+        self.createTaskForever = Thread(name='createTask', target=self.__createTaskForever)
+        self.saveResultForever = Thread(name='saveResult', target=self.__saveResultForever)
+        self.weblogForever = Thread(name='logWeb', target=self.__logWebForever)
 
         # 初始化索引
         self.initContractCollection()
@@ -167,7 +167,7 @@ class OptimizeService(object):
         pass
 
     def start(self):
-        self.log.warning(u'分布式回测启动')
+        self.log.warning('分布式回测启动')
         self.stoped.clear()
         self.webForever.start()
 
@@ -192,15 +192,15 @@ class OptimizeService(object):
         检查已经完成任务，从任务collection中剔除
         :return:
         """
-        self.log.info(u'开始核对已经完成的回测任务')
+        self.log.info('开始核对已经完成的回测任务')
         dic = self.resultCol.find_one({}, {}, no_cursor_timeout=True)
         if not dic:
-            self.log.info(u'不需要核对回测任务')
+            self.log.info('不需要核对回测任务')
             return
 
         dic = self.argCol.find_one({}, {}, no_cursor_timeout=True)
         if not dic:
-            self.log.info(u'没有需要核对的回测任务')
+            self.log.info('没有需要核对的回测任务')
             return
 
         cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
@@ -212,7 +212,7 @@ class OptimizeService(object):
         # 对比回测
         finishIDs = argsIDs & resultIDs
 
-        self.log.info(u'已经完成任务 {} of {}'.format(len(finishIDs), len(argsIDs)))
+        self.log.info('已经完成任务 {} of {}'.format(len(finishIDs), len(argsIDs)))
 
         # 删除已经完成的回测参数
         for _id in finishIDs:
@@ -238,7 +238,7 @@ class OptimizeService(object):
         self.slavemReport.endHeartBeat()
 
     def newWebForever(self):
-        self.log.warning(u'尝试重启 web 子进程')
+        self.log.warning('尝试重启 web 子进程')
         self.webForever.join(2)
         self.webForever.terminate()
 
@@ -252,11 +252,11 @@ class OptimizeService(object):
         while not self.stoped.wait(1):
             try:
                 if requests.get(testUrl, timeout=1).status_code == 200:
-                    self.log.warning(u'web尚未完全关闭')
+                    self.log.warning('web尚未完全关闭')
                     continue
             except Exception:
                 break
-        self.log.warning(u'重启 web 子进程完毕')
+        self.log.warning('重启 web 子进程完毕')
         self.webForever.start()
 
     def beatWeb(self):
@@ -269,7 +269,7 @@ class OptimizeService(object):
         url += '/{}'.format(data)
         r = requests.get(url, timeout=3)
         if r.status_code != 200:
-            raise ValueError(u'status:{}'.format(r.status_code))
+            raise ValueError('status:{}'.format(r.status_code))
 
     def getBeatUrl(self):
         return self.config.get('web', 'url') + '/beat'
@@ -281,7 +281,7 @@ class OptimizeService(object):
         self.stop()
 
     def stop(self):
-        self.log.info(u'关闭')
+        self.log.info('关闭')
         self.webForever.join(5)
         self.webForever.terminate()
         self.stoped.set()
@@ -291,14 +291,14 @@ class OptimizeService(object):
         self.clearResultQueue()
 
     def __createTaskForever(self):
-        self.log.info(u'开始生成任务')
+        self.log.info('开始生成任务')
         self._createTaskForever()
 
         while not self.stoped.wait(60):
             self.checkResult()
             self._createTaskForever()
 
-        self.log.info(u'生成任务停止')
+        self.log.info('生成任务停止')
 
     def _createTaskForever(self):
         """
@@ -311,13 +311,13 @@ class OptimizeService(object):
         count = cursor.count()
         if count == 0:
             # 没有任何任务
-            self.log.info(u'没有回测任务')
+            self.log.info('没有回测任务')
             # 关闭心跳
             self.slavemReport.heartBeat()
             self.slavemReport.endHeartBeat()
             return
         else:
-            self.log.info(u'即将开始回测任务 {} 个'.format(count))
+            self.log.info('即将开始回测任务 {} 个'.format(count))
 
         for setting in cursor:
             # 持续尝试塞入
@@ -329,16 +329,16 @@ class OptimizeService(object):
                     pass
 
     def __saveResultForever(self):
-        self.log.info(u'开始保存结果')
+        self.log.info('开始保存结果')
         self._saveResultForever()
 
         while not self.stoped.wait(5):
             self._saveResultForever()
 
-        self.log.info(u'保存结果停止')
+        self.log.info('保存结果停止')
 
     def __logWebForever(self):
-        self.log.info(u'weblog 开始')
+        self.log.info('weblog 开始')
         while not self.stoped.wait(0):
             try:
                 level, text = self.logQueue.get(timeout=1)
@@ -347,7 +347,7 @@ class OptimizeService(object):
             except queue.Empty:
                 pass
 
-        self.log.info(u'weblog 停止')
+        self.log.info('weblog 停止')
 
     def _saveResultForever(self):
         """

@@ -23,13 +23,13 @@ from vnpy.trader.vtFunction import getJsonPath
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["QDP_FTDC_OPT_LimitPrice"]
 priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["QDP_FTDC_OPT_AnyPrice"]
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = defineDict['QDP_FTDC_D_Buy']
 directionMap[DIRECTION_SHORT] = defineDict['QDP_FTDC_D_Sell']
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
@@ -37,7 +37,7 @@ offsetMap[OFFSET_OPEN] = defineDict['QDP_FTDC_OF_Open']
 offsetMap[OFFSET_CLOSE] = defineDict['QDP_FTDC_OF_Close']
 offsetMap[OFFSET_CLOSETODAY] = defineDict['QDP_FTDC_OF_CloseToday']
 offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict['QDP_FTDC_OF_CloseYesterday']
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
@@ -47,7 +47,7 @@ exchangeMap[EXCHANGE_CZCE] = defineDict["QDP_EI_ZCE"]
 exchangeMap[EXCHANGE_DCE] = defineDict["QDP_EI_DCE"]
 exchangeMap[EXCHANGE_SGE] = defineDict["QDP_EI_SGE"]
 exchangeMap[EXCHANGE_UNKNOWN] = ''
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 产品类型映射
 productClassMapReverse = {}
@@ -89,7 +89,7 @@ class QdpGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -104,7 +104,7 @@ class QdpGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -284,7 +284,7 @@ class QdpMdApi(MdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接成功'
+        log.logContent = '行情服务器连接成功'
         self.gateway.onLog(log)
         self.login()
     
@@ -297,7 +297,7 @@ class QdpMdApi(MdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接断开'
+        log.logContent = '行情服务器连接断开'
         self.gateway.onLog(log) 
     
     #----------------------------------------------------------------------
@@ -344,7 +344,7 @@ class QdpMdApi(MdApi):
     
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登录完成'
+            log.logContent = '行情服务器登录完成'
             self.gateway.onLog(log)
     
             # 重新订阅之前订阅的合约
@@ -369,7 +369,7 @@ class QdpMdApi(MdApi):
     
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登出完成'
+            log.logContent = '行情服务器登出完成'
             self.gateway.onLog(log)
     
         # 否则，推送错误信息
@@ -402,7 +402,7 @@ class QdpMdApi(MdApi):
         tick.gatewayName = self.gatewayName
     
         tick.symbol = data['InstrumentID']
-        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], u'未知')
+        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], '未知')
         tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, EXCHANGE_UNKNOWN])
     
         tick.lastPrice = data['LastPrice']
@@ -624,7 +624,7 @@ class QdpTdApi(TdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接成功'
+        log.logContent = '交易服务器连接成功'
         self.gateway.onLog(log)
     
         self.login()
@@ -638,7 +638,7 @@ class QdpTdApi(TdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接断开'
+        log.logContent = '交易服务器连接断开'
         self.gateway.onLog(log)  
     
     #----------------------------------------------------------------------
@@ -677,7 +677,7 @@ class QdpTdApi(TdApi):
     
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登录完成'
+            log.logContent = '交易服务器登录完成'
             self.gateway.onLog(log)
     
             # 获取investorID
@@ -706,7 +706,7 @@ class QdpTdApi(TdApi):
     
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登出完成'
+            log.logContent = '交易服务器登出完成'
             self.gateway.onLog(log)
     
         # 否则，推送错误信息
@@ -957,7 +957,7 @@ class QdpTdApi(TdApi):
     
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'投资者查询完成'
+            log.logContent = '投资者查询完成'
             self.gateway.onLog(log)
             
             # 查询合约代码
@@ -1026,7 +1026,7 @@ class QdpTdApi(TdApi):
         if last:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易合约信息获取完成'
+            log.logContent = '交易合约信息获取完成'
             self.gateway.onLog(log)
     
     #----------------------------------------------------------------------

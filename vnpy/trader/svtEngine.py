@@ -1,8 +1,9 @@
 # encoding: UTF-8
 import sys
+import importlib
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+# importlib.reload(sys)
+# sys.setdefaultencoding('utf8')
 
 import threading
 import traceback
@@ -32,7 +33,7 @@ class MainEngine(VtMaingEngine):
         # self.strategyDB = None  # cta 策略相关的数据
 
         if __debug__:
-            self.log.warning(u'DEBUG 模式')
+            self.log.warning('DEBUG 模式')
 
         self.active = False
 
@@ -125,12 +126,12 @@ class MainEngine(VtMaingEngine):
 
     def testfunc(self):
         try:
-            reload(debuginject)
+            importlib.reload(debuginject)
             debuginject.me = self
             debuginject.run()
             sleep(2)
         except Exception as e:
-            self.log.info(traceback.format_exc())
+            self.log.info(traceback.format_exc())p
 
     def exit(self):
         super(MainEngine, self).exit()
@@ -138,33 +139,33 @@ class MainEngine(VtMaingEngine):
             self._testActive = False
 
         self.active = False
-        self.log.info(u'关闭前操作完成')
+        self.log.info('关闭前操作完成')
 
-        self.log.info(u'存活线程 {}'.format(threading.activeCount()))
+        self.log.info('存活线程 {}'.format(threading.activeCount()))
         sleep(1.1)
 
     def run_forever(self):
         self.active = True
 
-        self.log.info(u'开始运行')
+        self.log.info('开始运行')
 
         while self.active:
             if __debug__:
                 self.testfunc()
             sleep(1)
 
-        self.log.info(u'系统完全关闭')
+        self.log.info('系统完全关闭')
 
     def sendOrder(self, orderReq, gatewayName):
-        self.log.info(u'gateWay: {} 发送报单'.format(gatewayName))
-        orderLog = u''
-        for k, v in orderReq.__dict__.items():
-            orderLog += u'{}: {}\t'.format(k, v)
+        self.log.info('gateWay: {} 发送报单'.format(gatewayName))
+        orderLog = ''
+        for k, v in list(orderReq.__dict__.items()):
+            orderLog += '{}: {}\t'.format(k, v)
 
         vtOrderID = super(MainEngine, self).sendOrder(orderReq, gatewayName)
         if not vtOrderID:
-            self.log.warning(u'发送报单失败\n{}'.format(orderLog))
+            self.log.warning('发送报单失败\n{}'.format(orderLog))
         else:
-            self.log.info(u'发送报单成功 vtOrderID: {}'.format(vtOrderID))
+            self.log.info('发送报单成功 vtOrderID: {}'.format(vtOrderID))
             self.log.info(orderLog)
         return vtOrderID

@@ -1,9 +1,9 @@
 # coding:utf-8
 import traceback
-from runBacktesting import runBacktesting
+from .runBacktesting import runBacktesting
 
 try:
-    import Queue as queue
+    import queue as queue
 except ImportError:
     import queue
 import pickle
@@ -19,9 +19,9 @@ def newEngine(datas, setting, results, log):
         # 设置成历史数据已经加载
         engine.datas = datas[0]
         engine.loadHised = True
-    log('info', u'开始运行回测')
+    log('info', '开始运行回测')
     engine.runBacktesting()  # 运行回测
-    log('info', u'回测运行完毕')
+    log('info', '回测运行完毕')
     if not datas:
         datas.append(engine.datas)
 
@@ -32,7 +32,7 @@ def newEngine(datas, setting, results, log):
     except IndexError:
         pass
     except Exception:
-        log('error', u'{} {}'.format(vtSymbol, setting['optsv']))
+        log('error', '{} {}'.format(vtSymbol, setting['optsv']))
         log('error', traceback.format_exc())
         raise
 
@@ -68,10 +68,10 @@ def child(name, stoped, tasks, results, logQueue):
         try:
             newEngine(datas, setting, results, log)
         except Exception:
-            log('error', u'子进程异常退出')
+            log('error', '子进程异常退出')
             log('error', traceback.format_exc())
             stoped.set()
             return  # 异常退出
 
     # 正常退出子进程
-    log('info', u'子进程正常退出')
+    log('info', '子进程正常退出')

@@ -16,7 +16,7 @@
 
 """
 
-from __future__ import division
+
 
 from collections import OrderedDict
 import arrow
@@ -36,7 +36,7 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 class SvtBollChannelStrategy(CtaTemplate):
     """基于布林通道的交易策略"""
     className = 'SvtBollChannelStrategy'
-    author = u'用Python的交易员'
+    author = '用Python的交易员'
 
     # 策略参数
     bollWindow = 18  # 布林通道窗口数
@@ -96,7 +96,7 @@ class SvtBollChannelStrategy(CtaTemplate):
         super(SvtBollChannelStrategy, self).__init__(ctaEngine, setting)
 
         if self.isBackTesting():
-            self.log.info(u'批量回测，不输出日志')
+            self.log.info('批量回测，不输出日志')
             self.log.propagate = False
 
         self.hands = 0
@@ -111,12 +111,12 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         # 从数据库加载策略数据，要在加载 bar 之前。因为数据库中缓存了技术指标
         if not self.isBackTesting():
@@ -141,9 +141,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         self.isCloseoutVaild = True
 
@@ -153,25 +153,25 @@ class SvtBollChannelStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             if self.xminBar and self.am and self.inited and self.trading:
                 if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
                     # 已经进入连续竞价的阶段，直接下单
-                    self.log.info(u'已经处于连续竞价阶段')
+                    self.log.info('已经处于连续竞价阶段')
                     self._orderOnStart()
                 else:  # 还没进入连续竞价，使用一个定时器
-                    self.log.info(u'尚未开始连续竞价')
+                    self.log.info('尚未开始连续竞价')
                     moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
                     wait = (moment - arrow.now().datetime)
-                    self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+                    self.log.info('now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
                     # 提前2秒下停止单
                     Timer(wait.total_seconds(), self._orderOnStart).start()
             else:
                 self.log.warning(
-                    u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
+                    '无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
 
             # 实盘，可以存库。
             self.saving = True
@@ -189,7 +189,7 @@ class SvtBollChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
         # self.saveDB()
 
@@ -244,9 +244,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        log = u'up:{} down:{} cci:{} atr:{}'.format(*[int(d) for d in (
+        log = 'up:{} down:{} cci:{} atr:{}'.format(*[int(d) for d in (
             self.bollUp, self.bollDown, self.cciValue, self.atrValue)])
-        self.log.info(u'更新 XminBar {} {}'.format(xminBar.datetime, log))
+        self.log.info('更新 XminBar {} {}'.format(xminBar.datetime, log))
 
     def orderOnXminBar(self, bar):
         """
@@ -256,14 +256,14 @@ class SvtBollChannelStrategy(CtaTemplate):
         :return:
         """
         if not self.trading:
-            self.log.warn(u'不能下单 trading: False')
+            self.log.warn('不能下单 trading: False')
             return
 
         # 判断是否要进行交易
         self.updateHands()
 
         if self.hands == 0:
-            self.log.info(u'开仓hands==0，不下单')
+            self.log.info('开仓hands==0，不下单')
             return
 
         # 当前无仓位，发送开仓委托
@@ -300,9 +300,9 @@ class SvtBollChannelStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            for k, v in order.rawData.items():
-                log(u'{} {}'.format(k, v))
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+            for k, v in list(order.rawData.items()):
+                log('{} {}'.format(k, v))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -327,15 +327,15 @@ class SvtBollChannelStrategy(CtaTemplate):
 
         if not self.isBackTesting():
             # if self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList = ['{}{}'.format(trade.direction, trade.offset)]
+            textList.append('资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append('仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append('手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
             textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+                ','.join(['{} {}'.format(k, v) for k, v in list(self.positionDetail.toHtml().items())])
             )
 
-            self.log.info(u'\n'.join(textList))
+            self.log.info('\n'.join(textList))
 
         if self.pos == 0:
             # log = u'{} {} 价:{} 量:{} 利:{}'.format(trade.direction, trade.offset, trade.price, trade.volume, profile)
@@ -411,4 +411,4 @@ class SvtBollChannelStrategy(CtaTemplate):
                 try:
                     setattr(self, k, document[k])
                 except KeyError:
-                    self.log.warning(u'未保存的key {}'.format(k))
+                    self.log.warning('未保存的key {}'.format(k))

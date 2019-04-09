@@ -1,12 +1,12 @@
 # encoding: utf-8
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 
 import json
 import requests
 from time import time, sleep
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 
 
@@ -66,8 +66,8 @@ FUNCTIONCODE_GETLOANS = 'get_loans'
 #----------------------------------------------------------------------
 def signature(params):
     """生成签名"""
-    params = sorted(params.iteritems(), key=lambda d:d[0], reverse=False)
-    message = urllib.urlencode(params)
+    params = sorted(iter(params.items()), key=lambda d:d[0], reverse=False)
+    message = urllib.parse.urlencode(params)
     
     m = hashlib.md5()
     m.update(message)
@@ -102,7 +102,7 @@ class TradeApi(object):
         optional = req['optional']
         
         # 在参数中增加必须的字段
-        params['created'] = long(time())
+        params['created'] = int(time())
         params['access_key'] = self.accessKey
         params['secret_key'] = self.secretKey
         params['method'] = method
@@ -117,7 +117,7 @@ class TradeApi(object):
             params.update(optional)
         
         # 发送请求
-        payload = urllib.urlencode(params)
+        payload = urllib.parse.urlencode(params)
 
         r = requests.post(HUOBI_TRADE_API, params=payload)
         if r.status_code == 200:
@@ -139,12 +139,12 @@ class TradeApi(object):
                 
                 # 请求失败
                 if 'code' in data and 'message' in data:
-                    error = u'错误信息：%s' %data['message']
+                    error = '错误信息：%s' %data['message']
                     self.onError(error, req, reqID)
                 # 请求成功
                 else:
                     if self.DEBUG:
-                        print callback.__name__
+                        print(callback.__name__)
                     callback(data, req, reqID)
                 
             except Empty:
@@ -428,97 +428,97 @@ class TradeApi(object):
     #----------------------------------------------------------------------
     def onError(self, error, req, reqID):
         """错误推送"""
-        print error, reqID    
+        print(error, reqID)    
 
     #----------------------------------------------------------------------
     def onGetAccountInfo(self, data, req, reqID):
         """查询账户回调"""
-        print data
+        print(data)
     
     #----------------------------------------------------------------------
     def onGetOrders(self, data, req, reqID, fuck):
         """查询委托回调"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onOrderInfo(self, data, req, reqID):
         """委托详情回调"""
-        print data
+        print(data)
 
     #----------------------------------------------------------------------
     def onBuy(self, data, req, reqID):
         """买入回调"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onSell(self, data, req, reqID):
         """卖出回调"""
-        print data    
+        print(data)    
         
     #----------------------------------------------------------------------
     def onBuyMarket(self, data, req, reqID):
         """市价买入回调"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onSellMarket(self, data, req, reqID):
         """市价卖出回调"""
-        print data        
+        print(data)        
         
     #----------------------------------------------------------------------
     def onCancelOrder(self, data, req, reqID):
         """撤单回调"""
-        print data
+        print(data)
     
     #----------------------------------------------------------------------
     def onGetNewDealOrders(self, data, req, reqID):
         """查询最新成交回调"""
-        print data    
+        print(data)    
         
     #----------------------------------------------------------------------
     def onGetOrderIdByTradeId(self, data, req, reqID):
         """通过成交编号查询委托编号回调"""
-        print data    
+        print(data)    
         
     #----------------------------------------------------------------------
     def onWithdrawCoin(self, data, req, reqID):
         """提币回调"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onCancelWithdrawCoin(self, data, req, reqID):
         """取消提币回调"""
-        print data      
+        print(data)      
         
     #----------------------------------------------------------------------
     def onGetWithdrawCoinResult(self, data, req, reqID):
         """查询提币结果回调"""
-        print data           
+        print(data)           
         
     #----------------------------------------------------------------------
     def onTransfer(self, data, req, reqID):
         """转账回调"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onLoan(self, data, req, reqID):
         """申请杠杆回调"""
-        print data      
+        print(data)      
         
     #----------------------------------------------------------------------
     def onRepayment(self, data, req, reqID):
         """归还杠杆回调"""
-        print data    
+        print(data)    
     
     #----------------------------------------------------------------------
     def onLoanAvailable(self, data, req, reqID):
         """查询杠杆额度回调"""
-        print data      
+        print(data)      
         
     #----------------------------------------------------------------------
     def onGetLoans(self, data, req, reqID):
         """查询杠杆列表"""
-        print data        
+        print(data)        
         
 
 ########################################################################
@@ -586,10 +586,10 @@ class DataApi(object):
                     if r.status_code == 200:
                         data = r.json()
                         if self.DEBUG:
-                            print callback.__name__
+                            print(callback.__name__)
                         callback(data)
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                     
             sleep(self.taskInterval)
             
@@ -621,17 +621,17 @@ class DataApi(object):
     #----------------------------------------------------------------------
     def onTick(self, data):
         """实时成交推送"""
-        print data
+        print(data)
         
     #----------------------------------------------------------------------
     def onQuote(self, data):
         """实时报价推送"""
-        print data    
+        print(data)    
     
     #----------------------------------------------------------------------
     def onDepth(self, data):
         """实时深度推送"""
-        print data        
+        print(data)        
 
     #----------------------------------------------------------------------
     def getKline(self, symbol, period, length=0):
@@ -647,6 +647,6 @@ class DataApi(object):
             if r.status_code == 200:
                 data = r.json()
                 return data
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return None

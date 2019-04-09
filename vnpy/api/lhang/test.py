@@ -2,7 +2,7 @@
 
 from time import time, sleep
 
-from vnlhang import LhangApi
+from .vnlhang import LhangApi
 
 
 if __name__ == '__main__':
@@ -44,4 +44,4 @@ if __name__ == '__main__':
     #api.getOrdersInfoHistory('btc_cny', '0', '1', '100')
 
     # 阻塞
-    raw_input()    
+    input()    

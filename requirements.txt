@@ -1,10 +1,18 @@
-pymongo 
-websocket-client
-msgpack-python
-qdarkstyle
+numpy
+ta-lib
+pymongo
+# websocket-client
+# msgpack-python
+# qdarkstyle
 arrow
-log4mongo==1.6.2
+log4mongo
+# log4mongo==1.6.2
+
 flask
-SortedContainers
-matplotlib
+# SortedContainers
+# matplotlib
+
+# slavem==0.2.2
 slavem==0.2.2
+pandas
+tradingtime

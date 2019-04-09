@@ -1,6 +1,6 @@
 # encoding: UTF-8
 
-__author__ = u'用Python的交易员'
+__author__ = '用Python的交易员'
 
 # C++和python类型的映射字典
 type_dict = {
@@ -128,7 +128,7 @@ def main():
     fcpp.close()
     fpy.close()
 
-    print u'data_type.py生成过程完成'
+    print('data_type.py生成过程完成')
 
 
 if __name__ == '__main__':

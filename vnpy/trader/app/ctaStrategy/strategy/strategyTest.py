@@ -4,7 +4,7 @@
 调试用的策略
 """
 
-from __future__ import division
+
 
 from collections import OrderedDict
 import arrow
@@ -23,7 +23,7 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 class TestStrategy(CtaTemplate):
     """测试用的策略"""
     className = 'TestStrategy'
-    author = u'lamter'
+    author = 'lamter'
 
     hands = 1
 
@@ -53,12 +53,12 @@ class TestStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -71,9 +71,9 @@ class TestStrategy(CtaTemplate):
         # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         # 从数据库加载策略数据
         if not self.isBackTesting():
@@ -88,14 +88,14 @@ class TestStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
         self.putEvent()
         self.buy(12300, 2)
 
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -144,7 +144,7 @@ class TestStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
+        self.log.info('更新 XminBar {}'.format(xminBar.datetime))
 
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
@@ -180,15 +180,15 @@ class TestStrategy(CtaTemplate):
 
         if not self.isBackTesting():
             # if self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList = ['{}{}'.format(trade.direction, trade.offset)]
+            textList.append('资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append('仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append('手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
             textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+                ','.join(['{} {}'.format(k, v) for k, v in list(self.positionDetail.toHtml().items())])
             )
 
-            self.log.warning(u'\n'.join(textList))
+            self.log.warning('\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了

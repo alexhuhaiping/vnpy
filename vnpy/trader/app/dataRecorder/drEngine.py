@@ -12,7 +12,7 @@ import os
 import copy
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 
 from vnpy.event import Event
@@ -158,7 +158,7 @@ class DrEngine(object):
             # 主力合约记录配置
             if 'active' in drSetting:
                 d = drSetting['active']
-                self.activeSymbolDict = {vtSymbol:activeSymbol for activeSymbol, vtSymbol in d.items()}
+                self.activeSymbolDict = {vtSymbol:activeSymbol for activeSymbol, vtSymbol in list(d.items())}
     
     #----------------------------------------------------------------------
     def getSetting(self):

@@ -11,7 +11,7 @@ w = None
 try:
     from WindPy import w
 except ImportError:
-    print u'请先安装WindPy接口'
+    print('请先安装WindPy接口')
 
 from vnpy.trader.vtGateway import *
 
@@ -24,7 +24,7 @@ exchangeMap[EXCHANGE_SHFE] = 'SHF'
 exchangeMap[EXCHANGE_DCE] = 'DCE'
 exchangeMap[EXCHANGE_CZCE] = 'CZC'
 exchangeMap[EXCHANGE_UNKNOWN] = ''
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # Wind接口相关事件
 EVENT_WIND_CONNECTREQ = 'eWindConnectReq'   # Wind接口请求连接事件
@@ -71,7 +71,7 @@ class WindGateway(VtGateway):
     wsqParamMap['rt_asize4'] = 'askVolume4'
     wsqParamMap['rt_asize5'] = 'askVolume5'
     
-    wsqParam = ','.join(wsqParamMap.keys())
+    wsqParam = ','.join(list(wsqParamMap.keys()))
 
     #----------------------------------------------------------------------
     def __init__(self, eventEngine, gatewayName='Wind'):
@@ -116,7 +116,7 @@ class WindGateway(VtGateway):
         """发单"""
         log = VtLogData()
         log.gatewayName = self.gatewayName        
-        log.logContent = u'Wind接口未实现发单功能'
+        log.logContent = 'Wind接口未实现发单功能'
         self.onLog(log) 
     
     #----------------------------------------------------------------------
@@ -124,7 +124,7 @@ class WindGateway(VtGateway):
         """撤单"""
         log = VtLogData()
         log.gatewayName = self.gatewayName        
-        log.logContent = u'Wind接口未实现撤单功能'
+        log.logContent = 'Wind接口未实现撤单功能'
         self.onLog(log) 
     
     #----------------------------------------------------------------------
@@ -132,7 +132,7 @@ class WindGateway(VtGateway):
         """查询账户资金"""
         log = VtLogData()
         log.gatewayName = self.gatewayName        
-        log.logContent = u'Wind接口未实现查询账户功能'
+        log.logContent = 'Wind接口未实现查询账户功能'
         self.onLog(log) 
     
     #----------------------------------------------------------------------
@@ -140,7 +140,7 @@ class WindGateway(VtGateway):
         """查询持仓"""
         log = VtLogData()
         log.gatewayName = self.gatewayName        
-        log.logContent = u'Wind接口未实现查询持仓功能'
+        log.logContent = 'Wind接口未实现查询持仓功能'
         self.onLog(log) 
     
     #----------------------------------------------------------------------
@@ -194,14 +194,14 @@ class WindGateway(VtGateway):
         log.gatewayName = self.gatewayName        
         
         if not result.ErrorCode:
-            log.logContent = u'Wind接口连接成功'
+            log.logContent = 'Wind接口连接成功'
             
             self.connected = True
             
             # 发出缓存的订阅请求
-            for req in self.subscribeBufferDict.values():
+            for req in list(self.subscribeBufferDict.values()):
                 self.subscribe(req)
             self.subscribeBufferDict.clear()
         else:
-            log.logContent = u'Wind接口连接失败，错误代码%d' %result.ErrorCode
+            log.logContent = 'Wind接口连接失败，错误代码%d' %result.ErrorCode
         self.onLog(log) 

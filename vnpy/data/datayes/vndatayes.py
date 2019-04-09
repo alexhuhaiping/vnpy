@@ -34,7 +34,7 @@ class DatayesApi(object):
         r = requests.get(url=url, headers=self.header, params=params)
         
         if r.status_code != HTTP_OK:
-            print u'http请求失败，状态代码%s' %r.status_code
+            print('http请求失败，状态代码%s' %r.status_code)
             return None
         else:
             result = r.json()
@@ -42,9 +42,9 @@ class DatayesApi(object):
                 return result['data']
             else:
                 if 'retMsg' in result:
-                    print u'查询失败，返回信息%s' %result['retMsg']
+                    print('查询失败，返回信息%s' %result['retMsg'])
                 elif 'message' in result:
-                    print u'查询失败，返回信息%s' %result['message']
+                    print('查询失败，返回信息%s' %result['message'])
                 return None
                     
                     

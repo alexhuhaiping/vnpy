@@ -2,7 +2,7 @@
 
 from time import sleep
 
-from vntq import TqApi
+from .vntq import TqApi
 
 
 # 接口对象
@@ -12,23 +12,23 @@ api = None
 #----------------------------------------------------------------------
 def onQuote(symbol):
     """Tick更新"""
-    print '-' * 30
-    print 'onQuote'
+    print('-' * 30)
+    print('onQuote')
     quote = api.get_quote(symbol)
-    print quote
+    print(quote)
 
 #----------------------------------------------------------------------
 def onChart(symbol, seconds):
     """K线更新"""
-    print '-' * 30
-    print 'onChart'
+    print('-' * 30)
+    print('onChart')
     
     if seconds == 0:
         serial = api.get_tick_serial(symbol)
     else:
         serial = api.get_kline_serial(symbol, seconds)
         
-    print serial
+    print(serial)
     
 
 if __name__ == "__main__":
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # 订阅K线图表
     api.subscribe_chart(symbol, 60, 1000, onChart)
     
-    raw_input()
+    input()
     
     
     
