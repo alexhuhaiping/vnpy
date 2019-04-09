@@ -26,10 +26,6 @@ case "$input" in
     ;;
 esac
 
-# 删除虚悬镜像
-echo "删除虚悬镜像"
-docker rmi $(docker images -q -f dangling=true)
-
 echo ""
 echo "当前镜像列表："
 docker images
