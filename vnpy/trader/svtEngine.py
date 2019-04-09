@@ -131,7 +131,7 @@ class MainEngine(VtMaingEngine):
             debuginject.run()
             sleep(2)
         except Exception as e:
-            self.log.info(traceback.format_exc())p
+            self.log.info(traceback.format_exc())
 
     def exit(self):
         super(MainEngine, self).exit()
