@@ -47,6 +47,7 @@ class MainEngine(VtMaingEngine):
         """连接MongoDB数据库"""
         if not self.dbClient:
             # 读取MongoDB的设置
+            self.log.info('链接 MongoDB 数据库')
             try:
                 # 设置MongoDB操作的超时时间为0.5秒
                 self.dbClient = MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
