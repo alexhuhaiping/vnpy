@@ -40,8 +40,9 @@ RUN echo "开始配置系vnpy环境" \
     && apt-get install -y bzip2 wget git ttf-wqy-microhei \
     && echo "安装编译环境"  \
     && apt-get install -y build-essential libboost-all-dev python-dev cmake \
-    && apt-get clean \
-    && echo "安装 talib 内核" \
+    && apt-get clean
+
+RUN echo "安装 talib 内核" \
     && pushd /tmp \
     && wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz \
     && tar -xf ta-lib-0.4.0-src.tar.gz \
@@ -50,8 +51,9 @@ RUN echo "开始配置系vnpy环境" \
     && make \
     && make install \
     && popd \
-    && rm -rf ta-lib* \
-    && echo "安装 anaconda" \
+    && rm -rf ta-lib*
+
+RUN echo "安装 anaconda" \
     && mkdir /tmp/conda/ \
     && cd /tmp/conda/ \
     && echo "下载 Miniconda by Python3" && wget -t 0 https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh \
@@ -66,8 +68,9 @@ RUN echo "开始配置系vnpy环境" \
     && conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/ \
     && conda config --set show_channel_urls yes \
     && conda install -y pymongo \
-    && conda clean -ay \
-    && echo "更改 pip 源" \
+    && conda clean -ay
+
+RUN echo "更改 pip 源" \
     && mkdir ~/.pip \
     && echo "[global]" >> ~/.pip/pip.conf \
     && echo "index-url = https://pypi.douban.com/simple" >> ~/.pip/pip.conf \
@@ -75,8 +78,9 @@ RUN echo "开始配置系vnpy环境" \
     && echo "必须先安装 numpy 之后再安装 ta-lib " \
     && pip install numpy \
     && pip install ta-lib \
-    && locale-gen zh_CN.GB18030 \
-    && echo "安装 vnpy 项目" \
+    && locale-gen zh_CN.GB18030
+
+RUN echo "安装 vnpy 项目" \
     && cd /srv/vnpy \
     && pip install -e . \
     && pip install -r requirements.txt \
