@@ -68,6 +68,7 @@ class MainEngine(VtMaingEngine):
 
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
+                self.log.info('连接 MongoDB 数据库成功')
 
                 self.writeLog(text.DATABASE_CONNECTING_COMPLETED)
 
