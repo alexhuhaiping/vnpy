@@ -281,7 +281,7 @@ class CtpMdApi(MdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -304,7 +304,7 @@ class CtpMdApi(MdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']#.decode('gbk')
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -323,7 +323,7 @@ class CtpMdApi(MdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']#.decode('gbk')
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -587,7 +587,7 @@ class CtpTdApi(TdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']##.decode('gbk')
             self.log.error('{}'.format(err.errorMsg))
             self.gateway.onError(err)
 
@@ -607,7 +607,7 @@ class CtpTdApi(TdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']#.decode('gbk')
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -642,7 +642,7 @@ class CtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -661,7 +661,7 @@ class CtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1062,7 +1062,7 @@ class CtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ class CtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ class CtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
