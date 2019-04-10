@@ -19,9 +19,9 @@ import arrow
 from pymongo import IndexModel, ASCENDING, DESCENDING
 from vtFunction import todayDate
 
-from drBase import *
+from .drBase import *
 from eventEngine import *
-from language import text
+from .language import text
 from vtGateway import VtSubscribeReq, VtLogData
 import vtGlobal
 
@@ -90,19 +90,19 @@ class DrEngine(object):
             self.startReport = True
             self.mainEngine.slavemReport.lanuchReport()
             self.loadContractDone = True
-            self.log.info(u'加载合约完成')
+            self.log.info('加载合约完成')
 
-        if contract.productClass != u'期货':
+        if contract.productClass != '期货':
             return
         vtSymbol = symbol = contract.symbol
 
-        self.log.debug(u'订阅 {}'.format(vtSymbol))
+        self.log.debug('订阅 {}'.format(vtSymbol))
 
         # 检查 tradingtime 是否已经添加了该品种
         try:
             tt.get_trading_status(vtSymbol)
         except TypeError:
-            self.log.warning(u'tradingtime 缺少品种 {}'.format(vtSymbol))
+            self.log.warning('tradingtime 缺少品种 {}'.format(vtSymbol))
             return
 
         req = VtSubscribeReq()
@@ -202,7 +202,7 @@ class DrEngine(object):
                 d = drSetting['active']
 
                 # 注意这里的vtSymbol对于IB和LTS接口，应该后缀.交易所
-                for activeSymbol, vtSymbol in d.items():
+                for activeSymbol, vtSymbol in list(d.items()):
                     self.activeSymbolDict[vtSymbol] = activeSymbol
 
             # 启动数据插入线程
@@ -221,7 +221,7 @@ class DrEngine(object):
         # 转化Tic k格式
         drTick = DrTickData()
         d = drTick.__dict__
-        for key in d.keys():
+        for key in list(d.keys()):
             if key != 'datetime':
                 d[key] = tick.__getattribute__(key)
         drTick.datetime = LOCAL_TZINFO.localize(
@@ -416,24 +416,24 @@ class DrEngine(object):
         将保证金率更新到合约中
         :return:
         """
-        self.log.info(u'开始更新保证金')
+        self.log.info('开始更新保证金')
         while self.active:
             if not self.loadContractDone:
                 time.sleep(1)
                 continue
 
-            self.log.info(u'更新保证金率 {} 个合约'.format(len(self.marginRateBySymbol)))
+            self.log.info('更新保证金率 {} 个合约'.format(len(self.marginRateBySymbol)))
             for symbol, marginRate in list(self.marginRateBySymbol.items()):
                 if marginRate is None:
                     time.sleep(1.1)
-                    self.log.info(u'尝试获取 {} 的保证金率'.format(symbol))
+                    self.log.info('尝试获取 {} 的保证金率'.format(symbol))
                     self.mainEngine.qryMarginRate('CTP', symbol)
             else:
                 # 全部品种都已经获得保证金
-                self.log.info(u'全部品种都已经获得保证金')
+                self.log.info('全部品种都已经获得保证金')
                 break
         else:
-            self.log.info(u'服务停止')
+            self.log.info('服务停止')
             return
 
     def updateMariginRate(self, event):
@@ -451,7 +451,7 @@ class DrEngine(object):
 
         _contract = collection.find_one(_filter)
         if 'marginRate' not in _contract:
-            self.log.info(u'添加保证金率 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
+            self.log.info('添加保证金率 {} {}'.format(marginRate.vtSymbol, marginRate.marginRate))
             collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
         else:
             activeEndDate = _contract.get('activeEndDate')
@@ -460,7 +460,7 @@ class DrEngine(object):
                     preMarginRate = _contract['marginRate']
                     if marginRate.marginRate != preMarginRate:
                         self.log.info(
-                            u'更新保证金率 {} {}->{}'.format(marginRate.vtSymbol, preMarginRate, marginRate.marginRate))
+                            '更新保证金率 {} {}->{}'.format(marginRate.vtSymbol, preMarginRate, marginRate.marginRate))
                         collection.update_one(_filter, {'$set': {'marginRate': marginRate.marginRate}})
 
     def saveCacheCommissionRate(self, event):
@@ -486,29 +486,29 @@ class DrEngine(object):
         将向后续费率更新到合约中
         :return:
         """
-        self.log.info(u'等待手续费率')
+        self.log.info('等待手续费率')
         while not self.loadContractDone and self.active:
             time.sleep(1)
-        self.log.info(u'开始更新手续费')
+        self.log.info('开始更新手续费')
 
         dic = self.vtCommissionRateBySymbol
         for symbol in list(dic.keys()):
             if self.active:
-                self.log.info(u'查询 {} 手续费'.format(symbol))
+                self.log.info('查询 {} 手续费'.format(symbol))
                 # 每次查询，都要等待 saveCacheCommissionRate 回调完成手续费缓存
                 self.mainEngine.qryCommissionRate('CTP', symbol)
                 time.sleep(1.1)
             else:
                 # 服务停止了
-                self.log.info(u'服务停止了')
+                self.log.info('服务停止了')
                 return
 
         # 手续费缓存完成，开始更新手续费信息
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
-        for symbol, vtCr in self.vtCommissionRateBySymbol.items():
+        for symbol, vtCr in list(self.vtCommissionRateBySymbol.items()):
             if vtCr is None:
                 # 为什么而这里会是None
-                self.log.info(u'{} 未获得手续费更新'.format(symbol))
+                self.log.info('{} 未获得手续费更新'.format(symbol))
                 continue
 
             _filter = {'vtSymbol': symbol}
@@ -529,7 +529,7 @@ class DrEngine(object):
             for k in setting:
                 if k not in _contract:
                     # 从来没有获得过手续费信息
-                    self.log.info(u'{} 新增手续费 {}'.format(symbol, str(setting)))
+                    self.log.info('{} 新增手续费 {}'.format(symbol, str(setting)))
                     collection.update_one(_filter, {'$set': setting})
                     break
             else:
@@ -537,12 +537,12 @@ class DrEngine(object):
                 if activeEndDate and self.today - activeEndDate <= datetime.timedelta(days=3):
                     # 将手续费保存到合约中
                     _setting = {}
-                    for k, c in setting.items():
+                    for k, c in list(setting.items()):
                         if _contract.get(k) != c:
                             if not _setting:
-                                self.log.info(u'{} 更新手续费 '.format(symbol))
+                                self.log.info('{} 更新手续费 '.format(symbol))
                             _setting[k] = c
-                            self.log.info(u'{} {} {}->{}'.format(symbol, k, _contract.get(k), c))
+                            self.log.info('{} {} {}->{}'.format(symbol, k, _contract.get(k), c))
                     if _setting:
                         collection.update_one(_filter, {'$set': _setting})
 

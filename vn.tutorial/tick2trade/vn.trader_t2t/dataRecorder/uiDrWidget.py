@@ -52,35 +52,35 @@ class DrEngineManager(QtGui.QWidget):
     #----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""
-        self.setWindowTitle(u'行情数据记录工具')
+        self.setWindowTitle('行情数据记录工具')
         
         # 记录合约配置监控
-        tickLabel = QtGui.QLabel(u'Tick记录')
+        tickLabel = QtGui.QLabel('Tick记录')
         self.tickTable = QtGui.QTableWidget()
         self.tickTable.setColumnCount(2)
         self.tickTable.verticalHeader().setVisible(False)
         self.tickTable.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
         self.tickTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
         self.tickTable.setAlternatingRowColors(True)
-        self.tickTable.setHorizontalHeaderLabels([u'合约代码', u'接口'])
+        self.tickTable.setHorizontalHeaderLabels(['合约代码', '接口'])
         
-        barLabel = QtGui.QLabel(u'Bar记录')
+        barLabel = QtGui.QLabel('Bar记录')
         self.barTable = QtGui.QTableWidget()
         self.barTable.setColumnCount(2)
         self.barTable.verticalHeader().setVisible(False)
         self.barTable.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
         self.barTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
         self.barTable.setAlternatingRowColors(True)        
-        self.barTable.setHorizontalHeaderLabels([u'合约代码', u'接口'])
+        self.barTable.setHorizontalHeaderLabels(['合约代码', '接口'])
 
-        activeLabel = QtGui.QLabel(u'主力合约')
+        activeLabel = QtGui.QLabel('主力合约')
         self.activeTable = QtGui.QTableWidget()
         self.activeTable.setColumnCount(2)
         self.activeTable.verticalHeader().setVisible(False)
         self.activeTable.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
         self.activeTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
         self.activeTable.setAlternatingRowColors(True)        
-        self.activeTable.setHorizontalHeaderLabels([u'主力代码', u'合约代码'])
+        self.activeTable.setHorizontalHeaderLabels(['主力代码', '合约代码'])
 
         # 日志监控
         self.logMonitor = QtGui.QTextEdit()
@@ -140,7 +140,7 @@ class DrEngineManager(QtGui.QWidget):
             if 'active' in drSetting:
                 d = drSetting['active']
     
-                for activeSymbol, symbol in d.items():
+                for activeSymbol, symbol in list(d.items()):
                     self.activeTable.insertRow(0)
                     self.activeTable.setItem(0, 0, TableCell(activeSymbol))
                     self.activeTable.setItem(0, 1, TableCell(symbol))

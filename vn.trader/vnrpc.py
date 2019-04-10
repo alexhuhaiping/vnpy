@@ -9,7 +9,7 @@ from msgpack import packb, unpackb
 from json import dumps, loads
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     # 对 python3 的支持
     import pickle

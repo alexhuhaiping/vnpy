@@ -4,7 +4,7 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
-from ctaBase import *
+from .ctaBase import *
 from vtConstant import *
 
 

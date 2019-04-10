@@ -4,7 +4,7 @@
 本文件中包含的是CTA模块的回测引擎，回测引擎的API和CTA引擎一致，
 可以使用和实盘相同的代码进行回测。
 '''
-from __future__ import division
+
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -12,8 +12,8 @@ from itertools import product
 import multiprocessing
 import pymongo
 
-from ctaBase import *
-from ctaSetting import *
+from .ctaBase import *
+from .ctaSetting import *
 
 from vtConstant import *
 from vtGateway import VtOrderData, VtTradeData
@@ -125,7 +125,7 @@ class BacktestingEngine(object):
         self.dbClient = pymongo.MongoClient(host, port)
         collection = self.dbClient[self.dbName][self.symbol]          
 
-        self.output(u'开始载入数据')
+        self.output('开始载入数据')
       
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
@@ -155,7 +155,7 @@ class BacktestingEngine(object):
                                '$lte':self.dataEndDate}}  
         self.dbCursor = collection.find(flt)
         
-        self.output(u'载入完成，数据量：%s' %(initCursor.count() + self.dbCursor.count()))
+        self.output('载入完成，数据量：%s' %(initCursor.count() + self.dbCursor.count()))
         
     #----------------------------------------------------------------------
     def runBacktesting(self):
@@ -171,24 +171,24 @@ class BacktestingEngine(object):
             dataClass = CtaTickData
             func = self.newTick
 
-        self.output(u'开始回测')
+        self.output('开始回测')
         
         self.strategy.inited = True
         self.strategy.onInit()
-        self.output(u'策略初始化完成')
+        self.output('策略初始化完成')
         
         self.strategy.trading = True
         self.strategy.onStart()
-        self.output(u'策略启动完成')
+        self.output('策略启动完成')
         
-        self.output(u'开始回放数据')
+        self.output('开始回放数据')
 
         for d in self.dbCursor:
             data = dataClass()
             data.__dict__ = d
             func(data)     
             
-        self.output(u'数据回放结束')
+        self.output('数据回放结束')
         
     #----------------------------------------------------------------------
     def newBar(self, bar):
@@ -319,7 +319,7 @@ class BacktestingEngine(object):
             sellBestCrossPrice = self.tick.bidPrice1
         
         # 遍历限价单字典中的所有限价单
-        for orderID, order in self.workingLimitOrderDict.items():
+        for orderID, order in list(self.workingLimitOrderDict.items()):
             # 判断是否会成交
             buyCross = order.direction==DIRECTION_LONG and order.price>=buyCrossPrice
             sellCross = order.direction==DIRECTION_SHORT and order.price<=sellCrossPrice
@@ -378,7 +378,7 @@ class BacktestingEngine(object):
             bestCrossPrice = self.tick.lastPrice
         
         # 遍历停止单字典中的所有停止单
-        for stopOrderID, so in self.workingStopOrderDict.items():
+        for stopOrderID, so in list(self.workingStopOrderDict.items()):
             # 判断是否会成交
             buyCross = so.direction==DIRECTION_LONG and so.price<=buyCrossPrice
             sellCross = so.direction==DIRECTION_SHORT and so.price>=sellCrossPrice
@@ -460,14 +460,14 @@ class BacktestingEngine(object):
     #----------------------------------------------------------------------
     def output(self, content):
         """输出内容"""
-        print str(datetime.now()) + "\t" + content 
+        print(str(datetime.now()) + "\t" + content) 
     
     #----------------------------------------------------------------------
     def calculateBacktestingResult(self):
         """
         计算回测结果
         """
-        self.output(u'计算回测结果')
+        self.output('计算回测结果')
         
         # 首先基于回测后的成交记录，计算每笔交易的盈亏
         resultList = []             # 交易结果列表
@@ -475,7 +475,7 @@ class BacktestingEngine(object):
         longTrade = []              # 未平仓的多头交易
         shortTrade = []             # 未平仓的空头交易
         
-        for trade in self.tradeDict.values():
+        for trade in list(self.tradeDict.values()):
             # 多头交易
             if trade.direction == DIRECTION_LONG:
                 # 如果尚无空头交易
@@ -560,7 +560,7 @@ class BacktestingEngine(object):
                     
         # 检查是否有交易
         if not resultList:
-            self.output(u'无交易结果')
+            self.output('无交易结果')
             return {}
         
         # 然后基于每笔交易的结果，我们可以计算具体的盈亏曲线和最大回撤等        
@@ -646,21 +646,21 @@ class BacktestingEngine(object):
         
         # 输出
         self.output('-' * 30)
-        self.output(u'第一笔交易：\t%s' % d['timeList'][0])
-        self.output(u'最后一笔交易：\t%s' % d['timeList'][-1])
+        self.output('第一笔交易：\t%s' % d['timeList'][0])
+        self.output('最后一笔交易：\t%s' % d['timeList'][-1])
         
-        self.output(u'总交易次数：\t%s' % formatNumber(d['totalResult']))        
-        self.output(u'总盈亏：\t%s' % formatNumber(d['capital']))
-        self.output(u'最大回撤: \t%s' % formatNumber(min(d['drawdownList'])))                
+        self.output('总交易次数：\t%s' % formatNumber(d['totalResult']))        
+        self.output('总盈亏：\t%s' % formatNumber(d['capital']))
+        self.output('最大回撤: \t%s' % formatNumber(min(d['drawdownList'])))                
         
-        self.output(u'平均每笔盈利：\t%s' %formatNumber(d['capital']/d['totalResult']))
-        self.output(u'平均每笔滑点：\t%s' %formatNumber(d['totalSlippage']/d['totalResult']))
-        self.output(u'平均每笔佣金：\t%s' %formatNumber(d['totalCommission']/d['totalResult']))
+        self.output('平均每笔盈利：\t%s' %formatNumber(d['capital']/d['totalResult']))
+        self.output('平均每笔滑点：\t%s' %formatNumber(d['totalSlippage']/d['totalResult']))
+        self.output('平均每笔佣金：\t%s' %formatNumber(d['totalCommission']/d['totalResult']))
         
-        self.output(u'胜率\t\t%s%%' %formatNumber(d['winningRate']))
-        self.output(u'平均每笔盈利\t%s' %formatNumber(d['averageWinning']))
-        self.output(u'平均每笔亏损\t%s' %formatNumber(d['averageLosing']))
-        self.output(u'盈亏比：\t%s' %formatNumber(d['profitLossRatio']))
+        self.output('胜率\t\t%s%%' %formatNumber(d['winningRate']))
+        self.output('平均每笔盈利\t%s' %formatNumber(d['averageWinning']))
+        self.output('平均每笔亏损\t%s' %formatNumber(d['averageLosing']))
+        self.output('盈亏比：\t%s' %formatNumber(d['profitLossRatio']))
     
         # 绘图
         import matplotlib.pyplot as plt
@@ -671,7 +671,7 @@ class BacktestingEngine(object):
         
         pDD = plt.subplot(3, 1, 2)
         pDD.set_ylabel("DD")
-        pDD.bar(range(len(d['drawdownList'])), d['drawdownList'])         
+        pDD.bar(list(range(len(d['drawdownList']))), d['drawdownList'])         
         
         pPnl = plt.subplot(3, 1, 3)
         pPnl.set_ylabel("pnl")
@@ -708,7 +708,7 @@ class BacktestingEngine(object):
         
         # 检查参数设置问题
         if not settingList or not targetName:
-            self.output(u'优化设置有问题，请检查')
+            self.output('优化设置有问题，请检查')
         
         # 遍历优化
         resultList = []
@@ -728,9 +728,9 @@ class BacktestingEngine(object):
         # 显示结果
         resultList.sort(reverse=True, key=lambda result:result[1])
         self.output('-' * 30)
-        self.output(u'优化结果：')
+        self.output('优化结果：')
         for result in resultList:
-            self.output(u'%s: %s' %(result[0], result[1]))
+            self.output('%s: %s' %(result[0], result[1]))
         return result
             
     #----------------------------------------------------------------------
@@ -759,7 +759,7 @@ class BacktestingEngine(object):
         
         # 检查参数设置问题
         if not settingList or not targetName:
-            self.output(u'优化设置有问题，请检查')
+            self.output('优化设置有问题，请检查')
         
         # 多进程优化，启动一个对应CPU核心数量的进程池
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -778,9 +778,9 @@ class BacktestingEngine(object):
         resultList = [res.get() for res in l]
         resultList.sort(reverse=True, key=lambda result:result[1])
         self.output('-' * 30)
-        self.output(u'优化结果：')
+        self.output('优化结果：')
         for result in resultList:
-            self.output(u'%s: %s' %(result[0], result[1]))    
+            self.output('%s: %s' %(result[0], result[1]))    
         
 
 ########################################################################
@@ -825,11 +825,11 @@ class OptimizationSetting(object):
             return 
         
         if end < start:
-            print u'参数起始点必须不大于终止点'
+            print('参数起始点必须不大于终止点')
             return
         
         if step <= 0:
-            print u'参数布进必须大于0'
+            print('参数布进必须大于0')
             return
         
         l = []
@@ -845,8 +845,8 @@ class OptimizationSetting(object):
     def generateSetting(self):
         """生成优化参数组合"""
         # 参数名的列表
-        nameList = self.paramDict.keys()
-        paramList = self.paramDict.values()
+        nameList = list(self.paramDict.keys())
+        paramList = list(self.paramDict.values())
         
         # 使用迭代工具生产参数对组合
         productList = list(product(*paramList))
@@ -854,7 +854,7 @@ class OptimizationSetting(object):
         # 把参数对组合打包到一个个字典组成的列表中
         settingList = []
         for p in productList:
-            d = dict(zip(nameList, p))
+            d = dict(list(zip(nameList, p)))
             settingList.append(d)
     
         return settingList
@@ -900,7 +900,7 @@ if __name__ == '__main__':
     # 以下内容是一段回测脚本的演示，用户可以根据自己的需求修改
     # 建议使用ipython notebook或者spyder来做回测
     # 同样可以在命令模式下进行回测（一行一行输入运行）
-    from ctaDemo import *
+    from .ctaDemo import *
     
     # 创建回测引擎
     engine = BacktestingEngine()

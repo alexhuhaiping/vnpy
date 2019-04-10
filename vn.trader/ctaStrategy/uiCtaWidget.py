@@ -7,7 +7,7 @@ CTA模块相关的GUI控制组件
 
 from uiBasicWidget import QtGui, QtCore, BasicCell
 from eventEngine import *
-from language import text
+from .language import text
 
 
 ########################################################################
@@ -39,20 +39,20 @@ class CtaValueMonitor(QtGui.QTableWidget):
         """更新数据"""
         if not self.inited:
             self.setColumnCount(len(data))
-            self.setHorizontalHeaderLabels(data.keys())
+            self.setHorizontalHeaderLabels(list(data.keys()))
             
             col = 0
-            for k, v in data.items():
-                cell = QtGui.QTableWidgetItem(unicode(v))
+            for k, v in list(data.items()):
+                cell = QtGui.QTableWidgetItem(str(v))
                 self.keyCellDict[k] = cell
                 self.setItem(0, col, cell)
                 col += 1
             
             self.inited = True
         else:
-            for k, v in data.items():
+            for k, v in list(data.items()):
                 cell = self.keyCellDict[k]
-                cell.setText(unicode(v))
+                cell.setText(str(v))
 
 
 ########################################################################
@@ -213,7 +213,7 @@ class CtaEngineManager(QtGui.QWidget):
         w = QtGui.QWidget()
         vbox = QtGui.QVBoxLayout()
         
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, name)
             vbox.addWidget(strategyManager)
         
@@ -225,19 +225,19 @@ class CtaEngineManager(QtGui.QWidget):
     #----------------------------------------------------------------------
     def initAll(self):
         """全部初始化"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.initStrategy(name)    
             
     #----------------------------------------------------------------------
     def startAll(self):
         """全部启动"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.startStrategy(name)
             
     #----------------------------------------------------------------------
     def stopAll(self):
         """全部停止"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.stopStrategy(name)
             
     #----------------------------------------------------------------------

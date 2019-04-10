@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 import vtConstant
-from qdpGateway import QdpGateway as gateway
+from .qdpGateway import QdpGateway as gateway
 
 gatewayName = 'QDP'
 gatewayDisplayName = gatewayName

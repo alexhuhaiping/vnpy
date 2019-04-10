@@ -8,6 +8,7 @@ import platform
 import vtPath
 from vtEngine import MainEngine
 from uiMainWindow import *
+import imp
 
 # 文件路径名
 path = os.path.abspath(os.path.dirname(__file__))    
@@ -21,7 +22,7 @@ SETTING_FILENAME = os.path.join(path, SETTING_FILENAME)
 def main():
     """主程序入口"""
     # 重载sys模块，设置默认字符串编码方式为utf8
-    reload(sys)
+    imp.reload(sys)
     sys.setdefaultencoding('utf8')
     
     # 设置Windows底部任务栏图标

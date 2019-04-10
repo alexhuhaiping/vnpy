@@ -21,7 +21,7 @@ from ..ctaTemplate import CtaTemplate
 class AtrRsiStrategy(CtaTemplate):
     """结合ATR和RSI指标的一个分钟线交易策略"""
     className = 'AtrRsiStrategy'
-    author = u'用Python的交易员'
+    author = '用Python的交易员'
 
     # 策略参数
     atrLength = 22          # 计算ATR指标的窗口数   
@@ -89,7 +89,7 @@ class AtrRsiStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' %self.name)
+        self.writeCtaLog('%s策略初始化' %self.name)
     
         # 初始化RSI入场阈值
         self.rsiBuy = 50 + self.rsiEntry
@@ -105,13 +105,13 @@ class AtrRsiStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略启动' %self.name)
+        self.writeCtaLog('%s策略启动' %self.name)
         self.putEvent()
 
     #----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略停止' %self.name)
+        self.writeCtaLog('%s策略停止' %self.name)
         self.putEvent()
 
     #----------------------------------------------------------------------

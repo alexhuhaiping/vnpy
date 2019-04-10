@@ -22,8 +22,8 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
-from ctaBase import *
-from ctaSetting import STRATEGY_CLASS
+from .ctaBase import *
+from .ctaSetting import STRATEGY_CLASS
 from eventEngine import *
 from vtConstant import *
 from vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
@@ -145,7 +145,7 @@ class CtaEngine(object):
         vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)    # 发单
         self.orderStrategyDict[vtOrderID] = strategy        # 保存vtOrderID和策略的映射关系
 
-        self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s' 
+        self.writeCtaLog('策略%s发送委托，%s，%s，%s@%s' 
                          %(strategy.name, vtSymbol, req.direction, volume, price))
         
         return vtOrderID
@@ -220,7 +220,7 @@ class CtaEngine(object):
         # 首先检查是否有策略交易该合约
         if vtSymbol in self.tickStrategyDict:
             # 遍历等待中的停止单，检查是否会被触发
-            for so in self.workingStopOrderDict.values():
+            for so in list(self.workingStopOrderDict.values()):
                 if so.vtSymbol == vtSymbol:
                     longTriggered = so.direction==DIRECTION_LONG and tick.lastPrice>=so.price        # 多头停止单被触发
                     shortTriggered = so.direction==DIRECTION_SHORT and tick.lastPrice<=so.price     # 空头停止单被触发
@@ -248,7 +248,7 @@ class CtaEngine(object):
             # 将vtTickData数据转化为ctaTickData
             ctaTick = CtaTickData()
             d = ctaTick.__dict__
-            for key in d.keys():
+            for key in list(d.keys()):
                 if key != 'datetime':
                     d[key] = tick.__getattribute__(key)
             # 添加datetime字段
@@ -369,19 +369,19 @@ class CtaEngine(object):
         try:
             name = setting['name']
             className = setting['className']
-        except Exception, e:
-            self.writeCtaLog(u'载入策略出错：%s' %e)
+        except Exception as e:
+            self.writeCtaLog('载入策略出错：%s' %e)
             return
         
         # 获取策略类
         strategyClass = STRATEGY_CLASS.get(className, None)
         if not strategyClass:
-            self.writeCtaLog(u'找不到策略类：%s' %className)
+            self.writeCtaLog('找不到策略类：%s' %className)
             return
         
         # 防止策略重名
         if name in self.strategyDict:
-            self.writeCtaLog(u'策略实例重名：%s' %name)
+            self.writeCtaLog('策略实例重名：%s' %name)
         else:
             # 创建策略实例
             strategy = strategyClass(self, setting)  
@@ -408,7 +408,7 @@ class CtaEngine(object):
                 
                 self.mainEngine.subscribe(req, contract.gatewayName)
             else:
-                self.writeCtaLog(u'%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
+                self.writeCtaLog('%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
 
     #----------------------------------------------------------------------
     def initStrategy(self, name):
@@ -420,9 +420,9 @@ class CtaEngine(object):
                 strategy.inited = True
                 self.callStrategyFunc(strategy, strategy.onInit)
             else:
-                self.writeCtaLog(u'请勿重复初始化策略实例：%s' %name)
+                self.writeCtaLog('请勿重复初始化策略实例：%s' %name)
         else:
-            self.writeCtaLog(u'策略实例不存在：%s' %name)        
+            self.writeCtaLog('策略实例不存在：%s' %name)        
 
     #---------------------------------------------------------------------
     def startStrategy(self, name):
@@ -434,7 +434,7 @@ class CtaEngine(object):
                 strategy.trading = True
                 self.callStrategyFunc(strategy, strategy.onStart)
         else:
-            self.writeCtaLog(u'策略实例不存在：%s' %name)
+            self.writeCtaLog('策略实例不存在：%s' %name)
     
     #----------------------------------------------------------------------
     def stopStrategy(self, name):
@@ -447,16 +447,16 @@ class CtaEngine(object):
                 self.callStrategyFunc(strategy, strategy.onStop)
                 
                 # 对该策略发出的所有限价单进行撤单
-                for vtOrderID, s in self.orderStrategyDict.items():
+                for vtOrderID, s in list(self.orderStrategyDict.items()):
                     if s is strategy:
                         self.cancelOrder(vtOrderID)
                 
                 # 对该策略发出的所有本地停止单撤单
-                for stopOrderID, so in self.workingStopOrderDict.items():
+                for stopOrderID, so in list(self.workingStopOrderDict.items()):
                     if so.strategy is strategy:
                         self.cancelStopOrder(stopOrderID)   
         else:
-            self.writeCtaLog(u'策略实例不存在：%s' %name)        
+            self.writeCtaLog('策略实例不存在：%s' %name)        
     
     #----------------------------------------------------------------------
     def saveSetting(self):
@@ -464,7 +464,7 @@ class CtaEngine(object):
         with open(self.settingFileName, 'w') as f:
             l = []
             
-            for strategy in self.strategyDict.values():
+            for strategy in list(self.strategyDict.values()):
                 setting = {}
                 for param in strategy.paramList:
                     setting[param] = strategy.__getattribute__(param)
@@ -496,7 +496,7 @@ class CtaEngine(object):
             
             return varDict
         else:
-            self.writeCtaLog(u'策略实例不存在：' + name)    
+            self.writeCtaLog('策略实例不存在：' + name)    
             return None
     
     #----------------------------------------------------------------------
@@ -511,7 +511,7 @@ class CtaEngine(object):
             
             return paramDict
         else:
-            self.writeCtaLog(u'策略实例不存在：' + name)    
+            self.writeCtaLog('策略实例不存在：' + name)    
             return None   
         
     #----------------------------------------------------------------------
@@ -534,14 +534,14 @@ class CtaEngine(object):
             strategy.inited = False
             
             # 发出日志
-            content = '\n'.join([u'策略%s触发异常已停止' %strategy.name,
+            content = '\n'.join(['策略%s触发异常已停止' %strategy.name,
                                 traceback.format_exc()])
             self.writeCtaLog(content)
             
     #----------------------------------------------------------------------
     def savePosition(self):
         """保存所有策略的持仓情况到数据库"""
-        for strategy in self.strategyDict.values():
+        for strategy in list(self.strategyDict.values()):
             flt = {'name': strategy.name,
                    'vtSymbol': strategy.vtSymbol}
             
@@ -558,7 +558,7 @@ class CtaEngine(object):
     #----------------------------------------------------------------------
     def loadPosition(self):
         """从数据库载入策略的持仓情况"""
-        for strategy in self.strategyDict.values():
+        for strategy in list(self.strategyDict.values()):
             flt = {'name': strategy.name,
                    'vtSymbol': strategy.vtSymbol}
             

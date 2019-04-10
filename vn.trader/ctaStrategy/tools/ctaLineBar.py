@@ -68,7 +68,7 @@ class CtaLineBar(object):
 
 
         # 输入参数
-        self.name = u'LineBar'
+        self.name = 'LineBar'
         self.barTimeInterval = 300
 
         self.inputPreLen = EMPTY_INT    #1
@@ -189,7 +189,7 @@ class CtaLineBar(object):
         #    return
 
         if tick.datetime.hour == 8 or tick.datetime.hour == 20:
-            self.writeCtaLog(u'竞价排名tick时间:{0}'.format(tick.datetime))
+            self.writeCtaLog('竞价排名tick时间:{0}'.format(tick.datetime))
             return
 
         self.curTick = tick
@@ -298,7 +298,7 @@ class CtaLineBar(object):
 
             priceInYesterday = lastBar.close
 
-            self.writeCtaLog(u'line Bar jumpbars:{0}'.format(jumpBars))
+            self.writeCtaLog('line Bar jumpbars:{0}'.format(jumpBars))
 
             if tick.lastPrice > priceInYesterday:           # 价格往上跳
 
@@ -391,7 +391,7 @@ class CtaLineBar(object):
 
         # 1、lineBar满足长度才执行计算
         if len(self.lineBar) < self.inputPreLen:
-            self.writeCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算High、Low需要：{1}'.
+            self.writeCtaLog('数据未充分,当前Bar数据数量：{0}，计算High、Low需要：{1}'.
                              format(len(self.lineBar), self.inputPreLen))
             return
 
@@ -426,7 +426,7 @@ class CtaLineBar(object):
 
         # 1、lineBar满足长度才执行计算
         if len(self.lineBar) < max(7, self.inputEma1Len, self.inputEma2Len)+2:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算EMA需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算EMA需要：{1}'.
                              format(len(self.lineBar), max(7, self.inputEma1Len, self.inputEma2Len)+2))
             return
 
@@ -476,7 +476,7 @@ class CtaLineBar(object):
 
         # 1、lineMx满足长度才执行计算
         if len(self.lineBar) < self.inputDmiLen+1:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算DMI需要：{1}'.format(len(self.lineBar), self.inputDmiLen+1))
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算DMI需要：{1}'.format(len(self.lineBar), self.inputDmiLen+1))
             return
 
 
@@ -588,7 +588,7 @@ class CtaLineBar(object):
         if self.barPdi > self.barMdi and self.barAdxTrend and self.barAdxrTrend and self.barPdi >= self.inputDmiMax:
             self.buyFilterCond = True
 
-            self.writeCtaLog(u'{0}[DEBUG]Buy Signal On Bar,Pdi:{1}>Mdi:{2},adx[-1]:{3}>Adx[-2]:{4}'
+            self.writeCtaLog('{0}[DEBUG]Buy Signal On Bar,Pdi:{1}>Mdi:{2},adx[-1]:{3}>Adx[-2]:{4}'
                                  .format(self.curTick.datetime, self.barPdi, self.barMdi, self.lineAdx[-1], self.lineAdx[-2]))
         else:
             self.buyFilterCond = False
@@ -597,7 +597,7 @@ class CtaLineBar(object):
         if self.barPdi < self.barMdi and self.barAdxTrend and self.barAdxrTrend and self.barMdi >= self.inputDmiMax:
             self.sellFilterCond = True
 
-            self.writeCtaLog(u'{0}[DEBUG]Short Signal On Bar,Pdi:{1}<Mdi:{2},adx[-1]:{3}>Adx[-2]:{4}'
+            self.writeCtaLog('{0}[DEBUG]Short Signal On Bar,Pdi:{1}<Mdi:{2},adx[-1]:{3}>Adx[-2]:{4}'
                                  .format(self.curTick.datetime, self.barPdi, self.barMdi, self.lineAdx[-1], self.lineAdx[-2]))
         else:
             self.sellFilterCond = False
@@ -612,7 +612,7 @@ class CtaLineBar(object):
             return
 
         if len(self.lineBar) < maxAtrLen+1:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算ATR需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算ATR需要：{1}'.
                              format(len(self.lineBar), maxAtrLen+1))
             return
 
@@ -703,7 +703,7 @@ class CtaLineBar(object):
             return
 
         if len(self.lineBar) < self.inputVolLen+1:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算Avg Vol需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算Avg Vol需要：{1}'.
                              format(len(self.lineBar), self.inputVolLen+1))
             return
 
@@ -723,7 +723,7 @@ class CtaLineBar(object):
 
         # 1、lineBar满足长度才执行计算
         if len(self.lineBar) < self.inputRsiLen+2:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算RSI需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算RSI需要：{1}'.
                              format(len(self.lineBar), self.inputRsiLen+2))
             return
 
@@ -743,7 +743,7 @@ class CtaLineBar(object):
             if self.lineRsi[-1] < self.lineRsi[-2] and self.lineRsi[-3] < self.lineRsi[-2]:
 
                 t={}
-                t["Type"] = u'T'
+                t["Type"] = 'T'
                 t["RSI"] = self.lineRsi[-2]
                 t["Close"] = self.lineBar[-2].close
 
@@ -758,7 +758,7 @@ class CtaLineBar(object):
             elif self.lineRsi[-1] > self.lineRsi[-2] and self.lineRsi[-3] > self.lineRsi[-2]:
 
                 b={}
-                b["Type"] = u'B'
+                b["Type"] = 'B'
                 b["RSI"] = self.lineRsi[-2]
                 b["Close"] = self.lineBar[-2].close
 
@@ -783,7 +783,7 @@ class CtaLineBar(object):
 
          # 1、lineBar满足长度才执行计算
         if len(self.lineBar) < self.inputCmiLen:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算CMI需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算CMI需要：{1}'.
                              format(len(self.lineBar), self.inputCmiLen))
             return
 
@@ -810,7 +810,7 @@ class CtaLineBar(object):
         l = len(self.lineBar)
 
         if l < min(7, self.inputBollLen)+1:
-            self.debugCtaLog(u'数据未充分,当前Bar数据数量：{0}，计算Boll需要：{1}'.
+            self.debugCtaLog('数据未充分,当前Bar数据数量：{0}，计算Boll需要：{1}'.
                              format(len(self.lineBar), min(7, self.inputBollLen)+1))
             return
 
@@ -834,9 +834,9 @@ class CtaLineBar(object):
     # ----------------------------------------------------------------------
     def writeCtaLog(self, content):
         """记录CTA日志"""
-        self.strategy.writeCtaLog(u'['+self.name+u']'+content)
+        self.strategy.writeCtaLog('['+self.name+']'+content)
 
     def debugCtaLog(self,content):
         """记录CTA日志"""
         if DEBUGCTALOG:
-            self.strategy.writeCtaLog(u'['+self.name+u'-DEBUG]'+content)
+            self.strategy.writeCtaLog('['+self.name+'-DEBUG]'+content)

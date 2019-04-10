@@ -1,13 +1,13 @@
 # encoding: utf-8
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 import traceback
 
 import json
 import requests
 from time import time, sleep
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 
 
@@ -67,8 +67,8 @@ FUNCTIONCODE_GETLOANS = 'get_loans'
 #----------------------------------------------------------------------
 def signature(params):
     """生成签名"""
-    params = sorted(params.iteritems(), key=lambda d:d[0], reverse=False)
-    message = urllib.urlencode(params)
+    params = sorted(iter(params.items()), key=lambda d:d[0], reverse=False)
+    message = urllib.parse.urlencode(params)
     
     m = hashlib.md5()
     m.update(message)
@@ -103,7 +103,7 @@ class TradeApi(object):
         optional = req['optional']
         
         # 在参数中增加必须的字段
-        params['created'] = long(time())
+        params['created'] = int(time())
         params['access_key'] = self.accessKey
         params['secret_key'] = self.secretKey
         params['method'] = method
@@ -118,7 +118,7 @@ class TradeApi(object):
             params.update(optional)
         
         # 发送请求
-        payload = urllib.urlencode(params)
+        payload = urllib.parse.urlencode(params)
 
         r = requests.post(HUOBI_TRADE_API, params=payload)
         if r.status_code == 200:
@@ -140,12 +140,12 @@ class TradeApi(object):
                 
                 # 请求失败
                 if 'code' in data and 'message' in data:
-                    error = u'错误信息：%s' %data['message']
+                    error = '错误信息：%s' %data['message']
                     self.onError(error, req, reqID)
                 # 请求成功
                 else:
                     if self.DEBUG:
-                        print(callback.__name__)
+                        print((callback.__name__))
                     callback(data, req, reqID)
                 
             except Empty:
@@ -429,7 +429,7 @@ class TradeApi(object):
     #----------------------------------------------------------------------
     def onError(self, error, req, reqID):
         """错误推送"""
-        print(error, reqID)
+        print((error, reqID))
 
     #----------------------------------------------------------------------
     def onGetAccountInfo(self, data, req, reqID):
@@ -587,7 +587,7 @@ class DataApi(object):
                     if r.status_code == 200:
                         data = r.json()
                         if self.DEBUG:
-                            print(callback.__name__)
+                            print((callback.__name__))
                         callback(data)
                 except:
                     traceback.print_exc()

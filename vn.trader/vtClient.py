@@ -5,15 +5,16 @@ import os
 import ctypes
 import platform
 
-import vtPath
-from uiMainWindow import *
+from . import vtPath
+from .uiMainWindow import *
 
-from eventEngine import *
-from vnrpc import RpcClient
+from .eventEngine import *
+from .vnrpc import RpcClient
 
-from ctaStrategy.ctaEngine import CtaEngine
-from dataRecorder.drEngine import DrEngine
-from riskManager.rmEngine import RmEngine
+from .ctaStrategy.ctaEngine import CtaEngine
+from .dataRecorder.drEngine import DrEngine
+from .riskManager.rmEngine import RmEngine
+import imp
 
 
 
@@ -160,7 +161,7 @@ class ClientEngine(object):
 def main():
     """客户端主程序入口"""
     # 重载sys模块，设置默认字符串编码方式为utf8
-    reload(sys)
+    imp.reload(sys)
     sys.setdefaultencoding('utf8')
     
     # 设置Windows底部任务栏图标

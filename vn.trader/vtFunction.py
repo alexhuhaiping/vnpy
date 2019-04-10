@@ -6,7 +6,7 @@
 import logging
 import functools
 import traceback
-import vtGlobal
+from . import vtGlobal
 import os
 import decimal
 import json
@@ -35,7 +35,7 @@ def safeUnicode(value):
         if abs(d.as_tuple().exponent) > MAX_DECIMAL:
             value = round(value, ndigits=MAX_DECIMAL)
     
-    return unicode(value)
+    return str(value)
 
 #----------------------------------------------------------------------
 def loadMongoSetting():

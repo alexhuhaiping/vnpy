@@ -75,7 +75,7 @@ class BreakOut(CtaTemplate):
         # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.initDays)
@@ -91,13 +91,13 @@ class BreakOut(CtaTemplate):
     #----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略启动' %self.name)
+        self.writeCtaLog('%s策略启动' %self.name)
         self.putEvent()
 
     #----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略停止' %self.name)
+        self.writeCtaLog('%s策略停止' %self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -113,7 +113,7 @@ class BreakOut(CtaTemplate):
                 try:
                     self.initInfobar[info_symbol] = next(initInfoCursorDict[info_symbol])
                 except StopIteration:
-                    print "Data of information symbols is empty! Input is a list, not str."
+                    print("Data of information symbols is empty! Input is a list, not str.")
                     raise
 
         # 若有某一品种的 TimeStamp 和执行报价的 TimeStamp 匹配, 则将"initInfobar"中的数据推送,
@@ -314,4 +314,4 @@ if __name__ == '__main__':
     # 显示回测结果
     engine.showBacktestingResult()
 
-    print 'Time consumed：%s' % (time.time() - start)
+    print('Time consumed：%s' % (time.time() - start))

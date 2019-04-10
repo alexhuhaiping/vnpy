@@ -3,5 +3,5 @@ import pytest
 
 @pytest.fixture(scope='session')
 def mainEngine():
-    import vtEngine
+    from . import vtEngine
     return vtEngine.MainEngine()

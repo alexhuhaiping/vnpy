@@ -7,7 +7,7 @@
 
 from uiBasicWidget import QtGui, QtCore
 from eventEngine import *
-from language import text
+from .language import text
 
 
 ########################################################################

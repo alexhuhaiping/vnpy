@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 from time import sleep
 
-import vnlhang
+from . import vnlhang
 from vtGateway import *
 
 
@@ -20,7 +20,7 @@ SYMBOL_ZECCNY = 'ZECCNY'
 SYMBOL_MAP = {}
 SYMBOL_MAP['btc_cny'] = SYMBOL_BTCCNY
 SYMBOL_MAP['zec_cny'] = SYMBOL_ZECCNY
-SYMBOL_MAP_REVERSE = {v: k for k, v in SYMBOL_MAP.items()}
+SYMBOL_MAP_REVERSE = {v: k for k, v in list(SYMBOL_MAP.items())}
 
 
 DIRECTION_MAP = {}
@@ -59,7 +59,7 @@ class LhangGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -73,13 +73,13 @@ class LhangGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
         # 初始化接口
         self.api.connect(accessKey, secretKey, interval, debug)
-        self.writeLog(u'接口初始化成功')
+        self.writeLog('接口初始化成功')
         
         # 启动查询
         self.initQuery()
@@ -244,11 +244,11 @@ class LhangApi(vnlhang.LhangApi):
     # ----------------------------------------------------------------------
     def onGetTrades(self, data, req, reqID):
         """查询历史成交"""
-        print(data, reqID)
+        print((data, reqID))
 
     # ----------------------------------------------------------------------
     def onGetKline(self, data, req, reqID):
-        print(data, reqID)
+        print((data, reqID))
     
     # ----------------------------------------------------------------------
     def onGetUserInfo(self, data, req, reqID):
@@ -421,7 +421,7 @@ class LhangApi(vnlhang.LhangApi):
         contract.symbol = SYMBOL_BTCCNY
         contract.exchange = EXCHANGE_LHANG
         contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
-        contract.name = u'人民币现货BTC'
+        contract.name = '人民币现货BTC'
         contract.size = 1
         contract.priceTick = 0.01
         contract.productClass = PRODUCT_SPOT
@@ -432,7 +432,7 @@ class LhangApi(vnlhang.LhangApi):
         contract.symbol = SYMBOL_ZECCNY
         contract.exchange = EXCHANGE_LHANG
         contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
-        contract.name = u'人民币现货ZEC'
+        contract.name = '人民币现货ZEC'
         contract.size = 1
         contract.priceTick = 0.01
         contract.productClass = PRODUCT_SPOT
@@ -446,7 +446,7 @@ class LhangApi(vnlhang.LhangApi):
         if req.priceType != PRICETYPE_LIMITPRICE:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorMsg = u'链行接口仅支持限价单'
+            err.errorMsg = '链行接口仅支持限价单'
             err.errorTime = datetime.now().strftime('%H:%M:%S')
             self.gateway.onError(err)
             return None
@@ -503,13 +503,13 @@ class LhangApi(vnlhang.LhangApi):
     #----------------------------------------------------------------------
     def queryOrders(self):
         """查询委托"""
-        for s in SYMBOL_MAP.keys():
+        for s in list(SYMBOL_MAP.keys()):
             self.getOrdersInfoHistory(s, '0', '1', '200')
 
     #----------------------------------------------------------------------
     def queryWorkingOrders(self):
         """查询活动委托"""
-        for localID, order in self.workingOrderDict.items():
+        for localID, order in list(self.workingOrderDict.items()):
             if localID in self.localSystemDict:
                 systemID = self.localSystemDict[localID]
                 s = SYMBOL_MAP_REVERSE[order.symbol]
@@ -518,7 +518,7 @@ class LhangApi(vnlhang.LhangApi):
     #----------------------------------------------------------------------
     def queryPrice(self):
         """查询行情"""
-        for s in SYMBOL_MAP.keys():
+        for s in list(SYMBOL_MAP.keys()):
             self.getTicker(s)
             self.getDepth(s, 5, 0)
 

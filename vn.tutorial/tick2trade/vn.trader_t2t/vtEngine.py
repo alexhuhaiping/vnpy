@@ -53,90 +53,90 @@ class MainEngine(object):
             from ctpGateway.ctpGateway import CtpGateway
             self.addGateway(CtpGateway, 'CTP')
             self.gatewayDict['CTP'].setQryEnabled(True)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         
         try:
             from ltsGateway.ltsGateway import LtsGateway
             self.addGateway(LtsGateway, 'LTS')
             self.gatewayDict['LTS'].setQryEnabled(True)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         
         try:
             from xtpGateway.xtpGateway import XtpGateway
             self.addGateway(XtpGateway, 'XTP')
             self.gatewayDict['XTP'].setQryEnabled(True)
-        except Exception, e:
-            print e        
+        except Exception as e:
+            print(e)        
         
         try:
             from ksotpGateway.ksotpGateway import KsotpGateway
             self.addGateway(KsotpGateway, 'KSOTP')
             self.gatewayDict['KSOTP'].setQryEnabled(True)
-        except Exception, e:
-            print e    
+        except Exception as e:
+            print(e)    
             
         try:
             from femasGateway.femasGateway import FemasGateway
             self.addGateway(FemasGateway, 'FEMAS')
             self.gatewayDict['FEMAS'].setQryEnabled(True)
-        except Exception, e:
-            print e  
+        except Exception as e:
+            print(e)  
         
         try:
             from xspeedGateway.xspeedGateway import XspeedGateway
             self.addGateway(XspeedGateway, 'XSPEED')
             self.gatewayDict['XSPEED'].setQryEnabled(True)
-        except Exception, e:
-            print e          
+        except Exception as e:
+            print(e)          
         
         try:
             from ksgoldGateway.ksgoldGateway import KsgoldGateway
             self.addGateway(KsgoldGateway, 'KSGOLD')
             self.gatewayDict['KSGOLD'].setQryEnabled(True)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             
         try:
             from sgitGateway.sgitGateway import SgitGateway
             self.addGateway(SgitGateway, 'SGIT')
             self.gatewayDict['SGIT'].setQryEnabled(True)
-        except Exception, e:
-            print e        
+        except Exception as e:
+            print(e)        
             
         try:
             from windGateway.windGateway import WindGateway
             self.addGateway(WindGateway, 'Wind') 
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         
         try:
             from ibGateway.ibGateway import IbGateway
             self.addGateway(IbGateway, 'IB')
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             
         try:
             from shzdGateway.shzdGateway import ShzdGateway
             self.addGateway(ShzdGateway, 'SHZD')
             self.gatewayDict['SHZD'].setQryEnabled(True)
-        except Exception, e:
-            print e       
+        except Exception as e:
+            print(e)       
             
         try:
             from oandaGateway.oandaGateway import OandaGateway
             self.addGateway(OandaGateway, 'OANDA')
             self.gatewayDict['OANDA'].setQryEnabled(True)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
         
         try:
             from okcoinGateway.okcoinGateway import OkcoinGateway
             self.addGateway(OkcoinGateway, 'OKCOIN')
             self.gatewayDict['OKCOIN'].setQryEnabled(True)
-        except Exception, e:
-            print e        
+        except Exception as e:
+            print(e)        
 
     #----------------------------------------------------------------------
     def addGateway(self, gateway, gatewayName=None):
@@ -150,7 +150,7 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.connect()
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)
+            self.writeLog('接口不存在：%s' %gatewayName)
         
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq, gatewayName):
@@ -159,7 +159,7 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.subscribe(subscribeReq)
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)        
+            self.writeLog('接口不存在：%s' %gatewayName)        
         
     #----------------------------------------------------------------------
     def sendOrder(self, orderReq, gatewayName):
@@ -172,7 +172,7 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             return gateway.sendOrder(orderReq)
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)        
+            self.writeLog('接口不存在：%s' %gatewayName)        
     
     #----------------------------------------------------------------------
     def cancelOrder(self, cancelOrderReq, gatewayName):
@@ -181,7 +181,7 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.cancelOrder(cancelOrderReq)
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)        
+            self.writeLog('接口不存在：%s' %gatewayName)        
         
     #----------------------------------------------------------------------
     def qryAccont(self, gatewayName):
@@ -190,7 +190,7 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.qryAccount()
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)        
+            self.writeLog('接口不存在：%s' %gatewayName)        
         
     #----------------------------------------------------------------------
     def qryPosition(self, gatewayName):
@@ -199,13 +199,13 @@ class MainEngine(object):
             gateway = self.gatewayDict[gatewayName]
             gateway.qryPosition()
         else:
-            self.writeLog(u'接口不存在：%s' %gatewayName)        
+            self.writeLog('接口不存在：%s' %gatewayName)        
         
     #----------------------------------------------------------------------
     def exit(self):
         """退出程序前调用，保证正常退出"""        
         # 安全关闭所有接口
-        for gateway in self.gatewayDict.values():        
+        for gateway in list(self.gatewayDict.values()):        
             gateway.close()
         
         # 停止事件引擎
@@ -240,9 +240,9 @@ class MainEngine(object):
                 # 调用server_info查询服务器状态，防止服务器异常并未连接成功
                 self.dbClient.server_info()
 
-                self.writeLog(u'MongoDB连接成功')
+                self.writeLog('MongoDB连接成功')
             except ConnectionFailure:
-                self.writeLog(u'MongoDB连接失败')
+                self.writeLog('MongoDB连接失败')
     
     #----------------------------------------------------------------------
     def dbInsert(self, dbName, collectionName, d):
@@ -306,7 +306,7 @@ class MainEngine(object):
         
         order_time = self.sendOrder(req, tick.gatewayName)
         
-        print u'耗时：', (order_time - tick.tick_time)*1000/tick.frequency_time, u'毫秒'
+        print('耗时：', (order_time - tick.tick_time)*1000/tick.frequency_time, '毫秒')
         
         
 
@@ -353,7 +353,7 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def getAllContracts(self):
         """查询所有合约对象（返回列表）"""
-        return self.contractDict.values()
+        return list(self.contractDict.values())
     
     #----------------------------------------------------------------------
     def saveContracts(self):
@@ -368,7 +368,7 @@ class DataEngine(object):
         f = shelve.open(self.contractFileName)
         if 'data' in f:
             d = f['data']
-            for key, value in d.items():
+            for key, value in list(d.items()):
                 self.contractDict[key] = value
         f.close()
         
@@ -397,7 +397,7 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def getAllWorkingOrders(self):
         """查询所有活动委托（返回列表）"""
-        return self.workingOrderDict.values()
+        return list(self.workingOrderDict.values())
     
     #----------------------------------------------------------------------
     def registerEvent(self):

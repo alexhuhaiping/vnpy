@@ -3,7 +3,7 @@
 import traceback
 import json
 import requests
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 
 
@@ -229,7 +229,7 @@ class OandaApi(object):
                     try:
                         data = r.json()
                         if self.DEBUG:
-                            print(callback.__name__)
+                            print((callback.__name__))
                         callback(data, reqID)    
                     except :
                         self.onError(traceback.format_exc(), reqID)
@@ -261,7 +261,7 @@ class OandaApi(object):
     #----------------------------------------------------------------------
     def onError(self, error, reqID):
         """错误信息回调"""
-        print(error, reqID)
+        print((error, reqID))
             
     #----------------------------------------------------------------------
     def getInstruments(self, params):
@@ -571,7 +571,7 @@ class OandaApi(object):
                         msg = json.loads(line)
                         
                         if self.DEBUG:
-                            print(self.onPrice.__name__)
+                            print((self.onPrice.__name__))
                             
                         self.onPrice(msg)
                     except :
@@ -598,7 +598,7 @@ class OandaApi(object):
                         msg = json.loads(line)
                         
                         if self.DEBUG:
-                            print(self.onEvent.__name__)
+                            print((self.onEvent.__name__))
                             
                         self.onEvent(msg)
                     except :

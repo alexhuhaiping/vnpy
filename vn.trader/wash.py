@@ -152,7 +152,7 @@ class Washer(object):
         def checkHasIndex(db, t, w):
             c = db[t]
             index_infomation = dict(c.index_information())
-            for k in index_infomation.keys():
+            for k in list(index_infomation.keys()):
                 if w.tickIndexName in k:
                     # 存在索引
                     return True

@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 # import shelve
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import logging.config
 from collections import OrderedDict
 from datetime import datetime
@@ -11,17 +11,17 @@ from time import sleep
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, DuplicateKeyError, AutoReconnect
 
-from eventEngine import *
-from vtGateway import *
-from vtFunction import loadMongoSetting
-from language import text
+from .eventEngine import *
+from .vtGateway import *
+from .vtFunction import loadMongoSetting
+from .language import text
 from slavem import Reporter
 
-import vtGlobal
-from gateway import GATEWAY_DICT
-from ctaStrategy.ctaEngine import CtaEngine
-from dataRecorder.drEngine import DrEngine
-from riskManager.rmEngine import RmEngine
+from . import vtGlobal
+from .gateway import GATEWAY_DICT
+from .ctaStrategy.ctaEngine import CtaEngine
+from .dataRecorder.drEngine import DrEngine
+from .riskManager.rmEngine import RmEngine
 
 
 ########################################################################
@@ -65,7 +65,7 @@ class MainEngine(object):
         self.gatewayDict = OrderedDict()
 
         # 遍历接口字典并自动创建所有的接口对象
-        for gatewayModule in GATEWAY_DICT.values():
+        for gatewayModule in list(GATEWAY_DICT.values()):
             try:
                 self.addGateway(gatewayModule.gateway, gatewayModule.gatewayName)
                 if gatewayModule.gatewayQryEnabled:
@@ -164,7 +164,7 @@ class MainEngine(object):
     def exit(self):
         """退出程序前调用，保证正常退出"""
         # 安全关闭所有接口
-        for gateway in self.gatewayDict.values():
+        for gateway in list(self.gatewayDict.values()):
             gateway.close()
 
         # 停止事件引擎
@@ -244,7 +244,7 @@ class MainEngine(object):
             try:
                 collection.insert_many(ld)
             except AutoReconnect:
-                self.log.warning(u'插入失败,MongoDB尝试重连')
+                self.log.warning('插入失败,MongoDB尝试重连')
                 self.dbClient.close()
                 sleep(0.3)
                 self.dbConnect()
@@ -315,7 +315,7 @@ class MainEngine(object):
     # ----------------------------------------------------------------------
     def getAllGatewayNames(self):
         """查询引擎中所有可用接口的名称"""
-        return self.gatewayDict.keys()
+        return list(self.gatewayDict.keys())
 
     # ----------------------------------------------------------------------
     def getGateway4sysMenu(self):
@@ -330,7 +330,7 @@ class MainEngine(object):
             'gatewayDisplayName': g.gatewayDisplayName,
         }
         return [
-            toDict(g) for g in GATEWAY_DICT.values() if hasattr(g, 'gatewayType')
+            toDict(g) for g in list(GATEWAY_DICT.values()) if hasattr(g, 'gatewayType')
             ]
 
 
@@ -389,7 +389,7 @@ class DataEngine(object):
     # ----------------------------------------------------------------------
     def getAllContracts(self):
         """查询所有合约对象（返回列表）"""
-        return self.contractDict.values()
+        return list(self.contractDict.values())
 
     # ----------------------------------------------------------------------
     def saveContracts(self):
@@ -435,7 +435,7 @@ class DataEngine(object):
     # ----------------------------------------------------------------------
     def getAllWorkingOrders(self):
         """查询所有活动委托（返回列表）"""
-        return self.workingOrderDict.values()
+        return list(self.workingOrderDict.values())
 
     # ----------------------------------------------------------------------
     def registerEvent(self):

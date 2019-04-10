@@ -12,10 +12,10 @@ import pymongo
 from time import time
 from multiprocessing.pool import ThreadPool
 
-from ctaBase import *
+from .ctaBase import *
 from vtConstant import *
 from vtFunction import loadMongoSetting
-from datayesClient import DatayesClient
+from .datayesClient import DatayesClient
 
 
 # 以下为vn.trader和通联数据规定的交易所代码映射 
@@ -24,7 +24,7 @@ VT_TO_DATAYES_EXCHANGE[EXCHANGE_CFFEX] = 'CCFX'     # 中金所
 VT_TO_DATAYES_EXCHANGE[EXCHANGE_SHFE] = 'XSGE'      # 上期所 
 VT_TO_DATAYES_EXCHANGE[EXCHANGE_CZCE] = 'XZCE'       # 郑商所
 VT_TO_DATAYES_EXCHANGE[EXCHANGE_DCE] = 'XDCE'       # 大商所
-DATAYES_TO_VT_EXCHANGE = {v:k for k,v in VT_TO_DATAYES_EXCHANGE.items()}
+DATAYES_TO_VT_EXCHANGE = {v:k for k,v in list(VT_TO_DATAYES_EXCHANGE.items())}
 
 
 ########################################################################
@@ -90,9 +90,9 @@ class HistoryDataEngine(object):
                 
                 self.dbClient[SETTING_DB_NAME]['FuturesSymbol'].update_one(flt, {'$set':symbolDict}, 
                                                                            upsert=True)
-            print(u'期货合约代码下载完成')
+            print('期货合约代码下载完成')
         else:
-            print(u'期货合约代码下载失败')
+            print('期货合约代码下载失败')
         
     #----------------------------------------------------------------------
     def downloadFuturesDailyBar(self, symbol):
@@ -100,7 +100,7 @@ class HistoryDataEngine(object):
         下载期货合约的日行情，symbol是合约代码，
         若最后四位为0000（如IF0000），代表下载连续合约。
         """
-        print(u'开始下载%s日行情' %symbol)
+        print(('开始下载%s日行情' %symbol))
         
         # 查询数据库中已有数据的最后日期
         cl = self.dbClient[DAILY_DB_NAME][symbol]
@@ -157,19 +157,19 @@ class HistoryDataEngine(object):
                 flt = {'datetime': bar.datetime}
                 self.dbClient[DAILY_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
             
-                print(u'%s下载完成' %symbol)
+                print(('%s下载完成' %symbol))
         else:
-            print(u'找不到合约%s' %symbol)
+            print(('找不到合约%s' %symbol))
             
     #----------------------------------------------------------------------
     def downloadAllFuturesDailyBar(self):
         """下载所有期货的主力合约日行情"""
         start = time()
-        print(u'开始下载所有期货的主力合约日行情')
+        print('开始下载所有期货的主力合约日行情')
         
         productSymbolSet = self.readFuturesProductSymbol()
         
-        print(u'代码列表读取成功，产品代码：%s' %productSymbolSet)
+        print(('代码列表读取成功，产品代码：%s' %productSymbolSet))
         
         # 这里也测试了线程池，但可能由于下载函数中涉及较多的数据格
         # 式转换，CPU开销较大，多线程效率并无显著改变。
@@ -181,12 +181,12 @@ class HistoryDataEngine(object):
         for productSymbol in productSymbolSet:
             self.downloadFuturesDailyBar(productSymbol+'0000')
 
-        print(u'所有期货的主力合约日行情已经全部下载完成, 耗时%s秒' %(time()-start))
+        print(('所有期货的主力合约日行情已经全部下载完成, 耗时%s秒' %(time()-start)))
         
     #----------------------------------------------------------------------
     def downloadFuturesIntradayBar(self, symbol):
         """下载期货的日内分钟行情"""
-        print(u'开始下载%s日内分钟行情' %symbol)
+        print(('开始下载%s日内分钟行情' %symbol))
                 
         # 日内分钟行情只有具体合约
         path = 'api/market/getFutureBarRTIntraDay.json'
@@ -225,9 +225,9 @@ class HistoryDataEngine(object):
                 flt = {'datetime': bar.datetime}
                 self.dbClient[MINUTE_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
             
-            print(u'%s下载完成' %symbol)
+            print(('%s下载完成' %symbol))
         else:
-            print(u'找不到合约%s' %symbol)
+            print(('找不到合约%s' %symbol))
 
     #----------------------------------------------------------------------
     def downloadEquitySymbol(self, tradeDate=''):
@@ -254,16 +254,16 @@ class HistoryDataEngine(object):
                 
                 self.dbClient[SETTING_DB_NAME]['EquitySymbol'].update_one(flt, {'$set':symbolDict}, 
                                                                            upsert=True)
-            print(u'股票代码下载完成')
+            print('股票代码下载完成')
         else:
-            print(u'股票代码下载失败')
+            print('股票代码下载失败')
         
     #----------------------------------------------------------------------
     def downloadEquityDailyBar(self, symbol):
         """
         下载股票的日行情，symbol是股票代码
         """
-        print(u'开始下载%s日行情' %symbol)
+        print(('开始下载%s日行情' %symbol))
         
         # 查询数据库中已有数据的最后日期
         cl = self.dbClient[DAILY_DB_NAME][symbol]
@@ -308,9 +308,9 @@ class HistoryDataEngine(object):
                 flt = {'datetime': bar.datetime}
                 self.dbClient[DAILY_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
             
-            print(u'%s下载完成' %symbol)
+            print(('%s下载完成' %symbol))
         else:
-            print(u'找不到合约%s' %symbol)
+            print(('找不到合约%s' %symbol))
         
 
 
@@ -319,7 +319,7 @@ def downloadEquityDailyBarts(self, symbol):
         """
         下载股票的日行情，symbol是股票代码
         """
-        print(u'开始下载%s日行情' %symbol)
+        print(('开始下载%s日行情' %symbol))
         
         # 查询数据库中已有数据的最后日期
         cl = self.dbClient[DAILY_DB_NAME][symbol]
@@ -360,16 +360,16 @@ def downloadEquityDailyBarts(self, symbol):
                 flt = {'datetime': bar.datetime}
                 self.dbClient[DAILY_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
             
-            print(u'%s下载完成' %symbol)
+            print(('%s下载完成' %symbol))
         else:
-            print(u'找不到合约%s' %symbol)
+            print(('找不到合约%s' %symbol))
 #----------------------------------------------------------------------
 def loadMcCsv(fileName, dbName, symbol):
     """将Multicharts导出的csv格式的历史数据插入到Mongo数据库中"""
     import csv
     
     start = time()
-    print(u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol))
+    print(('开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)))
     
     # 锁定集合，并创建索引
     host, port, logging = loadMongoSetting()
@@ -395,9 +395,9 @@ def loadMcCsv(fileName, dbName, symbol):
 
         flt = {'datetime': bar.datetime}
         collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  
-        print(bar.date, bar.time)
+        print((bar.date, bar.time))
     
-    print(u'插入完毕，耗时：%s' % (time()-start))
+    print(('插入完毕，耗时：%s' % (time()-start)))
 
 #----------------------------------------------------------------------
 def loadTdxCsv(fileName, dbName, symbol):
@@ -405,7 +405,7 @@ def loadTdxCsv(fileName, dbName, symbol):
     import csv
     
     start = time()
-    print(u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol))
+    print(('开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)))
     
     # 锁定集合，并创建索引
     host, port, logging = loadMongoSetting()
@@ -432,9 +432,9 @@ def loadTdxCsv(fileName, dbName, symbol):
 
         flt = {'datetime': bar.datetime}
         collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  
-        print(bar.date, bar.time)
+        print((bar.date, bar.time))
     
-    print(u'插入完毕，耗时：%s' % (time()-start))
+    print(('插入完毕，耗时：%s' % (time()-start)))
     
 #----------------------------------------------------------------------
 def loadTBCsv(fileName, dbName, symbol):
@@ -446,7 +446,7 @@ def loadTBCsv(fileName, dbName, symbol):
     import csv
     
     start = time()
-    print(u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol))
+    print(('开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)))
     
     # 锁定集合，并创建索引
     host, port, logging = loadMongoSetting()
@@ -477,9 +477,9 @@ def loadTBCsv(fileName, dbName, symbol):
 
             flt = {'datetime': bar.datetime}
             collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)
-            print('%s \t %s' % (bar.date, bar.time))
+            print(('%s \t %s' % (bar.date, bar.time)))
     
-    print(u'插入完毕，耗时：%s' % (time()-start))
+    print(('插入完毕，耗时：%s' % (time()-start)))
     
     
 if __name__ == '__main__':

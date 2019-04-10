@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 import vtConstant
-from ltsGateway import LtsGateway as gateway
+from .ltsGateway import LtsGateway as gateway
 
 gatewayName = 'LTS'
 gatewayDisplayName = gatewayName

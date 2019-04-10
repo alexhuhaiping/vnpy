@@ -7,10 +7,10 @@ from collections import OrderedDict
 
 from PyQt4 import QtGui, QtCore
 
-from eventEngine import *
-from vtFunction import *
-from vtGateway import *
-import vtText
+from .eventEngine import *
+from .vtFunction import *
+from .vtGateway import *
+from . import vtText
 
 
 COLOR_RED = QtGui.QColor('red')
@@ -31,7 +31,7 @@ def loadFont():
         size = setting['fontSize']
         font = QtGui.QFont(family, size)
     except:
-        font = QtGui.QFont(u'微软雅黑', 12)
+        font = QtGui.QFont('微软雅黑', 12)
     return font
 
 BASIC_FONT = loadFont()
@@ -252,7 +252,7 @@ class BasicMonitor(QtGui.QTableWidget):
     def setHeaderDict(self, headerDict):
         """设置表头有序字典"""
         self.headerDict = headerDict
-        self.headerList = headerDict.keys()
+        self.headerList = list(headerDict.keys())
         
     #----------------------------------------------------------------------
     def setDataKey(self, dataKey):
@@ -282,7 +282,7 @@ class BasicMonitor(QtGui.QTableWidget):
         self.setColumnCount(col)
         
         # 设置列表头
-        labels = [d['chinese'] for d in self.headerDict.values()]
+        labels = [d['chinese'] for d in list(self.headerDict.values())]
         self.setHorizontalHeaderLabels(labels)
         
         # 关闭左边的垂直表头
@@ -391,7 +391,7 @@ class BasicMonitor(QtGui.QTableWidget):
 
         try:
             if not path.isEmpty():
-                with open(unicode(path), 'wb') as f:
+                with open(str(path), 'wb') as f:
                     writer = csv.writer(f)
                     
                     # 保存标签
@@ -405,7 +405,7 @@ class BasicMonitor(QtGui.QTableWidget):
                             item = self.item(row, column)
                             if item is not None:
                                 rowdata.append(
-                                    unicode(item.text()).encode('gbk'))
+                                    str(item.text()).encode('gbk'))
                             else:
                                 rowdata.append('')
                         writer.writerow(rowdata)     
@@ -740,7 +740,7 @@ class TradingWidget(QtGui.QFrame):
         labelDirection = QtGui.QLabel(vtText.DIRECTION)
         labelOffset = QtGui.QLabel(vtText.OFFSET)
         labelPrice = QtGui.QLabel(vtText.PRICE)
-        self.checkFixed = QtGui.QCheckBox(u'')  # 价格固定选择框
+        self.checkFixed = QtGui.QCheckBox('')  # 价格固定选择框
         labelVolume = QtGui.QLabel(vtText.VOLUME)
         labelPriceType = QtGui.QLabel(vtText.PRICE_TYPE)
         labelExchange = QtGui.QLabel(vtText.EXCHANGE) 
@@ -917,10 +917,10 @@ class TradingWidget(QtGui.QFrame):
         """合约变化"""
         # 读取组件数据
         symbol = str(self.lineSymbol.text())
-        exchange = unicode(self.comboExchange.currentText())
-        currency = unicode(self.comboCurrency.currentText())
-        productClass = unicode(self.comboProductClass.currentText())           
-        gatewayName = unicode(self.comboGateway.currentText())
+        exchange = str(self.comboExchange.currentText())
+        currency = str(self.comboCurrency.currentText())
+        productClass = str(self.comboProductClass.currentText())           
+        gatewayName = str(self.comboGateway.currentText())
         
         # 查询合约
         if exchange:
@@ -1034,10 +1034,10 @@ class TradingWidget(QtGui.QFrame):
     def sendOrder(self):
         """发单"""
         symbol = str(self.lineSymbol.text())
-        exchange = unicode(self.comboExchange.currentText())
-        currency = unicode(self.comboCurrency.currentText())
-        productClass = unicode(self.comboProductClass.currentText())           
-        gatewayName = unicode(self.comboGateway.currentText())        
+        exchange = str(self.comboExchange.currentText())
+        currency = str(self.comboCurrency.currentText())
+        productClass = str(self.comboProductClass.currentText())           
+        gatewayName = str(self.comboGateway.currentText())        
 
         # 查询合约
         if exchange:
@@ -1056,9 +1056,9 @@ class TradingWidget(QtGui.QFrame):
         req.exchange = exchange
         req.price = self.spinPrice.value()
         req.volume = self.spinVolume.value()
-        req.direction = unicode(self.comboDirection.currentText())
-        req.priceType = unicode(self.comboPriceType.currentText())
-        req.offset = unicode(self.comboOffset.currentText())
+        req.direction = str(self.comboDirection.currentText())
+        req.priceType = str(self.comboPriceType.currentText())
+        req.offset = str(self.comboOffset.currentText())
         req.currency = currency
         req.productClass = productClass
         
@@ -1143,7 +1143,7 @@ class ContractMonitor(BasicMonitor):
         """显示所有合约数据"""
         l = self.mainEngine.getAllContracts()
         d = {'.'.join([contract.exchange, contract.symbol]):contract for contract in l}
-        l2 = d.keys()
+        l2 = list(d.keys())
         l2.sort(reverse=True)
 
         self.setRowCount(len(l2))

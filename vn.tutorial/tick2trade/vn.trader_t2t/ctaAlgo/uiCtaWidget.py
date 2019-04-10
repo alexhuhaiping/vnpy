@@ -38,20 +38,20 @@ class CtaValueMonitor(QtGui.QTableWidget):
         """更新数据"""
         if not self.inited:
             self.setColumnCount(len(data))
-            self.setHorizontalHeaderLabels(data.keys())
+            self.setHorizontalHeaderLabels(list(data.keys()))
             
             col = 0
-            for k, v in data.items():
-                cell = QtGui.QTableWidgetItem(unicode(v))
+            for k, v in list(data.items()):
+                cell = QtGui.QTableWidgetItem(str(v))
                 self.keyCellDict[k] = cell
                 self.setItem(0, col, cell)
                 col += 1
             
             self.inited = True
         else:
-            for k, v in data.items():
+            for k, v in list(data.items()):
                 cell = self.keyCellDict[k]
-                cell.setText(unicode(v))
+                cell.setText(str(v))
 
 
 ########################################################################
@@ -84,9 +84,9 @@ class CtaStrategyManager(QtGui.QGroupBox):
         self.paramMonitor.setFixedHeight(height)
         self.varMonitor.setFixedHeight(height)
         
-        buttonInit = QtGui.QPushButton(u'初始化')
-        buttonStart = QtGui.QPushButton(u'启动')
-        buttonStop = QtGui.QPushButton(u'停止')
+        buttonInit = QtGui.QPushButton('初始化')
+        buttonStart = QtGui.QPushButton('启动')
+        buttonStop = QtGui.QPushButton('停止')
         buttonInit.clicked.connect(self.init)
         buttonStart.clicked.connect(self.start)
         buttonStop.clicked.connect(self.stop)
@@ -162,19 +162,19 @@ class CtaEngineManager(QtGui.QWidget):
         self.registerEvent()
         
         # 记录日志
-        self.ctaEngine.writeCtaLog(u'CTA引擎启动成功')        
+        self.ctaEngine.writeCtaLog('CTA引擎启动成功')        
         
     #----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""
-        self.setWindowTitle(u'CTA策略')
+        self.setWindowTitle('CTA策略')
         
         # 按钮
-        loadButton = QtGui.QPushButton(u'加载策略')
-        initAllButton = QtGui.QPushButton(u'全部初始化')
-        startAllButton = QtGui.QPushButton(u'全部启动')
-        stopAllButton = QtGui.QPushButton(u'全部停止')
-        savePositionButton = QtGui.QPushButton(u'保存持仓')
+        loadButton = QtGui.QPushButton('加载策略')
+        initAllButton = QtGui.QPushButton('全部初始化')
+        startAllButton = QtGui.QPushButton('全部启动')
+        stopAllButton = QtGui.QPushButton('全部停止')
+        savePositionButton = QtGui.QPushButton('保存持仓')
         
         loadButton.clicked.connect(self.load)
         initAllButton.clicked.connect(self.initAll)
@@ -212,7 +212,7 @@ class CtaEngineManager(QtGui.QWidget):
         w = QtGui.QWidget()
         vbox = QtGui.QVBoxLayout()
         
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, name)
             vbox.addWidget(strategyManager)
         
@@ -224,19 +224,19 @@ class CtaEngineManager(QtGui.QWidget):
     #----------------------------------------------------------------------
     def initAll(self):
         """全部初始化"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.initStrategy(name)    
             
     #----------------------------------------------------------------------
     def startAll(self):
         """全部启动"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.startStrategy(name)
             
     #----------------------------------------------------------------------
     def stopAll(self):
         """全部停止"""
-        for name in self.ctaEngine.strategyDict.keys():
+        for name in list(self.ctaEngine.strategyDict.keys()):
             self.ctaEngine.stopStrategy(name)
             
     #----------------------------------------------------------------------
@@ -246,7 +246,7 @@ class CtaEngineManager(QtGui.QWidget):
             self.ctaEngine.loadSetting()
             self.initStrategyManager()
             self.strategyLoaded = True
-            self.ctaEngine.writeCtaLog(u'策略加载成功')
+            self.ctaEngine.writeCtaLog('策略加载成功')
         
     #----------------------------------------------------------------------
     def updateCtaLog(self, event):

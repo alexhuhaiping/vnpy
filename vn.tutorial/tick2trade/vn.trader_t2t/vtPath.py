@@ -19,6 +19,6 @@ MODULE_PATH['RM'] = os.path.join(ROOT_PATH, 'riskManager')
 MODULE_PATH['DR'] = os.path.join(ROOT_PATH, 'dataRecorder')
 
 # 添加到环境变量中
-for path in MODULE_PATH.values():
+for path in list(MODULE_PATH.values()):
     if path not in sys.path:
         sys.path.append(path)

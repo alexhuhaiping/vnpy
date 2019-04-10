@@ -3,10 +3,10 @@
 import psutil
 
 # from gateway import GATEWAY_DICT
-from uiBasicWidget import *
-from ctaStrategy.uiCtaWidget import CtaEngineManager
-from dataRecorder.uiDrWidget import DrEngineManager
-from riskManager.uiRmWidget import RmEngineManager
+from .uiBasicWidget import *
+from .ctaStrategy.uiCtaWidget import CtaEngineManager
+from .dataRecorder.uiDrWidget import DrEngineManager
+from .riskManager.uiRmWidget import RmEngineManager
 
 
 ########################################################################
@@ -251,7 +251,7 @@ class MainWindow(QtGui.QMainWindow):
                                            QtGui.QMessageBox.No, QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes: 
-            for widget in self.widgetDict.values():
+            for widget in list(self.widgetDict.values()):
                 widget.close()
             self.saveWindowSettings('custom')
             
@@ -317,7 +317,7 @@ class AboutWidget(QtGui.QDialog):
         """"""
         self.setWindowTitle(vtText.ABOUT + 'VnTrader')
 
-        text = u"""
+        text = """
             Developed by Traders, for Traders.
 
             License：MIT

@@ -8,7 +8,7 @@ import json
 
 from uiBasicWidget import QtGui, QtCore
 from eventEngine import *
-from language import text
+from .language import text
 
 
 ########################################################################
@@ -141,7 +141,7 @@ class DrEngineManager(QtGui.QWidget):
             if 'active' in drSetting:
                 d = drSetting['active']
     
-                for activeSymbol, symbol in d.items():
+                for activeSymbol, symbol in list(d.items()):
                     self.activeTable.insertRow(0)
                     self.activeTable.setItem(0, 0, TableCell(activeSymbol))
                     self.activeTable.setItem(0, 1, TableCell(symbol))

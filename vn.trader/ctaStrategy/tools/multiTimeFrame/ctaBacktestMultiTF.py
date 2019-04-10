@@ -7,7 +7,7 @@ This file add multi Time Frame functionalities to CTA backtesting engine, the AP
 same as CTA engine. Real trading code can be directly used for backtesting.
 '''
 
-from __future__ import division
+
 from vtFunction import loadMongoSetting
 
 from ctaBacktesting import *
@@ -113,7 +113,7 @@ class BacktestEngineMultiTF(BacktestingEngine):
                 self.InfoCursor[db] = info_collection[db].find(flt)
             self.output(
                 "Data loading completed, data volumn: %s" % (self.initCursor.count() + self.dbCursor.count() + \
-                                                             sum([i.count() for i in self.InfoCursor.values()])))
+                                                             sum([i.count() for i in list(self.InfoCursor.values())])))
         else:
             self.output("Data loading completed, data volumn: %s" % (self.initCursor.count() + self.dbCursor.count()))
 

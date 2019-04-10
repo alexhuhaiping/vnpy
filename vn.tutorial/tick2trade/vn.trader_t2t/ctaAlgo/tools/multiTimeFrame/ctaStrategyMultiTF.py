@@ -186,7 +186,7 @@ class Prototype(AtrRsiStrategy):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 初始化RSI入场阈值
         self.rsiBuy = 50 + self.rsiEntry
@@ -216,7 +216,7 @@ class Prototype(AtrRsiStrategy):
                 try:
                     self.initInfobar[info_symbol] = next(initInfoCursorDict[info_symbol])
                 except StopIteration:
-                    print "Data of information symbols is empty! Input is a list, not str."
+                    print("Data of information symbols is empty! Input is a list, not str.")
                     raise
 
         # 若有某一品种的 TimeStamp 和执行报价的 TimeStamp 匹配, 则将"initInfobar"中的数据推送,
@@ -306,7 +306,7 @@ class Prototype(AtrRsiStrategy):
         # Only trading when information bar changes
         # 只有在30min或者1d K线更新后才可以交易
         TradeOn = False
-        if any([i is not None for i in kwargs["infobar"].values()]):
+        if any([i is not None for i in list(kwargs["infobar"].values())]):
 
             TradeOn = True
             self.scaledAtrValue1M = talib.ATR(self.highArray,
@@ -407,4 +407,4 @@ if __name__ == '__main__':
     # 显示回测结果
     engine.showBacktestingResult()
 
-    print 'Time consumed：%s' % (time.time() - start)
+    print('Time consumed：%s' % (time.time() - start))

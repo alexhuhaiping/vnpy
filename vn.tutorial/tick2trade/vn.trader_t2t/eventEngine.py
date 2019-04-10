@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 # 系统模块
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 from time import sleep
 from collections import defaultdict
@@ -292,7 +292,7 @@ def test():
     from PyQt4.QtCore import QCoreApplication
     
     def simpletest(event):
-        print u'处理每秒触发的计时器事件：%s' % str(datetime.now())
+        print('处理每秒触发的计时器事件：%s' % str(datetime.now()))
     
     app = QCoreApplication(sys.argv)
     

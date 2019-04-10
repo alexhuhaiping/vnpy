@@ -10,9 +10,9 @@ vn.femas的gateway接入
 import os
 import json
 
-from vnfemasmd import MdApi
-from vnfemastd import TdApi
-from femasDataType import *
+from .vnfemasmd import MdApi
+from .vnfemastd import TdApi
+from .femasDataType import *
 from vtGateway import *
 
 # 以下为一些VT类型和CTP类型的映射字典
@@ -20,13 +20,13 @@ from vtGateway import *
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["USTP_FTDC_OPT_LimitPrice"]
 priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["USTP_FTDC_OPT_AnyPrice"]
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = defineDict['USTP_FTDC_D_Buy']
 directionMap[DIRECTION_SHORT] = defineDict['USTP_FTDC_D_Sell']
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
@@ -34,7 +34,7 @@ offsetMap[OFFSET_OPEN] = defineDict['USTP_FTDC_OF_Open']
 offsetMap[OFFSET_CLOSE] = defineDict['USTP_FTDC_OF_Close']
 offsetMap[OFFSET_CLOSETODAY] = defineDict['USTP_FTDC_OF_CloseToday']
 offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict['USTP_FTDC_OF_CloseYesterday']
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
@@ -47,13 +47,13 @@ exchangeMap[EXCHANGE_SHFE] = 'SHFE'
 exchangeMap[EXCHANGE_CZCE] = 'CZCE'
 exchangeMap[EXCHANGE_DCE] = 'DCE'
 exchangeMap[EXCHANGE_UNKNOWN] = ''
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 持仓类型映射
 posiDirectionMap = {}
 posiDirectionMap[DIRECTION_LONG] = defineDict["USTP_FTDC_D_Buy"]
 posiDirectionMap[DIRECTION_SHORT] = defineDict["USTP_FTDC_D_Sell"]
-posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
+posiDirectionMapReverse = {v:k for k,v in list(posiDirectionMap.items())}
 
 
 ########################################################################
@@ -86,7 +86,7 @@ class FemasGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -101,7 +101,7 @@ class FemasGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -219,7 +219,7 @@ class FemasMdApi(MdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接成功'
+        log.logContent = '行情服务器连接成功'
         self.gateway.onLog(log)
         self.login()
     
@@ -232,7 +232,7 @@ class FemasMdApi(MdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接断开'
+        log.logContent = '行情服务器连接断开'
         self.gateway.onLog(log)        
         
     #---------------------------------------------------------------------- 
@@ -260,7 +260,7 @@ class FemasMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登录完成'
+            log.logContent = '行情服务器登录完成'
             self.gateway.onLog(log)
             
             # 重新订阅之前订阅的合约
@@ -285,7 +285,7 @@ class FemasMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登出完成'
+            log.logContent = '行情服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -568,7 +568,7 @@ class FemasTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接成功'
+        log.logContent = '交易服务器连接成功'
         self.gateway.onLog(log)
         
         self.login()
@@ -582,7 +582,7 @@ class FemasTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接断开'
+        log.logContent = '交易服务器连接断开'
         self.gateway.onLog(log)  
     
     #----------------------------------------------------------------------
@@ -604,18 +604,18 @@ class FemasTdApi(TdApi):
         """登陆回报"""
         # 如果登录成功，推送日志信息
         if error['ErrorID'] == 0:
-            for k, v in data.items():
-                print(k, ':', v)
+            for k, v in list(data.items()):
+                print((k, ':', v))
             if data['MaxOrderLocalID']:
                 self.localID = int(data['MaxOrderLocalID'])    # 目前最大本地报单号
-                print('id now', self.localID)
+                print(('id now', self.localID))
             
             self.loginStatus = True
             self.gateway.mdConnected = True
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登录完成'
+            log.logContent = '交易服务器登录完成'
             self.gateway.onLog(log)           
             
             # 查询合约代码
@@ -640,7 +640,7 @@ class FemasTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登出完成'
+            log.logContent = '交易服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -890,7 +890,7 @@ class FemasTdApi(TdApi):
         if last:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易合约信息获取完成'
+            log.logContent = '交易合约信息获取完成'
             self.gateway.onLog(log)
     
     #----------------------------------------------------------------------
@@ -960,7 +960,7 @@ def test():
     
     def print_log(event):
         log = event.dict_['data']
-        print(':'.join([log.logTime, log.logContent]))
+        print((':'.join([log.logTime, log.logContent])))
     
     app = QtCore.QCoreApplication(sys.argv)    
 

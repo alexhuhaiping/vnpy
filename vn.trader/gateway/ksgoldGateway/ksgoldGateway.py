@@ -11,8 +11,8 @@ import os
 import json
 import time
 
-from vnksgoldtd import TdApi
-from ksgoldDataType import *
+from .vnksgoldtd import TdApi
+from .ksgoldDataType import *
 from vtGateway import *
 
 # 以下类型映射参考的是原生API里的Constant.h
@@ -21,13 +21,13 @@ from vtGateway import *
 directionMap = {}
 directionMap[DIRECTION_LONG] = '0'
 directionMap[DIRECTION_SHORT] = '1'
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
 offsetMap[OFFSET_OPEN] = '0'
 offsetMap[OFFSET_CLOSE] = '1'
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 
 ########################################################################
@@ -59,7 +59,7 @@ class KsgoldGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -72,7 +72,7 @@ class KsgoldGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -200,7 +200,7 @@ class KsgoldTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接成功'
+        log.logContent = '交易服务器连接成功'
         self.gateway.onLog(log)
         
         self.login()
@@ -214,7 +214,7 @@ class KsgoldTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接断开'
+        log.logContent = '交易服务器连接断开'
         self.gateway.onLog(log)      
     
     #----------------------------------------------------------------------
@@ -230,7 +230,7 @@ class KsgoldTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登录完成'
+            log.logContent = '交易服务器登录完成'
             self.gateway.onLog(log)
             
             # 重新订阅之前订阅的合约
@@ -265,7 +265,7 @@ class KsgoldTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登出完成'
+            log.logContent = '交易服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -309,7 +309,7 @@ class KsgoldTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'委托查询完成'
+            log.logContent = '委托查询完成'
             self.gateway.onLog(log)            
         
         # 更新最大报单编号
@@ -379,7 +379,7 @@ class KsgoldTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'成交查询完成'
+            log.logContent = '成交查询完成'
             self.gateway.onLog(log)
         
         # 创建报单数据对象
@@ -490,7 +490,7 @@ class KsgoldTdApi(TdApi):
         if last:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易合约信息获取完成'
+            log.logContent = '交易合约信息获取完成'
             self.gateway.onLog(log)
     
     #----------------------------------------------------------------------  
@@ -574,7 +574,7 @@ class KsgoldTdApi(TdApi):
     #----------------------------------------------------------------------
     def onForceLogout(self, data):
         """强制登出推送"""
-        self.gateway.onLog(u'被强制登出')
+        self.gateway.onLog('被强制登出')
     
     #----------------------------------------------------------------------
     def onRtnTrade(self, data):

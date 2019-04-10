@@ -166,7 +166,7 @@ def createProcess(cbName, cbArgsTypeList, cbArgsValueList):
             fprocess.write("\t"+ "dict error;\n")
 
             struct = structDict[type_]
-            for key in struct.keys():
+            for key in list(struct.keys()):
                 fprocess.write("\t"+ 'error["' + key + '"] = task_error.' + key + ';\n')
 
             fprocess.write("\n")
@@ -178,7 +178,7 @@ def createProcess(cbName, cbArgsTypeList, cbArgsValueList):
             fprocess.write("\t"+ "dict data;\n")
 
             struct = structDict[type_]
-            for key in struct.keys():
+            for key in list(struct.keys()):
                 fprocess.write("\t"+ 'data["' + key + '"] = task_data.' + key + ';\n')
 
             fprocess.write("\n")
@@ -238,7 +238,7 @@ def createFunction(fcName, fcArgsTypeList, fcArgsValueList):
     ffunction.write('\t' + type_ +' myreq = ' + type_ + '();\n')
     ffunction.write('\tmemset(&myreq, 0, sizeof(myreq));\n')
 
-    for key, value in struct.items():
+    for key, value in list(struct.items()):
         if value == 'string':
             line = '\tgetStr(req, "' + key + '", myreq.' + key + ');\n'
         elif value == 'char':
@@ -250,8 +250,8 @@ def createFunction(fcName, fcArgsTypeList, fcArgsValueList):
         ffunction.write(line)
 
         if type_ == 'CThostFtdcInputOrderField':
-            print key, value
-            print line
+            print(key, value)
+            print(line)
 
     ffunction.write('\tint i = this->api->' + fcName + '(&myreq, nRequestID);\n')
     ffunction.write('\treturn i;\n')
@@ -295,4 +295,4 @@ fheaderon.close()
 fheaderfunction.close()
 fwrap.close()
 
-input()
+eval(input())

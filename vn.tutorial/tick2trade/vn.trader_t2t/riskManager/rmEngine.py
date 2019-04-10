@@ -23,7 +23,7 @@ class RmEngine(object):
     path = os.path.abspath(os.path.dirname(__file__))
     settingFileName = os.path.join(path, settingFileName)    
     
-    name = u'风控模块'
+    name = '风控模块'
 
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine):
@@ -141,26 +141,26 @@ class RmEngine(object):
         
         # 检查委托数量
         if orderReq.volume > self.orderSizeLimit:
-            self.writeRiskLog(u'单笔委托数量%s，超过限制%s' 
+            self.writeRiskLog('单笔委托数量%s，超过限制%s' 
                               %(orderReq.volume, self.orderSizeLimit))
             return False
         
         # 检查成交合约量
         if self.tradeCount >= self.tradeLimit:
-            self.writeRiskLog(u'今日总成交合约数量%s，超过限制%s' 
+            self.writeRiskLog('今日总成交合约数量%s，超过限制%s' 
                               %(self.tradeCount, self.tradeLimit))
             return False
         
         # 检查流控
         if self.orderFlowCount >= self.orderFlowLimit:
-            self.writeRiskLog(u'委托流数量%s，超过限制每%s秒%s' 
+            self.writeRiskLog('委托流数量%s，超过限制每%s秒%s' 
                               %(self.orderFlowCount, self.orderFlowClear, self.orderFlowLimit))
             return False
         
         # 检查总活动合约
         workingOrderCount = len(self.mainEngine.getAllWorkingOrders())
         if workingOrderCount >= self.workingOrderLimit:
-            self.writeRiskLog(u'当前活动委托数量%s，超过限制%s'
+            self.writeRiskLog('当前活动委托数量%s，超过限制%s'
                               %(workingOrderCount, self.workingOrderLimit))
             return False
         
@@ -173,13 +173,13 @@ class RmEngine(object):
     def clearOrderFlowCount(self):
         """清空流控计数"""
         self.orderFlowCount = 0
-        self.writeRiskLog(u'清空流控计数')
+        self.writeRiskLog('清空流控计数')
         
     #----------------------------------------------------------------------
     def clearTradeCount(self):
         """清空成交数量计数"""
         self.tradeCount = 0
-        self.writeRiskLog(u'清空总成交计数')
+        self.writeRiskLog('清空总成交计数')
         
     #----------------------------------------------------------------------
     def setOrderFlowLimit(self, n):
@@ -212,6 +212,6 @@ class RmEngine(object):
         self.active = not self.active
         
         if self.active:
-            self.writeRiskLog(u'风险管理功能启动')
+            self.writeRiskLog('风险管理功能启动')
         else:
-            self.writeRiskLog(u'风险管理功能停止')
+            self.writeRiskLog('风险管理功能停止')

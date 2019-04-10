@@ -4,7 +4,7 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
-from ctaBase import *
+from .ctaBase import *
 from vtConstant import *
 
 
@@ -194,7 +194,7 @@ class TargetPosTemplate(CtaTemplate):
     """
     
     className = 'TargetPosTemplate'
-    author = u'量衍投资'
+    author = '量衍投资'
     
     # 目标持仓模板的基本变量
     tickAdd = 1             # 委托时相对基准价格的超价

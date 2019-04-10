@@ -10,10 +10,10 @@ import json
 from datetime import datetime
 from copy import copy
 from threading import Condition
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
-import vnhuobi
+from . import vnhuobi
 from vtGateway import *
 
 
@@ -25,7 +25,7 @@ SYMBOL_MAP = {}
 SYMBOL_MAP[(vnhuobi.COINTYPE_BTC, 'cny')] = SYMBOL_BTCCNY
 SYMBOL_MAP[(vnhuobi.COINTYPE_LTC, 'cny')] = SYMBOL_LTCCNY
 SYMBOL_MAP[(vnhuobi.COINTYPE_BTC, 'usd')] = SYMBOL_BTCUSD
-SYMBOL_MAP_REVERSE = {v: k for k, v in SYMBOL_MAP.items()}
+SYMBOL_MAP_REVERSE = {v: k for k, v in list(SYMBOL_MAP.items())}
 
 MDSYMBOL_MAP = {}
 MDSYMBOL_MAP['btccny'] = SYMBOL_BTCCNY
@@ -73,7 +73,7 @@ class HuobiGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -88,16 +88,16 @@ class HuobiGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
         # 初始化接口
         self.tradeApi.connect(accessKey, secretKey, market, debug)
-        self.writeLog(u'交易接口初始化成功')
+        self.writeLog('交易接口初始化成功')
         
         self.dataApi.connect(interval, market, debug)
-        self.writeLog(u'行情接口初始化成功')
+        self.writeLog('行情接口初始化成功')
         
         # 启动查询
         self.initQuery()
@@ -461,7 +461,7 @@ class HuobiTradeApi(vnhuobi.TradeApi):
     # ----------------------------------------------------------------------
     def queryWorkingOrders(self):
         """查询活动委托状态"""
-        for order in self.workingOrderDict.values():
+        for order in list(self.workingOrderDict.values()):
             # 如果尚未返回委托号，则无法查询
             if order.orderID in self.localSystemDict:
                 systemID = self.localSystemDict[order.orderID]
@@ -480,7 +480,7 @@ class HuobiTradeApi(vnhuobi.TradeApi):
         if req.priceType != PRICETYPE_LIMITPRICE:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorMsg = u'火币接口仅支持限价单'
+            err.errorMsg = '火币接口仅支持限价单'
             err.errorTime = datetime.now().strftime('%H:%M:%S')
             self.gateway.onError(err)
             return None
@@ -630,7 +630,7 @@ class HuobiDataApi(vnhuobi.DataApi):
             contract.symbol = SYMBOL_BTCCNY
             contract.exchange = EXCHANGE_HUOBI
             contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
-            contract.name = u'人民币现货BTC'
+            contract.name = '人民币现货BTC'
             contract.size = 1
             contract.priceTick = 0.01
             contract.productClass = PRODUCT_SPOT
@@ -641,7 +641,7 @@ class HuobiDataApi(vnhuobi.DataApi):
             contract.symbol = SYMBOL_LTCCNY
             contract.exchange = EXCHANGE_HUOBI
             contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
-            contract.name = u'人民币现货LTC'
+            contract.name = '人民币现货LTC'
             contract.size = 1
             contract.priceTick = 0.01
             contract.productClass = PRODUCT_SPOT
@@ -656,7 +656,7 @@ class HuobiDataApi(vnhuobi.DataApi):
             contract.symbol = SYMBOL_BTCUSD
             contract.exchange = EXCHANGE_HUOBI
             contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
-            contract.name = u'美元现货BTC'
+            contract.name = '美元现货BTC'
             contract.size = 1
             contract.priceTick = 0.01
             contract.productClass = PRODUCT_SPOT

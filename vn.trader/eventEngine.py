@@ -2,7 +2,7 @@
 
 # 系统模块
 try:
-    from Queue import Queue, Empty
+    from queue import Queue, Empty
 except:
     from queue import Queue, Empty
 
@@ -13,8 +13,8 @@ from time import sleep
 from collections import defaultdict
 
 # 自己开发的模块
-from eventType import *
-from vtFunction import exception
+from .eventType import *
+from .vtFunction import exception
 
 
 ########################################################################
@@ -358,7 +358,7 @@ def test():
     from PyQt4.QtCore import QCoreApplication
     
     def simpletest(event):
-        print(u'处理每秒触发的计时器事件：%s' % str(datetime.now()))
+        print(('处理每秒触发的计时器事件：%s' % str(datetime.now())))
     
     app = QCoreApplication(sys.argv)
     

@@ -29,7 +29,7 @@ for root, subdirs, files in os.walk(path):
                 # 使用importlib动态载入模块，并保存到字典中
                 module = importlib.import_module(moduleName)
                 GATEWAY_DICT[module.gatewayName] = module
-                print('load %s' % moduleName)
+                print(('load %s' % moduleName))
             # except ImportError:
             #     print('module %s not find ' % moduleName)
             except:

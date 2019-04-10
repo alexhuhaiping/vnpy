@@ -13,9 +13,9 @@ import json
 from copy import copy
 from datetime import datetime
 
-from vnsgitmd import MdApi
-from vnsgittd import TdApi
-from sgitDataType import *
+from .vnsgitmd import MdApi
+from .vnsgittd import TdApi
+from .sgitDataType import *
 from vtGateway import *
 
 
@@ -24,13 +24,13 @@ from vtGateway import *
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["THOST_FTDC_OPT_LimitPrice"]
 priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["THOST_FTDC_OPT_AnyPrice"]
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = defineDict['THOST_FTDC_D_Buy']
 directionMap[DIRECTION_SHORT] = defineDict['THOST_FTDC_D_Sell']
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
@@ -38,7 +38,7 @@ offsetMap[OFFSET_OPEN] = defineDict['THOST_FTDC_OF_Open']
 offsetMap[OFFSET_CLOSE] = defineDict['THOST_FTDC_OF_Close']
 offsetMap[OFFSET_CLOSETODAY] = defineDict['THOST_FTDC_OF_CloseToday']
 offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict['THOST_FTDC_OF_CloseYesterday']
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
@@ -48,21 +48,21 @@ exchangeMap[EXCHANGE_CZCE] = 'CZCE'
 exchangeMap[EXCHANGE_DCE] = 'DCE'
 exchangeMap[EXCHANGE_SGE] = 'SGE'
 exchangeMap[EXCHANGE_UNKNOWN] = ''
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 持仓类型映射
 posiDirectionMap = {}
 posiDirectionMap[DIRECTION_NET] = defineDict["THOST_FTDC_PD_Net"]
 posiDirectionMap[DIRECTION_LONG] = defineDict["THOST_FTDC_PD_Long"]
 posiDirectionMap[DIRECTION_SHORT] = defineDict["THOST_FTDC_PD_Short"]
-posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
+posiDirectionMapReverse = {v:k for k,v in list(posiDirectionMap.items())}
 
 # 产品类型映射
 productClassMap = {}
 productClassMap[PRODUCT_FUTURES] = defineDict["THOST_FTDC_PC_Futures"]
 productClassMap[PRODUCT_OPTION] = defineDict["THOST_FTDC_PC_Options"]
 productClassMap[PRODUCT_COMBINATION] = defineDict["THOST_FTDC_PC_Combination"]
-productClassMapReverse = {v:k for k,v in productClassMap.items()}
+productClassMapReverse = {v:k for k,v in list(productClassMap.items())}
 
 # 委托状态映射
 statusMap = {}
@@ -70,7 +70,7 @@ statusMap[STATUS_ALLTRADED] = defineDict["THOST_FTDC_OST_AllTraded"]
 statusMap[STATUS_PARTTRADED] = defineDict["THOST_FTDC_OST_PartTradedQueueing"]
 statusMap[STATUS_NOTTRADED] = defineDict["THOST_FTDC_OST_NoTradeQueueing"]
 statusMap[STATUS_CANCELLED] = defineDict["THOST_FTDC_OST_Canceled"]
-statusMapReverse = {v:k for k,v in statusMap.items()}
+statusMapReverse = {v:k for k,v in list(statusMap.items())}
 
 
 ########################################################################
@@ -103,7 +103,7 @@ class SgitGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -118,7 +118,7 @@ class SgitGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -289,7 +289,7 @@ class SgitMdApi(MdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接成功'
+        log.logContent = '行情服务器连接成功'
         self.gateway.onLog(log)
         self.login()
         
@@ -302,7 +302,7 @@ class SgitMdApi(MdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接断开'
+        log.logContent = '行情服务器连接断开'
         self.gateway.onLog(log)    
         
     #----------------------------------------------------------------------
@@ -320,7 +320,7 @@ class SgitMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登录完成'
+            log.logContent = '行情服务器登录完成'
             self.gateway.onLog(log)
             
             # 重新订阅之前订阅的合约
@@ -345,7 +345,7 @@ class SgitMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登出完成'
+            log.logContent = '行情服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -392,7 +392,7 @@ class SgitMdApi(MdApi):
         tick.gatewayName = self.gatewayName
     
         tick.symbol = data['InstrumentID']
-        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], u'未知')
+        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], '未知')
         tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, EXCHANGE_UNKNOWN])
     
         tick.lastPrice = data['LastPrice']
@@ -599,7 +599,7 @@ class SgitTdApi(TdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接成功'
+        log.logContent = '交易服务器连接成功'
         self.gateway.onLog(log)
     
         self.login()
@@ -613,7 +613,7 @@ class SgitTdApi(TdApi):
     
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接断开'
+        log.logContent = '交易服务器连接断开'
         self.gateway.onLog(log)   
 
     #----------------------------------------------------------------------
@@ -638,7 +638,7 @@ class SgitTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登录完成'
+            log.logContent = '交易服务器登录完成'
             self.gateway.onLog(log)
             
             # 确认结算信息
@@ -666,7 +666,7 @@ class SgitTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登出完成'
+            log.logContent = '交易服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -725,7 +725,7 @@ class SgitTdApi(TdApi):
         """确认结算信息回报"""
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'结算信息确认完成'
+        log.logContent = '结算信息确认完成'
         self.gateway.onLog(log)
     
         # 查询合约代码
@@ -809,7 +809,7 @@ class SgitTdApi(TdApi):
             
         # 所有持仓数据都更新后，再将缓存中的持仓情况发送到事件引擎中
         if last:
-            for buf in self.posBufferDict.values():
+            for buf in list(self.posBufferDict.values()):
                 pos = buf.getPos()
                 self.gateway.onPosition(pos)
         
@@ -905,7 +905,7 @@ class SgitTdApi(TdApi):
         if last:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易合约信息获取完成'
+            log.logContent = '交易合约信息获取完成'
             self.gateway.onLog(log)
         
     #----------------------------------------------------------------------
@@ -1423,7 +1423,7 @@ def test():
     
     def print_log(event):
         log = event.dict_['data']
-        print(':'.join([log.logTime, log.logContent]))
+        print((':'.join([log.logTime, log.logContent])))
     
     app = QtCore.QCoreApplication(sys.argv)    
 

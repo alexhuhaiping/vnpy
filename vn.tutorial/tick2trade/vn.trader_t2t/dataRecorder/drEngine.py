@@ -11,12 +11,12 @@ import os
 import copy
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
 from eventEngine import *
 from vtGateway import VtSubscribeReq, VtLogData
-from drBase import *
+from .drBase import *
 from vtFunction import todayDate
 
 
@@ -117,7 +117,7 @@ class DrEngine(object):
                 d = drSetting['active']
                 
                 # 注意这里的vtSymbol对于IB和LTS接口，应该后缀.交易所
-                for activeSymbol, vtSymbol in d.items():
+                for activeSymbol, vtSymbol in list(d.items()):
                     self.activeSymbolDict[vtSymbol] = activeSymbol
             
             # 启动数据插入线程
@@ -135,7 +135,7 @@ class DrEngine(object):
         # 转化Tick格式
         drTick = DrTickData()
         d = drTick.__dict__
-        for key in d.keys():
+        for key in list(d.keys()):
             if key != 'datetime':
                 d[key] = tick.__getattribute__(key)
         drTick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')            
@@ -149,7 +149,7 @@ class DrEngine(object):
                 self.insertData(TICK_DB_NAME, activeSymbol, drTick)
             
             # 发出日志
-            self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s' 
+            self.writeDrLog('记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s' 
                             %(drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
             
         # 更新分钟线数据
@@ -166,7 +166,7 @@ class DrEngine(object):
                         activeSymbol = self.activeSymbolDict[vtSymbol]
                         self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)                    
                     
-                    self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s' 
+                    self.writeDrLog('记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s' 
                                     %(bar.vtSymbol, bar.time, bar.open, bar.high, 
                                       bar.low, bar.close))
                          
