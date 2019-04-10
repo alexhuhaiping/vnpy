@@ -70,4 +70,4 @@ RUN    echo "开始配置系vnpy环境" \
 WORKDIR /srv/vnpy
 
 # 暂时不设置入口点，否则不能使用 -it 交互模式
-# ENTRYPOINT python /srv/vnpy/vn.trader/vtServer.py
+# ENTRYPOINT python /srv/vnpy/vnpy/vtServer.py

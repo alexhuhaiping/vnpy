@@ -27,7 +27,7 @@ def main():
     
     # 设置Windows底部任务栏图标
     if 'Windows' in platform.uname() :
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('vn.trader')  
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('vnpy')
     
     # 初始化Qt应用对象
     app = QtGui.QApplication(sys.argv)

@@ -1,0 +1,158 @@
+# encoding: utf-8
+
+import traceback
+import logging
+import logging.config
+from vnpy import vtGlobal
+import json
+import os
+from argparse import ArgumentParser
+
+from datetime import datetime
+
+from vnpy.vtFunction import autoshutdown
+from vnpy.vnrpc import RpcServer
+from vnpy.vtEngine import MainEngine
+
+
+########################################################################
+class VtServer(RpcServer):
+    """vn.trader服务器"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, repAddress, pubAddress):
+        """Constructor"""
+        super(VtServer, self).__init__(repAddress, pubAddress)
+        self.usePickle()
+        
+        # 创建主引擎对象
+        self.engine = MainEngine()
+        
+        # 注册主引擎的方法到服务器的RPC函数
+        self.register(self.engine.connect)
+        self.register(self.engine.subscribe)
+        self.register(self.engine.sendOrder)
+        self.register(self.engine.cancelOrder)
+        self.register(self.engine.qryAccount)
+        self.register(self.engine.qryPosition)
+        self.register(self.engine.exit)
+        self.register(self.engine.writeLog)
+        self.register(self.engine.dbConnect)
+        self.register(self.engine.dbInsert)
+        self.register(self.engine.dbQuery)
+        self.register(self.engine.dbUpdate)
+        self.register(self.engine.getContract)
+        self.register(self.engine.getAllContracts)
+        self.register(self.engine.getOrder)
+        self.register(self.engine.getAllWorkingOrders)
+        self.register(self.engine.getAllGatewayNames)
+        self.register(self.engine.getGateway4sysMenu)
+
+        # 注册事件引擎发送的事件处理监听
+        self.engine.eventEngine.registerGeneralHandler(self.eventHandler)
+        
+    #----------------------------------------------------------------------
+    def eventHandler(self, event):
+        """事件处理"""
+        self.publish(event.type_, event)
+        
+    #----------------------------------------------------------------------
+    def stopServer(self):
+        """停止服务器"""
+        # 关闭引擎
+        self.engine.exit()
+        
+        # 停止服务器线程
+        self.stop()
+
+
+# #----------------------------------------------------------------------
+# def printLog(content):
+#     """打印日志"""
+#     print("%s\t%s" % (datetime.now().strftime("%H:%M:%S"), content))
+
+
+#----------------------------------------------------------------------
+def runServer():
+    """运行服务器"""
+    logger = logging.getLogger()
+    VT_setting = vtGlobal.VT_setting
+
+    repAddress = 'tcp://*:2014'
+    pubAddress = 'tcp://*:0602'
+
+    # 创建并启动服务器
+    server = VtServer(repAddress, pubAddress)
+    server.start()
+
+    logger.info('-'*50)
+    logger.info('vn.trader服务器已启动')
+
+    if VT_setting.get('automongodb'):
+        # 自动建立MongoDB数据库
+        logger.info('MongoDB connect... ')
+        server.engine.dbConnect()
+
+    # 建立数据库
+    server.engine.drEngine.initDRCollection()
+
+    if VT_setting.get('autoctp'):
+        # 自动建立CTP链接
+        logger.info("CTP connect... ")
+        # 建立 CTP 链接后就会开始获取所有合约信息
+        server.engine.connect("CTP")
+
+    # if VT_setting.get('drall'):
+    #     server.engine.gatewayDict['CTP'].tdApi.ReqQryInstrument()
+
+    if VT_setting.get('autoshutdown'):
+        # 自动关闭 线程阻塞
+        wait2shutdown = autoshutdown()
+        logger.info("time to shutdown %s" % wait2shutdown.closeTime)
+        wait2shutdown.join()
+    else:
+        # 进入主循环
+        while True:
+            logger.info('input "exit" to exit')
+            if input() != 'exit':
+                continue
+
+            logger.info('confirm？yes|no')
+            if input() == 'yes':
+                break
+
+    server.stopServer()
+
+
+if __name__ == '__main__':
+    opt = ArgumentParser(
+        prog="vnpy",
+        description="Args of vnpy.",
+    )
+
+    # VT_setting.json 文件路径
+    opt.add_argument("--VT_setting", default=None, help="重新指定VT_setting.json的绝对路径")
+
+    # 生成参数实例
+    cmdArgs = opt.parse_args()
+
+    if cmdArgs.VT_setting is None:
+        fileName = 'VT_setting.json'
+        path = os.path.abspath(os.path.dirname(__file__))
+        fileName = os.path.join(path, fileName)
+    else:
+        fileName = cmdArgs.VT_setting
+
+    with open(fileName) as f:
+        vtGlobal.VT_setting = json.load(f)
+
+    # 读取日志配置文件
+    loggingConFile = vtGlobal.VT_setting['logging.conf']
+    logging.config.fileConfig(loggingConFile)
+
+    logger = logging.getLogger()
+    try:
+        runServer()
+    except Exception:
+        logger.critical(traceback.format_exc())
+

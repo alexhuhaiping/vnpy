@@ -348,14 +348,14 @@ class MainWindow(QtGui.QMainWindow):
     #----------------------------------------------------------------------
     def saveWindowSettings(self, settingName):
         """保存窗口设置"""
-        settings = QtCore.QSettings('vn.trader', settingName)
+        settings = QtCore.QSettings('vnpy', settingName)
         settings.setValue('state', self.saveState())
         settings.setValue('geometry', self.saveGeometry())
         
     #----------------------------------------------------------------------
     def loadWindowSettings(self, settingName):
         """载入窗口设置"""
-        settings = QtCore.QSettings('vn.trader', settingName)
+        settings = QtCore.QSettings('vnpy', settingName)
         # 这里由于PyQt4的版本不同，settings.value('state')调用返回的结果可能是：
         # 1. None（初次调用，注册表里无相应记录，因此为空）
         # 2. QByteArray（比较新的PyQt4）
