@@ -13,6 +13,7 @@ import signal
 import datetime
 import traceback
 import requests
+from io import FileIO, BytesIO
 
 try:
     import pickle as pickle
@@ -52,7 +53,7 @@ class Optimization(object):
         r = os.popen(cmd)
         self.gitHash = r.read().strip('\n')
 
-        self.salt = self.config.get('web', 'salt')
+        self.salt = self.config.get('web', 'salt').encode()
         self.interval = 1
         self.lastTime = arrow.now().datetime
 
@@ -117,22 +118,20 @@ class Optimization(object):
             self.log.critical(traceback.format_exc())
             return
 
-        data = r.text
-
-        if data == '版本不符':
+        if r.text == '版本不符':
             self.log.error('版本不符')
             self.setLongWait()
             return
-        if data == '没有任务':
+        if r.text == '没有任务':
             self.log.info('没有回测任务')
             self.setLongWait()
             return
-        if data == '':
+        if r.text == '':
             self.log.error('没有提供版本号')
             self.setLongWait()
             return
 
-        data = pickle.loads(data.encode('utf-8'))
+        data = pickle.loads(r.content)
 
         setting = data['setting']
         if setting is None:
@@ -278,15 +277,21 @@ class Optimization(object):
         # 返回回测结果
         data = {'result': result}
         dataPickle = pickle.dumps(data)
-        data = {'data': dataPickle, 'hash': optcomment.saltedByHash(dataPickle, self.salt)}
+        hash = optcomment.saltedByHash(dataPickle, self.salt)
+        data = {'data': dataPickle, 'hash': hash}
 
+        dataPikcle = BytesIO(dataPickle)
         url = self.getBtrUrl()
-        r = requests.post(url, data=data)
+        r = requests.post(url, data=data, files={'data': dataPikcle})
+        dataPikcle.close()
+
         if r.status_code != 200:
             raise ValueError('返回码异常')
 
+
         # 正常完成回测，继续下一个
         self.setShortWait()
+
 
 
 def childProcess(name, stoped, logQueue, config=None):

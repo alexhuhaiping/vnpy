@@ -1,6 +1,7 @@
 # encoding: utf-8
 import os
 import time
+from io import BytesIO, StringIO, FileIO
 
 
 def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
@@ -39,7 +40,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
 
     @app.route('/beat/<data>')
     def beat(data):
-        localHash = optcomment.saltedByHash('test', salt)
+        localHash = optcomment.saltedByHash(b'test', salt)
         if data == str(localHash):
             return ''
 
@@ -81,16 +82,16 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     @app.route('/btr', methods=['POST'])
     def btr():
         logger = logging.getLogger()
+
         originHash = request.form['hash']
-        dataPickle = request.form['data']
+        dataPickle = request.files['data'].read()
 
         localHash = optcomment.saltedByHash(dataPickle, salt)
-
         if str(localHash) != originHash:
             logger.warning('hash不符合')
             return
 
-        result = pickle.loads(dataPickle.encode('utf-8'))['result']
+        result = pickle.loads(dataPickle)['result']
 
         try:
             resultQueue.put(result, timeout=5)

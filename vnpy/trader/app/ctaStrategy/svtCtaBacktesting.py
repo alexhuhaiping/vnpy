@@ -796,7 +796,7 @@ class BacktestingEngine(VTBacktestingEngine):
         totalTurnover = df['turnover'].sum()
         dailyTurnover = totalTurnover / totalDays
 
-        totalTradeCount = df['tradeCount'].sum()
+        totalTradeCount = int(df['tradeCount'].sum())
         dailyTradeCount = totalTradeCount / totalDays
 
         totalReturn = (endBalance / self.capital - 1)

@@ -1,6 +1,7 @@
 numpy
 ta-lib
 pymongo
+gevent
 # websocket-client
 # msgpack-python
 # qdarkstyle

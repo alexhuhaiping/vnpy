@@ -310,6 +310,7 @@ class CtpMdApi(MdApi):
 
     # ----------------------------------------------------------------------
     def onRspError(self, error, n, last):
+
         """错误回报"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName

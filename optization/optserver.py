@@ -3,14 +3,10 @@ import os
 import traceback
 import time
 
-try:
-    import pickle as pickle
-except ImportError:
-    import pickle
-try:
-    import queue as queue
-except ImportError:
-    import queue
+import pickle
+
+import queue
+
 from threading import Event, Thread
 import pytz
 from bson.codec_options import CodecOptions
@@ -62,7 +58,7 @@ class OptimizeService(object):
         self.config = configparser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
-            self.config.readfp(f)
+            self.config.read_file(f)
 
         # slavem监控
         self.slavemReport = Reporter(
@@ -76,7 +72,7 @@ class OptimizeService(object):
             self.config.get('slavem', 'localhost'),
         )
 
-        self.salt = self.config.get('web', 'salt')
+        self.salt = self.config.get('web', 'salt').encode()
 
         # 数据库链接
         self.client = pymongo.MongoClient(
@@ -265,7 +261,7 @@ class OptimizeService(object):
         :return:
         """
         url = self.getBeatUrl()
-        data = optcomment.saltedByHash('test', self.salt)
+        data = optcomment.saltedByHash(b'test', self.salt)
         url += '/{}'.format(data)
         r = requests.get(url, timeout=3)
         if r.status_code != 200:
@@ -365,6 +361,7 @@ class OptimizeService(object):
                     # 没有拿到数据不进行心跳
                     # 距离上次心跳已经30秒
                     self.slavemReport.heartBeat()
+
                 self.results.append(r)
                 if len(self.results) >= 100:
                     self.insertResult(self.results)
