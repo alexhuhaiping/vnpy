@@ -157,6 +157,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             if not self.isBackTesting():
                 self.tradingDay = bar.tradingDay
             self.onBar(bar)
+            print(self.bar.datetime)
             self.bm.preBar = bar
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
@@ -180,6 +181,9 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             # 实盘，可以存库。
             self.saving = True
 
+        if self.bar is None:
+            return
+        
         # 更新技术指标
         self.updateHands()
         self.updateUnitInd()
