@@ -110,7 +110,7 @@ class VtBarData(VtBaseData):
         :return:
         """
         self.rawData = dic
-        for k, v in dic.items():
+        for k, v in list(dic.items()):
             setattr(self, k, v)
         self.vtSymbol = self.symbol
 

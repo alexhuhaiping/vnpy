@@ -30,7 +30,7 @@ ISSUE_TRADE = 33011
 exchangeMap = {}
 exchangeMap[EXCHANGE_SSE] = '1'
 exchangeMap[EXCHANGE_SZSE] = '2'
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 exchangeMapReverse['SSE'] = EXCHANGE_SSE
 
 
@@ -38,26 +38,26 @@ exchangeMapReverse['SSE'] = EXCHANGE_SSE
 optionTypeMap = {}
 optionTypeMap[OPTION_CALL] = 'C'
 optionTypeMap[OPTION_PUT] = 'P'
-optionTypeMapReverse = {v:k for k,v in optionTypeMap.items()}
+optionTypeMapReverse = {v:k for k,v in list(optionTypeMap.items())}
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = '1'
 directionMap[DIRECTION_SHORT] = '2'
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
 offsetMap[OFFSET_OPEN] = 'O'
 offsetMap[OFFSET_CLOSE] = 'C'
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 # 持仓类型映射
 posDirectionMap = {}
 posDirectionMap[DIRECTION_LONG] = '0'
 posDirectionMap[DIRECTION_SHORT] = '1'
 posDirectionMap[DIRECTION_COVEREDSHORT] = '2'
-posDirectionMapReverse = {v:k for k,v in posDirectionMap.items()}
+posDirectionMapReverse = {v:k for k,v in list(posDirectionMap.items())}
 
 # 委托状态映射
 statusMapReverse = {}
@@ -72,7 +72,7 @@ statusMapReverse['9'] = STATUS_REJECTED
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = '0'
 priceTypeMap[PRICETYPE_MARKETPRICE] = 'OPB'
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 
 ########################################################################
@@ -124,7 +124,7 @@ class CshshlpGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'配置文件缺少字段'
+            log.logContent = '配置文件缺少字段'
             self.onLog(log)
             return            
         
@@ -265,7 +265,7 @@ class CshshlpTdApi(CsHsHlp):
         #print data
         cb = self.callbackDict.get(int(type_), None)
         if not cb:
-            self.writeLog(u'无法找到对应类型的回调函数%s' %type_)
+            self.writeLog('无法找到对应类型的回调函数%s' %type_)
             return
         
         cb(data, reqNo, errorNo, errorInfo)
@@ -275,7 +275,7 @@ class CshshlpTdApi(CsHsHlp):
         """发送请求"""
         self.beginParam()
         
-        for k, v in d.items():
+        for k, v in list(d.items()):
             self.setValue(str(k), str(v))
         
         i = self.bizCallAndCommit(type_)
@@ -332,7 +332,7 @@ class CshshlpTdApi(CsHsHlp):
             self.sysnodeId = d['sysnode_id']
         
         self.loginStatus = True
-        self.writeLog(u'交易服务器登录完成')   
+        self.writeLog('交易服务器登录完成')   
         
         self.subscribeOrder()
         self.subscribeTrade()
@@ -393,7 +393,7 @@ class CshshlpTdApi(CsHsHlp):
             
             self.gateway.onContract(contract)
         
-        self.writeLog(u'合约查询完成')
+        self.writeLog('合约查询完成')
         
         self.qryOrder()
     
@@ -436,7 +436,7 @@ class CshshlpTdApi(CsHsHlp):
             
             self.orderDict[batchNo] = order
             
-        self.writeLog(u'委托查询完成')            
+        self.writeLog('委托查询完成')            
             
         self.qryTrade()
     
@@ -473,7 +473,7 @@ class CshshlpTdApi(CsHsHlp):
             
             self.gateway.onTrade(trade)
             
-        self.writeLog(u'成交查询完成')
+        self.writeLog('成交查询完成')
     
     #----------------------------------------------------------------------
     def onQryPosition(self, data, reqNo, errorNo, errorInfo):
@@ -593,23 +593,23 @@ class CshshlpTdApi(CsHsHlp):
         # 读取配置文件 
         i = self.loadConfig("Hsconfig.ini")
         if i:
-            self.writeLog(u'交易加载配置失败，原因：%s' %self.getErrorMsg().decode('GBK'))
+            self.writeLog('交易加载配置失败，原因：%s' %self.getErrorMsg().decode('GBK'))
             return
-        self.writeLog(u'交易加载配置成功')
+        self.writeLog('交易加载配置成功')
         
         # 初始化
         i = self.init()
         if i:
-            self.writeLog(u'交易初始化失败，原因：%s' %self.getErrorMsg().decode('GBK'))
+            self.writeLog('交易初始化失败，原因：%s' %self.getErrorMsg().decode('GBK'))
             return
-        self.writeLog(u'交易初始化成功')
+        self.writeLog('交易初始化成功')
         
         # 连接服务器
         i = self.connectServer()
         if i:
-            self.writeLog(u'交易服务器连接失败，原因：%s' %self.getErrorMsg().decode('GBK'))
+            self.writeLog('交易服务器连接失败，原因：%s' %self.getErrorMsg().decode('GBK'))
             return
-        self.writeLog(u'交易服务器连接成功')
+        self.writeLog('交易服务器连接成功')
         
         # 登录
         req = {}
@@ -729,12 +729,12 @@ class CshshlpTdApi(CsHsHlp):
         req['issue_Type'] = ISSUE_ORDER
         
         self.beginParam()
-        for k, v in req.items():
+        for k, v in list(req.items()):
             self.setValue(str(k), str(v))
         
         l = self.subscribeData(FUNCTION_SUBSCRIBE)
         for d in l:
-            self.writeLog(u'委托推送：%s' %d['result_info'].decode('GBK'))
+            self.writeLog('委托推送：%s' %d['result_info'].decode('GBK'))
         
     #----------------------------------------------------------------------
     def subscribeTrade(self):
@@ -745,12 +745,12 @@ class CshshlpTdApi(CsHsHlp):
         
         self.beginParam()
         
-        for k, v in req.items():
+        for k, v in list(req.items()):
             self.setValue(str(k), str(v))
         
         l = self.subscribeData(FUNCTION_SUBSCRIBE)
         for d in l:
-            self.writeLog(u'成交推送：%s' %d['result_info'].decode('GBK'))
+            self.writeLog('成交推送：%s' %d['result_info'].decode('GBK'))
     
 
 ########################################################################
@@ -782,7 +782,7 @@ class CshshlpMdApi(MdApi):
         """服务器连接"""
         self.connectionStatus = True
         
-        self.writeLog(u'行情服务器连接成功')
+        self.writeLog('行情服务器连接成功')
         
         self.login()
     
@@ -793,7 +793,7 @@ class CshshlpMdApi(MdApi):
         self.loginStatus = False
         self.gateway.mdConnected = False
         
-        self.writeLog(u'行情服务器连接断开')
+        self.writeLog('行情服务器连接断开')
         
     #---------------------------------------------------------------------- 
     def onHeartBeatWarning(self, n):
@@ -818,7 +818,7 @@ class CshshlpMdApi(MdApi):
             self.loginStatus = True
             self.gateway.mdConnected = True
             
-            self.writeLog(u'行情服务器登录成功')
+            self.writeLog('行情服务器登录成功')
             
             # 重新订阅之前订阅的合约
             for subscribeReq in self.subscribedSymbols:
@@ -840,7 +840,7 @@ class CshshlpMdApi(MdApi):
             self.loginStatus = False
             self.gateway.mdConnected = False
             
-            self.writeLog(u'行情服务器登出成功')
+            self.writeLog('行情服务器登出成功')
                 
         # 否则，推送错误信息
         else:

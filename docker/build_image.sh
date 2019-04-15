@@ -26,7 +26,6 @@ case "$input" in
     ;;
 esac
 
-
 echo ""
 echo "当前镜像列表："
 docker images

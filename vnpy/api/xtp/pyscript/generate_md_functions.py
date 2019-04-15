@@ -196,7 +196,7 @@ def createProcess(cbName, cbArgsTypeList, cbArgsValueList):
             fprocess.write("        "+ type_ + ' *task_error = (' + type_ + '*) task->task_error;\n')
             
             struct = structDict[type_]
-            for key in struct.keys():
+            for key in list(struct.keys()):
                 fprocess.write("        "+ 'error["' + key + '"] = task_error->' + key + ';\n')
 
             fprocess.write("        delete task->task_error;\n")
@@ -212,7 +212,7 @@ def createProcess(cbName, cbArgsTypeList, cbArgsValueList):
             fprocess.write("        "+ type_ + ' *task_data = (' + type_ + '*) task->task_data;\n')
             
             struct = structDict[type_]
-            for key, value in struct.items():
+            for key, value in list(struct.items()):
                 if value != 'enum':
                     fprocess.write("        "+ 'data["' + key + '"] = task_data->' + key + ';\n')
                 else:
@@ -278,7 +278,7 @@ def createFunction(fcName, fcArgsTypeList, fcArgsValueList):
     ffunction.write('    ' + type_ +' myreq = ' + type_ + '();\n')
     ffunction.write('    memset(&myreq, 0, sizeof(myreq));\n')
 
-    for key, value in struct.items():
+    for key, value in list(struct.items()):
         if value == 'string':
             line = '    getString(req, "' + key + '", myreq.' + key + ');\n'
         elif value == 'char':
@@ -331,4 +331,4 @@ fheaderon.close()
 fheaderfunction.close()
 fwrap.close()
 
-print 'md functions done'
+print('md functions done')

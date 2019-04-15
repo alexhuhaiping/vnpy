@@ -15,7 +15,7 @@ def main():
     fpy.write('\n')
 
     for n, line in enumerate(fcpp):
-        print n
+        print(n)
         # 结构体申明注释
         if '///' in line and '\t' not in line:
             py_line = '#' + line[3:]
@@ -38,8 +38,8 @@ def main():
             try:
                 type_ = typedefDict[typedef]
             except KeyError:
-                print content
-                print typedef
+                print(content)
+                print(typedef)
 
             variable = content[2].replace(';\n', "")
             py_line = '%s["%s"] = "%s"\n' % (name, variable, type_)

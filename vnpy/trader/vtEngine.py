@@ -178,11 +178,11 @@ class MainEngine(object):
         self.eventEngine.stop()
 
         # 停止上层应用引擎
-        for appEngine in self.appDict.values():
+        for appEngine in list(self.appDict.values()):
             appEngine.stop()
 
         # 安全关闭所有接口
-        for gateway in self.gatewayDict.values():
+        for gateway in list(self.gatewayDict.values()):
             gateway.close()
 
         # 保存数据引擎里的合约数据到硬盘
@@ -448,7 +448,7 @@ class DataEngine(object):
     # ----------------------------------------------------------------------
     def getAllContracts(self):
         """查询所有合约对象（返回列表）"""
-        return self.contractDict.values()
+        return list(self.contractDict.values())
 
     # ----------------------------------------------------------------------
     def saveContracts(self):
@@ -463,7 +463,7 @@ class DataEngine(object):
         f = shelve.open(self.contractFilePath)
         if 'data' in f:
             d = f['data']
-            for key, value in d.items():
+            for key, value in list(d.items()):
                 self.contractDict[key] = value
         f.close()
 
@@ -478,7 +478,7 @@ class DataEngine(object):
     # ----------------------------------------------------------------------
     def getAllWorkingOrders(self):
         """查询所有活动委托（返回列表）"""
-        return self.workingOrderDict.values()
+        return list(self.workingOrderDict.values())
 
     #----------------------------------------------------------------------
     def getPositionDetail(self, vtSymbol):
@@ -804,7 +804,7 @@ class PositionDetail(object):
         self.shortTdFrozen = EMPTY_INT
 
         # 遍历统计
-        for order in self.workingOrderDict.values():
+        for order in list(self.workingOrderDict.values()):
             # 计算剩余冻结量
             frozenVolume = order.totalVolume - order.tradedVolume
 
@@ -881,7 +881,7 @@ class PositionDetail(object):
             # 平仓量超过总可用，拒绝，返回空列表
             if req.volume > posAvailable:
                 self.log.warning(self.output())
-                self.log.warning(u'平仓量超过总可用 {} {}'.format(req.volume, posAvailable))
+                self.log.warning('平仓量超过总可用 {} {}'.format(req.volume, posAvailable))
                 return []
             # 平仓量小于今可用，全部平今
             elif req.volume <= tdAvailable:

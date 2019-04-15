@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 
-from __future__ import division
+
 
 from threading import Timer
 from collections import OrderedDict
@@ -30,9 +30,9 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     - 当前一次离场是止盈离场，则进入等待状态，下一次小周期入场信号忽略
     - 当处于等待状态时，触发了大周期入场信号，依然入场
     """
-    className = u'ClassicalTurtleDonchianStrategy'
-    name = u'经典海龟：唐奇安通道策略'
-    author = u'lamter'
+    className = 'ClassicalTurtleDonchianStrategy'
+    name = '经典海龟：唐奇安通道策略'
+    author = 'lamter'
 
     # 策略参数
     DOWN_IN = UP_IN = 20  # 小周期入场
@@ -137,12 +137,12 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -157,13 +157,14 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             if not self.isBackTesting():
                 self.tradingDay = bar.tradingDay
             self.onBar(bar)
+            print(self.bar.datetime)
             self.bm.preBar = bar
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
         if len(initData) >= self.maxBarNum * self.barXmin:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.warning(u'初始化数据不足!')
+            self.log.warning('初始化数据不足!')
 
         # self.updateHands()
 
@@ -174,13 +175,17 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             # 实盘，可以存库。
             self.saving = True
 
+        if self.bar is None:
+            return
+        
         # 更新技术指标
+        self.updateHands()
         self.updateUnitInd()
 
         # 撤所有的单
@@ -204,7 +209,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         self.saveDB()
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -276,7 +281,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         if setSmall:
             # 触发小周期平仓
-            self.log.info(u'小周期平仓')
+            self.log.info('小周期平仓')
             self.setSmall()
 
     def orderOpenOnStart(self):
@@ -324,14 +329,14 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 pass
             else:
                 if unit.longInSO:
-                    self.log.info(u'撤单重发 {} -> {}'.format(unit.longInSO.price, unit.longIn))
+                    self.log.info('撤单重发 {} -> {}'.format(unit.longInSO.price, unit.longIn))
                     self.cancelOrder(unit.longInSO.stopOrderID)
                 stopOrderID = self.buy(unit.longIn, self.hands, stop=True)[0]
                 # 互相绑定停止单
                 so = self.ctaEngine.workingStopOrderDict[stopOrderID]
                 so.unit = unit
                 unit.longInSO = so
-                self.log.info(u'开多单 {} {}'.format(unit, so))
+                self.log.info('开多单 {} {}'.format(unit, so))
 
         if self.direction in (DIRECTION_SHORT, None):
             # 开多
@@ -344,14 +349,14 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 pass
             else:
                 if unit.shortInSO:
-                    self.log.info(u'撤单重发 {} -> {}'.format(unit.shortInSO.price, unit.shortIn))
+                    self.log.info('撤单重发 {} -> {}'.format(unit.shortInSO.price, unit.shortIn))
                     self.cancelOrder(unit.shortInSO.stopOrderID)
                 stopOrderID = self.short(unit.shortIn, self.hands, stop=True)[0]
                 # 互相绑定停止单
                 so = self.ctaEngine.workingStopOrderDict[stopOrderID]
                 so.unit = unit
                 unit.shortInSO = so
-                self.log.info(u'开空单 {} {}'.format(unit, so))
+                self.log.info('开空单 {} {}'.format(unit, so))
 
     def orderCloseOnTrade(self):
         """
@@ -390,13 +395,13 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 pass
             else:
                 if unit.longOutSO:
-                    self.log.info(u'撤单重发 {} -> {}'.format(unit.longOutSO.price, longOut))
+                    self.log.info('撤单重发 {} -> {}'.format(unit.longOutSO.price, longOut))
                     self.cancelOrder(unit.longOutSO.stopOrderID)
                 stopOrderID = self.sell(longOut, abs(unit.pos), stop=True)[0]
                 so = self.ctaEngine.workingStopOrderDict[stopOrderID]
                 so.unit = unit
                 unit.longOutSO = so
-                self.log.info(u'空平单 {} {}'.format(unit, so))
+                self.log.info('空平单 {} {}'.format(unit, so))
 
         elif unit.pos < 0:
             # 平空
@@ -408,13 +413,13 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 pass
             else:
                 if unit.shortOutSO:
-                    self.log.info(u'撤单重发 {} -> {}'.format(unit.shortOutSO.price, shortOut))
+                    self.log.info('撤单重发 {} -> {}'.format(unit.shortOutSO.price, shortOut))
                     self.cancelOrder(unit.shortOutSO.stopOrderID)
                 stopOrderID = self.cover(shortOut, abs(unit.pos), stop=True)[0]
                 so = self.ctaEngine.workingStopOrderDict[stopOrderID]
                 so.unit = unit
                 unit.shortOutSO = so
-                self.log.info(u'多平单 {} {}'.format(unit, so))
+                self.log.info('多平单 {} {}'.format(unit, so))
 
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
@@ -452,7 +457,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.saveTechIndOnXminBar(bar.datetime)
 
         if self.trading:
-            self.updateHands()
             # 当没有持仓的时候，更改开仓价格
             self.updateUnitInd()
             # 开仓单
@@ -474,7 +478,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 continue
             v = getattr(self, k)
             if v == None:
-                self.log.info(u'技术指标尚未准备好 {} {}'.format(k, v))
+                self.log.info('技术指标尚未准备好 {} {}'.format(k, v))
                 return
 
         if self.smallUnits == 0:
@@ -519,7 +523,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         保存技术指标
         :return:
         """
-        for indName, [dtList, dataList] in self.techIndLine.items():
+        for indName, [dtList, dataList] in list(self.techIndLine.items()):
             data = getattr(self, indName)
             dtList.append(dt)
             dataList.append(self.roundToPriceTick(data))
@@ -562,7 +566,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             unit = so.unit
             assert isinstance(unit, Unit)
             unit.dropSO(so)
-            self.log.info(u'撤单 {} {} {}'.format(unit, so, so.vtOrderID))
+            self.log.info('撤单 {} {} {}'.format(unit, so, so.vtOrderID))
         elif so.status == STOPORDER_TRIGGERED:
             # 触发，此时 Unit 状态只有 EMPTY or FULL
             # 因为在其他状态不会有停止单可以触发
@@ -571,7 +575,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             unit.dropSO(so)
 
             self.vtOrderID2Unit[so.vtOrderID] = unit
-            self.log.info(u'绑定 {} {}'.format(so.vtOrderID, unit))
+            self.log.info('绑定 {} {}'.format(so.vtOrderID, unit))
 
             if unit.status == unit.STATUS_EMPTY:
                 # 开仓单
@@ -586,12 +590,12 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                         if u.longInSO:
                             self.cancelOrder(u.longInSO.stopOrderID)
                     else:
-                        self.log.error(u'未知的停止单方向 {}'.format(so))
+                        self.log.error('未知的停止单方向 {}'.format(so))
             elif unit.status == unit.STATUS_FULL:
                 # 平仓单
                 self.log.info(unit.setStatus(unit.STATUS_DONE))
             else:
-                self.log.warning(u'异常的 Unit.status {} {}'.format(unit, so))
+                self.log.warning('异常的 Unit.status {} {}'.format(unit, so))
         else:  # so.status == STOPORDER_WAITING:
             # 刚挂单，没有需要处理的
             pass
@@ -602,15 +606,15 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            message = u''
-            for k, v in order.rawData.items():
-                message += u'{}:{}\n'.format(k, v)
+            message = ''
+            for k, v in list(order.rawData.items()):
+                message += '{}:{}\n'.format(k, v)
             log(message)
             unit = self.vtOrderID2Unit.pop(order.vtOrderID)
         elif order.status == STATUS_CANCELLED:
             unit = self.vtOrderID2Unit.pop(order.vtOrderID)
 
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
         # self.log.warning(u'{vtOrderID} 状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
@@ -620,11 +624,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         originCapital, charge, profile = self._onTrade(trade)
 
         try:
-            self.log.info(u'{}'.format(trade.vtOrderID))
+            self.log.info('{}'.format(trade.vtOrderID))
             unit = self.vtOrderID2Unit[trade.vtOrderID]
-            self.log.info(u'{}'.format(unit))
+            self.log.info('{}'.format(unit))
         except KeyError:
-            for vtOrderID, u in self.vtOrderID2Unit.items():
+            for vtOrderID, u in list(self.vtOrderID2Unit.items()):
                 self.log.error(vtOrderID)
                 self.log.error(str(u))
             raise
@@ -650,7 +654,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             # 仓位平仓完成,且有仓位开仓了
             # 本次入场结束，统计盈利，重置
             # 统计盈利
-            self.log.info(u'全部平仓完成'.format())
+            self.log.info('全部平仓完成'.format())
             profile = 0
             for u in self.units:
                 if posChange > 0:
@@ -684,11 +688,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
 
     def setBig(self):
-        self.log.info(u'进入大周期')
+        self.log.info('进入大周期')
         self.big = True
 
     def setSmall(self):
-        self.log.info(u'进入小周期')
+        self.log.info('进入小周期')
         self.big = False
         self.smallLongInList = []  # 大周期中的小周期开仓价
         self.smallShortInList = []  # 大周期中的小周期开仓价
@@ -720,7 +724,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                     unit.fromDB(dic)
                 except IndexError:
                     # 存库时是4仓，现在只有3仓
-                    self.log.error(u'存库中有 {} 个 Unit 目前策略只有 {} 个Unit'.format(len(units), len(self.units)))
+                    self.log.error('存库中有 {} 个 Unit 目前策略只有 {} 个Unit'.format(len(units), len(self.units)))
                     break
 
         self._loadVar(document)
@@ -736,10 +740,10 @@ class Unit(object):
     经典海龟的仓位
     """
 
-    STATUS_EMPTY = u'空仓'
-    STATUS_OPENING = u'开仓中'
-    STATUS_FULL = u'满仓'
-    STATUS_DONE = u'完结'
+    STATUS_EMPTY = '空仓'
+    STATUS_OPENING = '开仓中'
+    STATUS_FULL = '满仓'
+    STATUS_DONE = '完结'
 
     def __init__(self, index, strategy):
         assert isinstance(strategy, ClassicalTurtleDonchianStrategy)
@@ -775,7 +779,7 @@ class Unit(object):
 
     def toSave(self):
         dic = {}
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             try:
                 if v.__dict__:
                     continue
@@ -784,7 +788,7 @@ class Unit(object):
         return dic
 
     def fromDB(self, dic):
-        for k, v in dic.items():
+        for k, v in list(dic.items()):
             setattr(self, k, v)
 
     def clear(self):
@@ -808,31 +812,31 @@ class Unit(object):
         return abs(self.openTurnover / self.pos)
 
     def setStatus(self, status):
-        log = u'Unit:{} {} -> {}'.format(self.index, self.status, status)
+        log = 'Unit:{} {} -> {}'.format(self.index, self.status, status)
         self.status = status
         return log
 
     def getAllStopOrders(self):
         stopOrderIDs = []
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             if isinstance(v, StopOrder):
                 stopOrderIDs.append(v)
         return stopOrderIDs
 
     def stopOrderToLog(self):
         _all = self.getAllStopOrders()
-        log = u'{} 个 so\n'.format(len(_all))
-        log += u'\n'.join([str(so) for so in _all])
+        log = '{} 个 so\n'.format(len(_all))
+        log += '\n'.join([str(so) for so in _all])
         return log
 
     def dropSO(self, so):
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             # 撤单后要重置停止单
             if v == so:
                 setattr(self, k, None)
                 break
         else:
-            self.strategy.log.warning(u'未绑定停止单 {} {}'.format(self, so))
+            self.strategy.log.warning('未绑定停止单 {} {}'.format(self, so))
             self.strategy.log.warning(self.stopOrderToLog())
 
     def toHtml(self):

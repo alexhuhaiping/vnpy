@@ -2,8 +2,9 @@
 
 # 重载sys模块，设置默认字符串编码方式为utf8
 import sys
+import importlib
 
-reload(sys)
+importlib.reload(sys)
 sys.setdefaultencoding('utf8')
 
 # 判断操作系统

@@ -19,13 +19,13 @@ priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["SECURITY_FTDC_OPT_LimitPrice"]
 priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["SECURITY_FTDC_OPT_AnyPrice"]
 priceTypeMap[PRICETYPE_FAK] = defineDict["SECURITY_FTDC_OPT_BestPrice"]
 priceTypeMap[PRICETYPE_FOK] = defineDict["SECURITY_FTDC_OPT_AllLimitPrice"]
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = defineDict["SECURITY_FTDC_D_Buy"]
 directionMap[DIRECTION_SHORT] = defineDict["SECURITY_FTDC_D_Sell"]
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
@@ -33,21 +33,21 @@ offsetMap[OFFSET_OPEN] = defineDict["SECURITY_FTDC_OF_Open"]
 offsetMap[OFFSET_CLOSE] = defineDict["SECURITY_FTDC_OF_Close"]
 offsetMap[OFFSET_CLOSETODAY] = defineDict["SECURITY_FTDC_OF_CloseToday"]
 offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict["SECURITY_FTDC_OF_CloseYesterday"]
-offsetMapReverse = {v:k for k,v in offsetMap.items()}
+offsetMapReverse = {v:k for k,v in list(offsetMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
 exchangeMap[EXCHANGE_SSE] = 'SSE'
 exchangeMap[EXCHANGE_SZSE] = 'SZE'
 exchangeMap[EXCHANGE_HKEX] = 'HGE'
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 持仓类型映射
 posiDirectionMap = {}
 posiDirectionMap[DIRECTION_NET] = defineDict["SECURITY_FTDC_PD_Net"]
 posiDirectionMap[DIRECTION_LONG] = defineDict["SECURITY_FTDC_PD_Long"]
 posiDirectionMap[DIRECTION_SHORT] = defineDict["SECURITY_FTDC_PD_Short"]
-posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
+posiDirectionMapReverse = {v:k for k,v in list(posiDirectionMap.items())}
 
 
 ########################################################################################
@@ -81,7 +81,7 @@ class LtsGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -100,7 +100,7 @@ class LtsGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
               
@@ -221,7 +221,7 @@ class LtsMdApi(MdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接成功'
+        log.logContent = '行情服务器连接成功'
         self.gateway.onLog(log)
         self.login()
         
@@ -234,7 +234,7 @@ class LtsMdApi(MdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'行情服务器连接断开'
+        log.logContent = '行情服务器连接断开'
         self.gateway.onLog(log) 
         
     #----------------------------------------------------------------------
@@ -261,7 +261,7 @@ class LtsMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登录完成'
+            log.logContent = '行情服务器登录完成'
             self.gateway.onLog(log)
             
             # 重新订阅之前订阅的合约
@@ -286,7 +286,7 @@ class LtsMdApi(MdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'行情服务器登出完成'
+            log.logContent = '行情服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -316,7 +316,7 @@ class LtsMdApi(MdApi):
         tick.gatewayName = self.gatewayName
         
         tick.symbol = data['InstrumentID']
-        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], u'未知')
+        tick.exchange = exchangeMapReverse.get(data['ExchangeID'], '未知')
         tick.vtSymbol = '.'.join([tick.symbol, tick.exchange])
         
         tick.lastPrice = data['LastPrice']
@@ -454,7 +454,7 @@ class LtsTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接成功'
+        log.logContent = '交易服务器连接成功'
         self.gateway.onLog(log)
         
         # 前置机连接后，请求随机码
@@ -470,7 +470,7 @@ class LtsTdApi(TdApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'交易服务器连接断开'
+        log.logContent = '交易服务器连接断开'
         self.gateway.onLog(log)      
     
     #----------------------------------------------------------------------
@@ -490,7 +490,7 @@ class LtsTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登录完成'
+            log.logContent = '交易服务器登录完成'
             self.gateway.onLog(log)            
                 
         # 否则，推送错误信息
@@ -511,7 +511,7 @@ class LtsTdApi(TdApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易服务器登出完成'
+            log.logContent = '交易服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -860,7 +860,7 @@ class LtsQryApi(QryApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'查询服务器连接成功'
+        log.logContent = '查询服务器连接成功'
         self.gateway.onLog(log)
         
         # 前置机连接后，请求随机码
@@ -876,7 +876,7 @@ class LtsQryApi(QryApi):
         
         log = VtLogData()
         log.gatewayName = self.gatewayName
-        log.logContent = u'查询服务器连接断开'
+        log.logContent = '查询服务器连接断开'
         self.gateway.onLog(log)      
     
     #----------------------------------------------------------------------
@@ -905,7 +905,7 @@ class LtsQryApi(QryApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'查询服务器登录完成'
+            log.logContent = '查询服务器登录完成'
             self.gateway.onLog(log)       
             
             # 查询合约代码
@@ -930,7 +930,7 @@ class LtsQryApi(QryApi):
             
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'查询服务器登出完成'
+            log.logContent = '查询服务器登出完成'
             self.gateway.onLog(log)
                 
         # 否则，推送错误信息
@@ -980,7 +980,7 @@ class LtsQryApi(QryApi):
         elif data['ProductClass'] == '8':
             contract.productClass = PRODUCT_EQUITY
         else:
-            print data['ProductClass']
+            print(data['ProductClass'])
         
         # 期权类型
         if data['InstrumentType'] == '1':
@@ -994,7 +994,7 @@ class LtsQryApi(QryApi):
         if last:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'交易合约信息获取完成'
+            log.logContent = '交易合约信息获取完成'
             self.gateway.onLog(log)
                        
     #----------------------------------------------------------------------

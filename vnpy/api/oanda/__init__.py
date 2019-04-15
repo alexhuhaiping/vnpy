@@ -1,3 +1,3 @@
 # encoding: UTF-8
 
-from vnoanda import OandaApi
+from .vnoanda import OandaApi

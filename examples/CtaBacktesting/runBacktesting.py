@@ -4,7 +4,7 @@
 展示如何执行策略回测。
 """
 
-from __future__ import division
+
 
 
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine, MINUTE_DB_NAME

@@ -19,7 +19,7 @@ def getStrategy(symbol):
     global me
 
     from vnpy.trader.app.ctaStrategy.svtCtaTemplate import CtaTemplate
-    return [s for s in ce.strategyDict.values() if s.vtSymbol == symbol and isinstance(s, CtaTemplate)]
+    return [s for s in list(ce.strategyDict.values()) if s.vtSymbol == symbol and isinstance(s, CtaTemplate)]
 
 
 def checkHands():
@@ -29,13 +29,13 @@ def checkHands():
 
 def showLastTick():
     s = getStrategy(vtSymbol)
-    s.log.info(u'{}'.format(s.bm.lastTick.datetime))
+    s.log.info('{}'.format(s.bm.lastTick.datetime))
 
 
 def showBar():
     s = getStrategy(vtSymbol)
 
-    s.log.info(u'{}'.format(str(s.am.highArray)))
+    s.log.info('{}'.format(str(s.am.highArray)))
 
 
 def testSaveTrade():
@@ -67,7 +67,7 @@ def testSaveTrade():
     vtTrade.tradingDay = tradingDay  # 交易日
 
     s = getStrategy(vtSymbol)
-    s.log.info(u'生成订单')
+    s.log.info('生成订单')
     s.saveTrade(vtTrade)
 
 
@@ -93,7 +93,7 @@ def saveTradeData():
         dt = LOCAL_TIMEZONE.localize(dt)
 
     _, tradingDay = tt.get_tradingday(dt)
-    s.log.debug(u'{}'.format(tradingDay))
+    s.log.debug('{}'.format(tradingDay))
 
     trade.datetime = dt
     trade.tradingDay = tradingDay
@@ -104,7 +104,7 @@ def saveTradeData():
 def testToStatus():
     s = getStrategy(vtSymbol)
     self = s
-    t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
+    t = '\n'.join(['{}:{}'.format(*item) for item in list(self.toStatus().items())])
     s.log.debug(t)
 
 
@@ -115,9 +115,9 @@ def toHtml():
 
 def closeout():
     s = getStrategy(vtSymbol)
-    s.log.info(u'强制平仓')
+    s.log.info('强制平仓')
     s.closeout()
-    s.log.info(u'强制平仓下单完成')
+    s.log.info('强制平仓下单完成')
 
 
 def checkPosition():
@@ -127,9 +127,9 @@ def checkPosition():
 
 
 def checkPositionDetail():
-    for k, detail in me.dataEngine.detailDict.items():
+    for k, detail in list(me.dataEngine.detailDict.items()):
         print(k)
-        print(detail.output())
+        print((detail.output()))
 
 
 def checkContinueCaution():
@@ -147,7 +147,7 @@ def short():
 
     s.short(price, volume, stop)
 
-    s.log.debug(u'下单完成 {}'.format(price))
+    s.log.debug('下单完成 {}'.format(price))
 
 
 def strategyOrder():
@@ -165,7 +165,7 @@ def sendOrder():
 
 
 def checkDataEngineOrder():
-    print(me.dataEngine.orderDict)
+    print((me.dataEngine.orderDict))
 
 
 def cancelOrder():
@@ -191,14 +191,14 @@ def saveStrategy():
 
 
 def showWorkingStopOrderDic():
-    print(ce.workingStopOrderDict.keys())
+    print((list(ce.workingStopOrderDict.keys())))
 
 
 def buy():
     sList = getStrategy(vtSymbol)
     # print(sList)
     for s in sList:
-        s.log.debug(u'测试 buy')
+        s.log.debug('测试 buy')
         # s.pos = -15
 
         price = s.bm.bar.close - 2
@@ -207,7 +207,7 @@ def buy():
 
         s.buy(price, volume, stop)
 
-        s.log.debug(u'下单完成 {}'.format(price))
+        s.log.debug('下单完成 {}'.format(price))
 
 
 def cover():
@@ -220,7 +220,7 @@ def cover():
 
         s.cover(price, volume, stop)
 
-        s.log.debug(u'下单完成 {}'.format(s.bm.bar.close))
+        s.log.debug('下单完成 {}'.format(s.bm.bar.close))
         break
 
 
@@ -235,7 +235,7 @@ def sell():
         volume = 2
         stop = True
         s.sell(price, volume, stop)
-        s.log.debug(u'下单完成 {}'.format(price))
+        s.log.debug('下单完成 {}'.format(price))
 
 
 def orderToShow():
@@ -243,17 +243,17 @@ def orderToShow():
     print(sList)
     for s in sList:
 
-        for vtOrderID, order in s.orders.items():
+        for vtOrderID, order in list(s.orders.items()):
             print('+++++++++++')
-            for k, v in order.__dict__.items():
-                print(u'{} {}'.format(k, v))
+            for k, v in list(order.__dict__.items()):
+                print(('{} {}'.format(k, v)))
 
         orderList = s.ctaEngine.getAllOrderToShow(s.name)
         # print(len(orderList), len(s.orders))
         for order in orderList:
             print('+++++++++++')
-            for k, v in order.items():
-                print(u'{} {}'.format(k, v))
+            for k, v in list(order.items()):
+                print(('{} {}'.format(k, v)))
 
             showStopOrder
 
@@ -262,32 +262,32 @@ def showStopOrder():
     sList = getStrategy(vtSymbol)
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
     stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
-    me.log.info(u'停止单数量{}'.format(len(ce.stopOrderDict)))
+    me.log.info('停止单数量{}'.format(len(ce.stopOrderDict)))
     price = 3749.0
     for os in stopOrderIDs:
-        if os.direction == u'空' and os.status == u'等待中':
+        if os.direction == '空' and os.status == '等待中':
             # if os.direction == u'空' and os.status == u'等待中':
-            if os.status == u'等待中':
+            if os.status == '等待中':
                 pass
                 os.price = price
                 price -= 2
-            log = u''
-            for k, v in os.toHtml().items():
-                log += u'{}:{} '.format(k, v)
+            log = ''
+            for k, v in list(os.toHtml().items()):
+                log += '{}:{} '.format(k, v)
             me.log.info(log)
 
 
 def checkMargin():
     sList = getStrategy(vtSymbol)
     s = sList[0]
-    print(s.marginRate)
+    print((s.marginRate))
 
 def reSubscribe():
     sList = getStrategy(vtSymbol)
     for s in sList:
-        if s.name == u'焦炭_经典海龟120min':
+        if s.name == '焦炭_经典海龟120min':
             break
-    print(s.name)
+    print((s.name))
 
 # vtSymbol = 'AP905'
 vtSymbol = 'j1905'

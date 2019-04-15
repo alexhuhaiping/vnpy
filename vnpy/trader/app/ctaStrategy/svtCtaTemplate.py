@@ -70,17 +70,17 @@ class CtaTemplate(vtCtaTemplate):
     ]
 
     # 成交状态
-    TRADE_STATUS_OPEN_LONG = u'开多'  # 开多
-    TRADE_STATUS_CLOSE_LONG = u'平多'  # 平多
-    TRADE_STATUS_DEC_LONG = u'减多'  # 减多
-    TRADE_STATUS_INC_LONG = u'加多'  # # 加多
-    TRADE_STATUS_REV_LONG = u'反多'  # 反多
+    TRADE_STATUS_OPEN_LONG = '开多'  # 开多
+    TRADE_STATUS_CLOSE_LONG = '平多'  # 平多
+    TRADE_STATUS_DEC_LONG = '减多'  # 减多
+    TRADE_STATUS_INC_LONG = '加多'  # # 加多
+    TRADE_STATUS_REV_LONG = '反多'  # 反多
 
-    TRADE_STATUS_OPEN_SHORT = u'开空'  # 开空
-    TRADE_STATUS_CLOSE_SHORT = u'平空'  # 平空
-    TRADE_STATUS_DEC_SHORT = u'减空'  # 减空
-    TRADE_STATUS_INC_SHORT = u'加空'  # # 加空
-    TRADE_STATUS_REV_SHORT = u'反空'  # 反空
+    TRADE_STATUS_OPEN_SHORT = '开空'  # 开空
+    TRADE_STATUS_CLOSE_SHORT = '平空'  # 平空
+    TRADE_STATUS_DEC_SHORT = '减空'  # 减空
+    TRADE_STATUS_INC_SHORT = '加空'  # # 加空
+    TRADE_STATUS_REV_SHORT = '反空'  # 反空
 
     def __str__(self):
         s = super(CtaTemplate, self).__str__()
@@ -92,7 +92,7 @@ class CtaTemplate(vtCtaTemplate):
         self._setting = setting.copy()
 
         if not isinstance(self.barXmin, int):
-            raise ValueError(u'barXmin should be int.')
+            raise ValueError('barXmin should be int.')
 
         self.lastTickTime = arrow.now()  # 最后一个 tick 的时间
         self.tickMaxLostTime = datetime.timedelta(seconds=60)  # 1分钟没有收到 tick 就要重新订阅
@@ -228,7 +228,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def onStart(self):
         if not self.isCloseoutVaild:
-            raise ValueError(u'未设置平仓标记位 isCloseoutVaild')
+            raise ValueError('未设置平仓标记位 isCloseoutVaild')
         super(CtaTemplate, self).onStart()
 
     def buy(self, price, volume, stop=False, stopProfile=False):
@@ -268,7 +268,7 @@ class CtaTemplate(vtCtaTemplate):
 
     def sendOrder(self, orderType, price, volume, stop=False, stopProfile=False):
         if stop == stopProfile == True:
-            raise ValueError(u'不能同时设置停止单为止盈和止损!')
+            raise ValueError('不能同时设置停止单为止盈和止损!')
 
         # self.log.warning(u'{} {} {} {}'.format(orderType, self.ctaEngine.roundToPriceTick(price), volume, stop))
         if stopProfile:
@@ -365,7 +365,7 @@ class CtaTemplate(vtCtaTemplate):
             # 开空
             self.turnover += self.pos * trade.price * self.size
         else:
-            raise ValueError(u'未知的状态 {}'.format(status))
+            raise ValueError('未知的状态 {}'.format(status))
 
         self.capital += profile
 
@@ -375,7 +375,7 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         commission = self.getCommission(price, volume, offset)
-        self.log.info(u'手续费 {}'.format(commission))
+        self.log.info('手续费 {}'.format(commission))
         self.capital -= commission
         self._commisionAmonut += commission
 
@@ -432,7 +432,7 @@ class CtaTemplate(vtCtaTemplate):
             if isinstance(v, list):
                 v = ' - '.join([str(i) for i in v])
             elif isinstance(v, dict):
-                v = ' - '.join([u'{}:{}'.format(_k, _v) for _k, _v in v.items()])
+                v = ' - '.join(['{}:{}'.format(_k, _v) for _k, _v in list(v.items())])
 
             orderDic[k] = v
 
@@ -595,7 +595,7 @@ class CtaTemplate(vtCtaTemplate):
             value = m.closeTodayRatioByMoney * turnover
             value += m.closeTodayRatioByVolume * volume
         else:
-            err = u'未知的开平方向 {}'.format(offset)
+            err = '未知的开平方向 {}'.format(offset)
             self.log.error(err)
             raise ValueError(err)
         return round(value, 2)
@@ -618,7 +618,7 @@ class CtaTemplate(vtCtaTemplate):
         if self._exchange is None:
             if self.isBackTesting():
                 # 回测中
-                self._exchange = u'未知交易所'
+                self._exchange = '未知交易所'
             else:
                 # 实盘
                 self._exchange = self.contract.exchange
@@ -626,7 +626,7 @@ class CtaTemplate(vtCtaTemplate):
         return self._exchange
 
     def onXminBar(self, xminBar):
-        raise NotImplementedError(u'尚未定义')
+        raise NotImplementedError('尚未定义')
 
         # def onBar(self, bar1min):
         # if self.isBackTesting():
@@ -703,7 +703,7 @@ class CtaTemplate(vtCtaTemplate):
         """
 
         if self.saving:
-            self.log.info(u'保存策略数据')
+            self.log.info('保存策略数据')
 
             # 保存
             document = self.toSave()
@@ -736,7 +736,7 @@ class CtaTemplate(vtCtaTemplate):
                 try:
                     setattr(self, k, document[k])
                 except KeyError:
-                    self.log.warning(u'未保存的key {}'.format(k))
+                    self.log.warning('未保存的key {}'.format(k))
 
     def onOrder(self, order):
         """
@@ -776,7 +776,7 @@ class CtaTemplate(vtCtaTemplate):
         bar = bar or self.bm.bar
         assert isinstance(bar, VtBarData)
         if bar is None:
-            return u'bar 无数据'
+            return 'bar 无数据'
         itmes = (
             ('datetime', bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
             ('open', bar.open,),
@@ -790,7 +790,7 @@ class CtaTemplate(vtCtaTemplate):
         bar = bar or self.bm.xminBar
         assert isinstance(bar, VtBarData)
         if bar is None:
-            return u'xminBar 无数据'
+            return 'xminBar 无数据'
 
         itmes = (
             ('datetime', bar.datetime.strftime('%Y-%m-%d %H:%M:%S'),),
@@ -820,7 +820,7 @@ class CtaTemplate(vtCtaTemplate):
         if marginRate.vtSymbol != self.vtSymbol:
             return
 
-        self.log.info(u'更新保证金 {}'.format(marginRate.marginRate))
+        self.log.info('更新保证金 {}'.format(marginRate.marginRate))
 
         self.isNeedUpdateMarginRate = False
 
@@ -838,11 +838,11 @@ class CtaTemplate(vtCtaTemplate):
             # 返回 rb1801, 合约有变动，强制更新
             self.setCommissionRate(commissionRate)
             self.isNeedUpdateCommissionRate = False
-            log = u'更新手续费 '
-            for k, v in commissionRate.__dict__.items():
+            log = '更新手续费 '
+            for k, v in list(commissionRate.__dict__.items()):
                 if k == 'rawData':
                     continue
-                log += u'\n{}:{}'.format(k, v)
+                log += '\n{}:{}'.format(k, v)
             self.log.info(log)
             return
         elif self.vtSymbol.startswith(commissionRate.underlyingSymbol):
@@ -865,12 +865,12 @@ class CtaTemplate(vtCtaTemplate):
             waitContractSeconds += 1
             if waitContractSeconds > 10:
                 self.inited = False
-                self.log.error(u'策略未能订阅合约 {}'.format(self.vtSymbol))
+                self.log.error('策略未能订阅合约 {}'.format(self.vtSymbol))
                 return
-            self.log.info(u'等待合约 {}'.format(self.vtSymbol))
+            self.log.info('等待合约 {}'.format(self.vtSymbol))
             time.sleep(1)
         else:
-            self.log.info(u'订阅合约 {} 成功'.format(self.vtSymbol))
+            self.log.info('订阅合约 {} 成功'.format(self.vtSymbol))
 
     def initMaxBarNum(self):
         """
@@ -878,7 +878,7 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         self.maxBarNum = 0
-        raise NotImplementedError(u'')
+        raise NotImplementedError('')
 
     def tradeStatsu(self, prePos, pos):
         """
@@ -920,7 +920,7 @@ class CtaTemplate(vtCtaTemplate):
             # 反空
             return self.TRADE_STATUS_REV_SHORT
 
-        self.log.warning(u'prePos:{} pos:{}'.format(prePos, pos))
+        self.log.warning('prePos:{} pos:{}'.format(prePos, pos))
         return None
 
     def closeout(self):
@@ -929,7 +929,7 @@ class CtaTemplate(vtCtaTemplate):
         :return:
         """
         if not self.isCloseoutVaild:
-            raise ValueError(u'未设置可强平')
+            raise ValueError('未设置可强平')
 
         if self.pos == 0:
             # 无需一键平仓
@@ -938,10 +938,10 @@ class CtaTemplate(vtCtaTemplate):
         if self.bm.lastTick or self.bar:
             pass
         else:
-            self.log.warning(u'没有 tick 或  bar 能提供价格一键平仓')
+            self.log.warning('没有 tick 或  bar 能提供价格一键平仓')
             return
 
-        t = u'\n'.join(map(lambda item: u'{}:{}'.format(*item), self.toStatus().items()))
+        t = '\n'.join(['{}:{}'.format(*item) for item in list(self.toStatus().items())])
         self.log.warning(t)
 
         # 一键撤单
@@ -950,7 +950,7 @@ class CtaTemplate(vtCtaTemplate):
         self.clearAll()
 
         if not self.isBackTesting():
-            self.log.warning(u'一键平仓')
+            self.log.warning('一键平仓')
 
         self.isCloseoutVaild = False
 
@@ -1004,29 +1004,29 @@ class CtaTemplate(vtCtaTemplate):
                 _futures = _now + datetime.timedelta(seconds=2)
                 if tt.get_trading_status(self.vtSymbol, _futures) == tt.continuous_auction:
                     # 已经进入连续竞价的阶段，直接下单
-                    self.log.info(u'已经处于连续竞价阶段')
+                    self.log.info('已经处于连续竞价阶段')
                     waistSeconds = 0
                 else:  # 还没进入连续竞价，使用一个定时器
-                    self.log.info(u'尚未开始连续竞价')
+                    self.log.info('尚未开始连续竞价')
                     moment = waitToContinue(self.vtSymbol, _futures)
                     wait = moment - _now
                     # 提前2秒下停止单
                     waistSeconds = wait.total_seconds()
-                    self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+                    self.log.info('now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
                 # 至少要等待5秒以上，等待其他策略的 onStart 完成
                 waistSeconds = max(5, waistSeconds)
                 Timer(waistSeconds, self._orderOnThreading).start()
         else:
             self.log.warning(
-                u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
+                '无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
 
     def _orderOnThreading(self):
         """
         在 orderOnTradingTime 中调用该函数，在子线程中下单
         :return:
         """
-        raise NotImplementedError(u'尚未定义')
+        raise NotImplementedError('尚未定义')
 
     def isOrderInContinueCaution(self):
         """
@@ -1056,7 +1056,7 @@ class CtaTemplate(vtCtaTemplate):
                 # print(19191919)
                 # 且处于连续竞价中
                 # 重新订阅
-                self.log.warning(u'超时未推送 tick, 重新订阅')
+                self.log.warning('超时未推送 tick, 重新订阅')
                 self.ctaEngine.reSubscribe(self.vtSymbol)
             self.lastTickTime = now
             return
@@ -1113,9 +1113,9 @@ class CtaTemplate(vtCtaTemplate):
         if self.stopOrdering.isSet():
             self.stopOrderingCount += 1
             if self.stopOrderingCount == 5 * 2:
-                self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
+                self.log.warning('策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
             if self.stopOrderingCount == 30 * 2:
-                self.log.warning(u'策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
+                self.log.warning('策略长时间被停止单锁定 {} 秒'.format(int(self.stopOrderingCount / 2)))
 
             return False
         else:
@@ -1123,11 +1123,11 @@ class CtaTemplate(vtCtaTemplate):
 
     def clearStopOrdering(self):
         self.stopOrdering.clear()
-        self.log.info(u'策略内解除停止单锁定')
+        self.log.info('策略内解除停止单锁定')
         self.stopOrderingCount = 0
 
     def setStopOrdering(self):
-        self.log.info(u'策略内停止单锁定')
+        self.log.info('策略内停止单锁定')
         self.stopOrdering.set()
 
     def monitorSplippage(self, trade):
@@ -1139,7 +1139,7 @@ class CtaTemplate(vtCtaTemplate):
         overSplipage = -self._setting.get('overSplipage', self.overSplipage)
         if trade.splippage and trade.splippage / self.priceTick < overSplipage:
             self.log.warning(
-                u'成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
+                '成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
                                                                        trade.splippage, self.priceTick, overSplipage))
 
     def _onTrade(self, trade):
@@ -1166,15 +1166,15 @@ class CtaTemplate(vtCtaTemplate):
         profile = self.capital - preCapital
 
         if not self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList = ['{}{}'.format(trade.direction, trade.offset)]
+            textList.append('资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append('仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append('手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
             textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+                ','.join(['{} {}'.format(k, v) for k, v in list(self.positionDetail.toHtml().items())])
             )
 
-            self.log.info(u'\n'.join(textList))
+            self.log.info('\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
@@ -1186,25 +1186,25 @@ class CtaTemplate(vtCtaTemplate):
         # if trade.offset in OFFSET_CLOSE_LIST:
         # print(self.bar.datetime)
         textList = [
-            u'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
-        textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-        textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-        textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
-        textList.append(u'**********************')
+            'tradingday:{} price:{} {} {}'.format(self.tradingDay.date(), trade.price, trade.direction, trade.offset)]
+        textList.append('资金变化 {} -> {}'.format(originCapital, self.capital))
+        textList.append('仓位{} -> {}'.format(self.prePos, self.pos))
+        textList.append('手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+        textList.append('**********************')
         # print(u'\n'.join(textList))
-        return u'\n'.join(textList)
+        return '\n'.join(textList)
 
     def loadBarOnInit(self):
         """
         常规加载
         :return:
         """
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -1223,9 +1223,9 @@ class CtaTemplate(vtCtaTemplate):
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
 
 ########################################################################
@@ -1270,7 +1270,7 @@ class BarManager(VtBarManager):
         if self.lastTick is None and not self.strategy.isBackTesting():
             # 第一个 tick 就比当前时间偏离，则
             if abs((tick.datetime - arrow.now().datetime).total_seconds()) > 60 * 10:
-                self.log.warning(u'剔除异常 tick {}'.format(tick.datetime))
+                self.log.warning('剔除异常 tick {}'.format(tick.datetime))
                 return
 
         # 剔除错误数据
@@ -1279,7 +1279,7 @@ class BarManager(VtBarManager):
             # 20分钟是早盘10:15 ~ 10:30 的休市时间
             # CTA 策略默认使用比较活跃的合约
             # 中午休市的时候必须重启服务，否则的话 lastTick 和 新tick之间的跨度会过大
-            self.log.warning(u'剔除错误数据 {} {}'.format(self.lastTick.datetime, tick.datetime))
+            self.log.warning('剔除错误数据 {} {}'.format(self.lastTick.datetime, tick.datetime))
             return
 
         # 更新 bar

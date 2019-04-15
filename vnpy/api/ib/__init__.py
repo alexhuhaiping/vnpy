@@ -1,3 +1,3 @@
 # encoding: UTF-8
 
-from vnib import *
+from .vnib import *

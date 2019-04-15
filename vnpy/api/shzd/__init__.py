@@ -1,3 +1,3 @@
 # encoding: UTF-8
 
-from vnshzd import ShzdApi
+from .vnshzd import ShzdApi

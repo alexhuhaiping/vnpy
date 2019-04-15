@@ -6,7 +6,7 @@
 意在构建一个小盈多赢的震荡策略。
 """
 
-from __future__ import division
+
 
 import traceback
 from collections import OrderedDict
@@ -27,7 +27,7 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 class OscillationAtrChannelStrategy(CtaTemplate):
     """震荡策略"""
     className = 'OscillationAtrChannelStrategy'
-    author = u'lamter'
+    author = 'lamter'
 
     # 策略参数
     flinch = 2  # 连胜 flinch 次后使用轻仓
@@ -78,12 +78,12 @@ class OscillationAtrChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -103,9 +103,9 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         # self.log.info(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         if self.stop is None:
             self.updateStop()
@@ -117,26 +117,26 @@ class OscillationAtrChannelStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             if self.xminBar and self.am and self.inited and self.trading:
                 if tt.get_trading_status(self.vtSymbol) == tt.continuous_auction:
                     # 已经进入连续竞价的阶段，直接下单
-                    self.log.info(u'已经处于连续竞价阶段')
+                    self.log.info('已经处于连续竞价阶段')
                     waistSeconds = 5
                 else:  # 还没进入连续竞价，使用一个定时器
-                    self.log.info(u'尚未开始连续竞价')
+                    self.log.info('尚未开始连续竞价')
                     moment = waitToContinue(self.vtSymbol, arrow.now().datetime)
                     wait = (moment - arrow.now().datetime)
                     waistSeconds = wait.total_seconds() - 2
-                    self.log.info(u'now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
+                    self.log.info('now:{} {}后进入连续交易, 需要等待 {}'.format(arrow.now().datetime, moment, wait))
 
                 # 提前2秒下停止单
                 Timer(waistSeconds, self._orderOnStart).start()
             else:
                 self.log.warning(
-                    u'无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
+                    '无法确认条件单的时机 {} {} {} {}'.format(not self.xminBar, not self.am, not self.inited, not self.trading))
 
             # 实盘，可以存库。
             self.saving = True
@@ -153,7 +153,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
         # self.saveDB()
 
@@ -207,7 +207,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
-        self.log.info(u'更新 XminBar {}'.format(xminBar.datetime))
+        self.log.info('更新 XminBar {}'.format(xminBar.datetime))
 
     def orderOnXminBar(self, bar):
         """
@@ -217,7 +217,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         :return:
         """
         if not self.trading:
-            self.log.warn(u'不能下单 trading: False')
+            self.log.warn('不能下单 trading: False')
             return
 
         # 下单前先撤单
@@ -227,7 +227,7 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         self.updateHands()
 
         if self.hands == 0:
-            self.log.info(u'开仓hands==0，不下单')
+            self.log.info('开仓hands==0，不下单')
             return
 
         # 当前无仓位，发送开仓委托
@@ -251,9 +251,9 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            for k, v in order.rawData.items():
-                log(u'{} {}'.format(k, v))
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+            for k, v in list(order.rawData.items()):
+                log('{} {}'.format(k, v))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -277,21 +277,21 @@ class OscillationAtrChannelStrategy(CtaTemplate):
         profile = self.capital - preCapital
 
         if not self.isBackTesting():
-            textList = [u'{}{}'.format(trade.direction, trade.offset)]
-            textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-            textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-            textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
+            textList = ['{}{}'.format(trade.direction, trade.offset)]
+            textList.append('资金变化 {} -> {}'.format(originCapital, self.capital))
+            textList.append('仓位{} -> {}'.format(self.prePos, self.pos))
+            textList.append('手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
             textList.append(
-                u','.join([u'{} {}'.format(k, v) for k, v in self.positionDetail.toHtml().items()])
+                ','.join(['{} {}'.format(k, v) for k, v in list(self.positionDetail.toHtml().items())])
             )
 
-            self.log.info(u'\n'.join(textList))
+            self.log.info('\n'.join(textList))
         if self.isBackTesting():
             if self.capital <= 0:
                 # 回测中爆仓了
                 self.capital = 0
 
-        log = u'{} {} {} {} {} {} {} {}'.format(round(self.atr, 2), self.pos, trade.direction, trade.offset, trade.price,
+        log = '{} {} {} {} {} {} {} {}'.format(round(self.atr, 2), self.pos, trade.direction, trade.offset, trade.price,
                                                  trade.volume, profile, self.rtBalance)
         self.log.warning(log)
 
@@ -370,8 +370,8 @@ class OscillationAtrChannelStrategy(CtaTemplate):
                 try:
                     setattr(self, k, document[k])
                 except KeyError:
-                    self.log.warning(u'未保存的key {}'.format(k))
+                    self.log.warning('未保存的key {}'.format(k))
 
     def updateStop(self):
-        self.log.info(u'调整风险投入')
+        self.log.info('调整风险投入')
         self.stop = self.capital * self.risk

@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 from vnpy.trader import vtConstant
-from ltsGateway import LtsGateway
+from .ltsGateway import LtsGateway
 
 gatewayClass = LtsGateway
 gatewayName = 'LTS'

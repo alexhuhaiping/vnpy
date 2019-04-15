@@ -10,7 +10,7 @@ import os
 import decimal
 import arrow
 import time
-import ConfigParser
+import configparser
 import datetime
 import pytz
 import tradingtime as tt
@@ -34,7 +34,7 @@ def safeUnicode(value):
         if abs(d.as_tuple().exponent) > MAX_DECIMAL:
             value = round(value, ndigits=MAX_DECIMAL)
 
-    return unicode(value)
+    return str(value)
 
 
 # ----------------------------------------------------------------------
@@ -151,7 +151,7 @@ def logDate(strateDate, endDate):
 
 
 
-class VnpyConfigParser(ConfigParser.SafeConfigParser):
+class VnpyConfigParser(configparser.SafeConfigParser):
     def optionxform(self, optionstr):
         return optionstr
     def typeitems(self, section):
@@ -181,12 +181,12 @@ class VnpyConfigParser(ConfigParser.SafeConfigParser):
                 o = o[1:-1]
             return o
 
-        return tuple((s, turn(o)) for s, o in (ConfigParser.SafeConfigParser).items(self, section))
+        return tuple((s, turn(o)) for s, o in (configparser.SafeConfigParser).items(self, section))
 
 def loadConfigIni(settingFileInit):
     setting = VnpyConfigParser()
 
-    with open(settingFileInit, 'rb') as f:
-        setting.readfp(f)
+    with open(settingFileInit, 'r') as f:
+        setting.read_file(f)
 
     return setting

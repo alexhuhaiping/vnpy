@@ -18,7 +18,7 @@ from vnpy.trader.vtFunction import getJsonPath, getTempPath
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = 1
 priceTypeMap[PRICETYPE_MARKETPRICE] = 2
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 sideMap = {}
@@ -28,21 +28,21 @@ sideMap[(DIRECTION_LONG, OFFSET_OPEN)] = 3
 sideMap[(DIRECTION_SHORT, OFFSET_OPEN)] = 4
 sideMap[(DIRECTION_LONG, OFFSET_CLOSE)] = 5
 sideMap[(DIRECTION_SHORT, OFFSET_CLOSE)] = 6
-sideMapReverse = {v: k for k, v in sideMap.items()}
+sideMapReverse = {v: k for k, v in list(sideMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
 exchangeMap[EXCHANGE_SSE] = 1
 exchangeMap[EXCHANGE_SZSE] = 2
 exchangeMap[EXCHANGE_UNKNOWN] = 3
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 市场类型映射
 marketMap = {}
 marketMap[EXCHANGE_UNKNOWN] = 0
 marketMap[EXCHANGE_SZSE] = 1
 marketMap[EXCHANGE_SSE] = 2
-marketMapReverse = {v:k for k,v in marketMap.items()}
+marketMapReverse = {v:k for k,v in list(marketMap.items())}
 
 # 持仓类型映射
 #posiDirectionMap = {}
@@ -115,7 +115,7 @@ class XtpGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -133,7 +133,7 @@ class XtpGateway(VtGateway):
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'连接配置缺少字段，请检查'
+            log.logContent = '连接配置缺少字段，请检查'
             self.onLog(log)
             return            
         
@@ -258,7 +258,7 @@ class XtpMdApi(QuoteApi):
         self.loginStatus = False
         self.gateway.mdConnected = False
     
-        content = (u'行情服务器连接断开，原因：%s' %reason)
+        content = ('行情服务器连接断开，原因：%s' %reason)
         self.writeLog(content)
         
     #----------------------------------------------------------------------
@@ -358,13 +358,13 @@ class XtpMdApi(QuoteApi):
                 self.connectionStatus = True
                 self.loginStatus = True
                 self.gateway.mdConnected = True
-                self.writeLog(u'行情服务器登录成功')
+                self.writeLog('行情服务器登录成功')
                 
-                self.writeLog(u'查询合约信息')
+                self.writeLog('查询合约信息')
                 self.queryAllTickers(1)         # 上交所
                 self.queryAllTickers(2)         # 深交所
             else:
-                self.writeLog(u'行情服务器登录失败，原因:%s' %n)
+                self.writeLog('行情服务器登录失败，原因:%s' %n)
         
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq):
@@ -432,7 +432,7 @@ class XtpTdApi(TraderApi):
         self.loginStatus = False
         self.gateway.tdConnected = False
     
-        content = (u'交易服务器连接断开，原因：%s' %reason)
+        content = ('交易服务器连接断开，原因：%s' %reason)
         self.writeLog(content)
         
     #----------------------------------------------------------------------
@@ -498,7 +498,7 @@ class XtpTdApi(TraderApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['error_id']
-            err.errorMsg = u'委托号' + str(order.orderID) + ':' + error['error_msg'].decode('gbk')
+            err.errorMsg = '委托号' + str(order.orderID) + ':' + error['error_msg'].decode('gbk')
             err.errorTime = order.orderTime
             self.gateway.onError(err)           
         
@@ -557,7 +557,7 @@ class XtpTdApi(TraderApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['error_id']
-            err.errorMsg = u'委托号' + str(data['order_xtp_id']) + ':' + error['error_msg'].decode('gbk')
+            err.errorMsg = '委托号' + str(data['order_xtp_id']) + ':' + error['error_msg'].decode('gbk')
             self.gateway.onError(err)   
         
     #----------------------------------------------------------------------
@@ -642,9 +642,9 @@ class XtpTdApi(TraderApi):
                 self.connectionStatus = True
                 self.loginStatus = True
                 self.gateway.tdConnected = True
-                self.writeLog(u'交易服务器登录成功，会话编号：%s' %n)
+                self.writeLog('交易服务器登录成功，会话编号：%s' %n)
             else:
-                self.writeLog(u'交易服务器登录失败')             
+                self.writeLog('交易服务器登录失败')             
         
     #----------------------------------------------------------------------
     def qryAccount(self):

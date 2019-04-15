@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from vnoanda import OandaApi
+from .vnoanda import OandaApi
 
     
 if __name__ == '__main__':
@@ -102,4 +102,4 @@ if __name__ == '__main__':
     #api.getAutochartist({'instrument': 'EUR_USD'})
     
     # 阻塞
-    input()    
+    eval(input())    

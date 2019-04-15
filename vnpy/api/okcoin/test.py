@@ -1,6 +1,6 @@
 # encoding: UTF-8
 
-from vnokcoin import *
+from .vnokcoin import *
 
 # 在OkCoin网站申请这两个Key，分别对应用户名和密码
 apiKey = ''
@@ -44,4 +44,4 @@ api.subscribeSpotDepth(SYMBOL_BTC, DEPTH_20)
 #api.futureCancelOrder(symbol, expiry, orderid)
 #api.futureOrderInfo(symbol, expiry, orderid, status, page, length)
 
-raw_input()
+input()

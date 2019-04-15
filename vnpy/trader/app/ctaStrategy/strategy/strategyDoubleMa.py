@@ -11,7 +11,7 @@
 也希望社区能做出一个解决了以上潜在风险的Demo出来。
 """
 
-from __future__ import division
+
 
 #from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING, EMPTY_FLOAT
@@ -24,7 +24,7 @@ from vnpy.trader.app.ctaStrategy.ctaTemplate import (CtaTemplate,
 class DoubleMaStrategy(CtaTemplate):
     """双指数均线策略Demo"""
     className = 'DoubleMaStrategy'
-    author = u'用Python的交易员'
+    author = '用Python的交易员'
     
     # 策略参数
     fastWindow = 10     # 快速均线参数
@@ -71,7 +71,7 @@ class DoubleMaStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'双EMA演示策略初始化')
+        self.writeCtaLog('双EMA演示策略初始化')
         
         initData = self.loadBar(self.initDays)
         for bar in initData:
@@ -82,13 +82,13 @@ class DoubleMaStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'双EMA演示策略启动')
+        self.writeCtaLog('双EMA演示策略启动')
         self.putEvent()
     
     #----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'双EMA演示策略停止')
+        self.writeCtaLog('双EMA演示策略停止')
         self.putEvent()
         
     #----------------------------------------------------------------------

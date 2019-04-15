@@ -25,15 +25,15 @@ def main():
 
 
     ee = EventEngine2()
-    ee.log.info(u'===================')
-    ee.log.info(u'事件引擎创建成功')
+    ee.log.info('===================')
+    ee.log.info('事件引擎创建成功')
 
     me = MainEngine(ee)
-    me.log.info(u'主引擎创建成功')
+    me.log.info('主引擎创建成功')
 
     @exception
     def shutdownFunction(signalnum, frame):
-        me.log.info(u'系统即将关闭')
+        me.log.info('系统即将关闭')
         me.exit()
 
     for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
@@ -46,25 +46,25 @@ def main():
 
     me.addGateway(ctpGateway)
     me.addApp(ctaStrategy)
-    me.log.info(u'启动网页UI')
+    me.log.info('启动网页UI')
     me.addApp(webUI)  # 网页UI
     me.addApp(riskManager) # 风控模块
 
     me.connect('CTP')
-    me.log.info(u'连接CTP接口')
+    me.log.info('连接CTP接口')
 
     sleep(5)  # 等待CTP接口初始化
 
     cta = me.appDict[ctaStrategy.appName]
 
     cta.loadSetting()
-    cta.log.info(u'CTA策略载入成功')
+    cta.log.info('CTA策略载入成功')
 
     cta.initAll()
-    cta.log.info(u'CTA策略初始化成功')
+    cta.log.info('CTA策略初始化成功')
 
     cta.startAll()
-    cta.log.info(u'CTA策略启动成功')
+    cta.log.info('CTA策略启动成功')
 
     me._active = True
     me.run_forever()

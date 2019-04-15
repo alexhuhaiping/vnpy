@@ -58,7 +58,7 @@ tmp/
 vn.trader/
 tmp/
 temp/
-vnpy/api/ctp/
+# vnpy/api/ctp/
 *-info/
 CTA_setting.json
 CTP_connect.json

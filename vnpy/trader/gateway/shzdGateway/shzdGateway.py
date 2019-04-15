@@ -25,13 +25,13 @@ from vnpy.trader.vtFunction import getJsonPath
 priceTypeMap = {}
 priceTypeMap[PRICETYPE_LIMITPRICE] = '1'
 priceTypeMap[PRICETYPE_MARKETPRICE] = '2'
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())} 
 
 # 方向类型映射
 directionMap = {}
 directionMap[DIRECTION_LONG] = '1'
 directionMap[DIRECTION_SHORT] = '2'
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
@@ -39,13 +39,13 @@ exchangeMap[EXCHANGE_HKEX] = 'HKEX'
 exchangeMap[EXCHANGE_CME] = 'CME'
 exchangeMap[EXCHANGE_ICE] = 'ICE'
 exchangeMap[EXCHANGE_LME] = 'LME'
-exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
+exchangeMapReverse = {v:k for k,v in list(exchangeMap.items())}
 
 # 产品类型映射
 productClassMap = {}
 productClassMap[PRODUCT_FUTURES] = 'F'
 productClassMap[PRODUCT_OPTION] = 'O'
-productClassMapReverse = {v:k for k,v in productClassMap.items()}
+productClassMapReverse = {v:k for k,v in list(productClassMap.items())}
 
 # 委托状态映射
 orderStatusMapReverse = {}
@@ -80,7 +80,7 @@ class ShzdGateway(VtGateway):
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
-            log.logContent = u'读取连接配置出错，请检查'
+            log.logContent = '读取连接配置出错，请检查'
             self.onLog(log)
             return
         
@@ -94,7 +94,7 @@ class ShzdGateway(VtGateway):
             userId = str(setting['userId'])
             userPwd = str(setting['userPwd'])
         except KeyError:
-            self.writeLog(u'连接配置缺少字段，请检查')
+            self.writeLog('连接配置缺少字段，请检查')
             return            
         
         # 创建行情和交易接口对象
@@ -333,10 +333,10 @@ class ShzdGatewayApi(ShzdApi):
             self.accountNoList.append(data['11'])
 
             self.loginStatus = True
-            self.gateway.writeLog(u'账户%s，结算货币%s' %(data['11'], data['200']))
+            self.gateway.writeLog('账户%s，结算货币%s' %(data['11'], data['200']))
             
         if '410' in data and data['410'] == '1':
-            self.gateway.writeLog(u'登录成功')
+            self.gateway.writeLog('登录成功')
             #self.qryContract()
             self.qryOrder()
             self.qryTrade()
@@ -379,7 +379,7 @@ class ShzdGatewayApi(ShzdApi):
             error = VtErrorData()
             error.gatewayName = self.gatewayName
             error.errorID = data['404']
-            error.errorMsg = u'委托失败'
+            error.errorMsg = '委托失败'
             self.gateway.onError(error)        
     
     #----------------------------------------------------------------------
@@ -396,7 +396,7 @@ class ShzdGatewayApi(ShzdApi):
             error = VtErrorData()
             error.gatewayName = self.gatewayName
             error.errorID = data['404']
-            error.errorMsg = u'撤单失败'
+            error.errorMsg = '撤单失败'
             self.gateway.onError(error)
 
     #----------------------------------------------------------------------
@@ -425,7 +425,7 @@ class ShzdGatewayApi(ShzdApi):
             self.gateway.onTrade(trade)    
             
         elif '410' in data and data['410'] == '1':
-            self.gateway.writeLog(u'成交查询完成')        
+            self.gateway.writeLog('成交查询完成')        
   
     #----------------------------------------------------------------------
     def onOrder(self, data):
@@ -450,7 +450,7 @@ class ShzdGatewayApi(ShzdApi):
             error = VtErrorData()
             error.gatewayName = self.gatewayName
             error.errorID = data['404']
-            error.errorMsg = u'查询委托失败'
+            error.errorMsg = '查询委托失败'
             self.gateway.onError(error)          
         
         elif '410' not in data and '307' in data:
@@ -480,7 +480,7 @@ class ShzdGatewayApi(ShzdApi):
             self.gateway.onOrder(copy(order))     
             
         elif '410' in data and data['410'] == '1':
-            self.gateway.writeLog(u'委托查询完成')        
+            self.gateway.writeLog('委托查询完成')        
     
     #----------------------------------------------------------------------
     def onQryPosition(self, data):
@@ -520,7 +520,7 @@ class ShzdGatewayApi(ShzdApi):
         
         # 所有持仓数据推送完成后才向事件引擎中更新持仓数据
         if '410' in data and data['410'] == '1':
-            for pos in self.posDict.values():
+            for pos in list(self.posDict.values()):
                 self.gateway.onPosition(pos)
     
     #----------------------------------------------------------------------
@@ -563,7 +563,7 @@ class ShzdGatewayApi(ShzdApi):
                 self.gateway.onContract(contract)
         
         if '410' in data and data['410'] == '1':
-            self.gateway.writeLog(u'合约查询完成')
+            self.gateway.writeLog('合约查询完成')
 
     #----------------------------------------------------------------------
     def connect(self, userId, userPwd, 
@@ -575,27 +575,27 @@ class ShzdGatewayApi(ShzdApi):
         # 初始化接口
         n = self.initShZdServer()
         if n:
-            self.gateway.writeLog(u'接口初始化失败，原因%s' %n)
+            self.gateway.writeLog('接口初始化失败，原因%s' %n)
             return
         else:
-            self.gateway.writeLog(u'接口初始化成功')
+            self.gateway.writeLog('接口初始化成功')
         self.inited = True
 
         # 连接交易服务器
         n = self.registerFront(frontAddress, frontPort)
         if n:
-            self.gateway.writeLog(u'交易服务器连接失败，原因%s' %n)
+            self.gateway.writeLog('交易服务器连接失败，原因%s' %n)
             return
         else:
-            self.gateway.writeLog(u'交易服务器连接成功')        
+            self.gateway.writeLog('交易服务器连接成功')        
 
         # 连接行情服务器
         n = self.registerMarket(marketAddress, marketPort)
         if n:
-            self.gateway.writeLog(u'行情服务器连接失败，原因%s' %n)
+            self.gateway.writeLog('行情服务器连接失败，原因%s' %n)
             return
         else:
-            self.gateway.writeLog(u'行情服务器连接成功')
+            self.gateway.writeLog('行情服务器连接成功')
 
         # 登录
         req = {}
@@ -682,7 +682,7 @@ class ShzdGatewayApi(ShzdApi):
         self.shzdSendInfoToTrade(req)
         
         # 清空持仓数据
-        for pos in self.posDict.values():
+        for pos in list(self.posDict.values()):
             pos.price = 0
             pos.position = 0
     
@@ -721,9 +721,9 @@ class ShzdGatewayApi(ShzdApi):
 #----------------------------------------------------------------------
 def printDict(d):
     """打印字典"""
-    print '-' * 50
-    l = d.keys()
+    print('-' * 50)
+    l = list(d.keys())
     l.sort()
     for k in l:
-        print k, ':', d[k]
+        print(k, ':', d[k])
     

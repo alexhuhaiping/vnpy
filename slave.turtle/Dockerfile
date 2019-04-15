@@ -1,13 +1,11 @@
-FROM vnpy:origin
+FROM vnpy:1.7
 
 COPY . /srv/vnpy
 
-RUN cd /srv/vnpy \
-    && pip install -r requirements.txt \
-    && pip install gevent \
-    && pip install -e . \
-    && pip install --upgrade tradingtime log4mongo slavem \
+RUN echo "更新镜像" \
+    && cd ~ \
+    && rm -rf /srv/vnpy \
     && rm -rf /var/lib/apt/lists/* \
     && echo "更新镜像结束"
 
-WORKDIR /srv/vnpy
+WORKDIR /srv/vnpy/slave.turtle

@@ -1,3 +1,3 @@
 # encoding: UTF-8
 
-from vnlhang import LhangApi
+from .vnlhang import LhangApi

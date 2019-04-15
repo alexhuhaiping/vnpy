@@ -1,11 +1,11 @@
 # coding:utf-8
 
 import os
-from Queue import Empty, Full
+from queue import Empty, Full
 import threading
 import pytz
 from bson.codec_options import CodecOptions
-import ConfigParser
+import configparser
 import time
 import logging.config
 import multiprocessing
@@ -20,7 +20,7 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from runBacktesting import runBacktesting
+from .runBacktesting import runBacktesting
 
 # 读取日志配置文件
 loggingConFile = 'logging.conf'
@@ -44,7 +44,7 @@ class OptimizeService(object):
         self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.readfp(f)
@@ -232,7 +232,7 @@ class OptimizeService(object):
         settingList = [s for s in cursor.limit(limitNum)]
         for setting in settingList:
             count += 1
-            self.log.info(u'{} / {}'.format(count, total))
+            self.log.info('{} / {}'.format(count, total))
             self.finishTasksIDSet.add(setting['_id'])
             # 一次最多只能放8个
             while self.active:
@@ -348,7 +348,7 @@ class Optimization(multiprocessing.Process):
             engine.showDailyResult()
             engine.showBacktestingResult()
         except:
-            print(vtSymbol, setting['optsv'])
+            print((vtSymbol, setting['optsv']))
             self.log('error', traceback.format_exc())
             raise
 

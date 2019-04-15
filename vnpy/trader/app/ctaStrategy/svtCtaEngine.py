@@ -16,8 +16,6 @@
    的定制化统结构（没错，得自己写）
 '''
 
-from __future__ import division
-
 import time
 import traceback
 import datetime
@@ -51,6 +49,7 @@ class CtaEngine(VtCtaEngine):
     """CTA策略引擎"""
     settingFileName = 'CTA_setting.ini'
     settingfilePath = getJsonPath(settingFileName, __file__)
+
     def __init__(self, mainEngine, eventEngine):
         self.accounts = {}  # {accountID: vtAccount}
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
@@ -196,7 +195,7 @@ class CtaEngine(VtCtaEngine):
                 bar.open = preKline.open
                 bar.low = min(preKline.low, bar.low)
                 bar.volume += preKline.volume
-                preKline = None 
+                preKline = None
             l.append(bar)
 
         return l
@@ -215,9 +214,8 @@ class CtaEngine(VtCtaEngine):
             strategy.inited = False
             traceback.print_exc()
             # 发出日志
-            preMsg = u'策略{}触发异常已停止'.format(strategy.name)
-            errMsg = traceback.format_exc()
-            content = u'{}\n{}'.format(preMsg, errMsg.decode('utf-8'))
+            preMsg = '策略{}触发异常已停止'.format(strategy.name)
+            content = f'{preMsg}\n{traceback.format_exc()}'
             self.log.error(content)
 
     def processStopOrder(self, tick):
@@ -262,16 +260,17 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = u'{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
-                                                          so.price,
-                                                          so.volume)
-                        self.log.info(u'触发停止单 {}'.format(log))
+                        log = '{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
+                                                         so.price,
+                                                         so.volume)
+                        self.log.info('触发停止单 {}'.format(log))
 
                         if so.volume != 0:
                             so.strategy.setStopOrdering()  # 停止单锁定
                             vtOrderIDList = self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
                             for vtOrderID in vtOrderIDList:
-                                self.log.info(u'stopPriceSlippage - vtOrderID: {} so.price: {}'.format(vtOrderID, so.price))
+                                self.log.info(
+                                    'stopPriceSlippage - vtOrderID: {} so.price: {}'.format(vtOrderID, so.price))
                                 self.stopPriceSlippage[vtOrderID] = so.price
                                 so.vtOrderID = vtOrderID
 
@@ -332,7 +331,7 @@ class CtaEngine(VtCtaEngine):
         shortOpenStopOrders = []
         longCloseStopOrders = []
         stopOrders = []
-        soBySymbols = [so for so in self.workingStopOrderDict.values() if so.vtSymbol == vtSymbol]
+        soBySymbols = [so for so in list(self.workingStopOrderDict.values()) if so.vtSymbol == vtSymbol]
 
         for so in soBySymbols:
             if so.direction == DIRECTION_LONG:
@@ -351,7 +350,7 @@ class CtaEngine(VtCtaEngine):
                     longCloseStopOrders.append(so)
             else:
                 stopOrders.append(so)
-                self.log.error(u'未知的停止单方向 {}'.format(so.direction))
+                self.log.error('未知的停止单方向 {}'.format(so.direction))
 
         # 根据触发价排序，优先触发更优的
         # 买开
@@ -512,17 +511,48 @@ class CtaEngine(VtCtaEngine):
             # 查询手续费率
             ctpGatway.qryQueue.put((self._qryCommissionFromStrategy, (s,)))
 
+        self.checkContract()
+
+    def checkContract(self):
+        usList = set()
+        for s in self.strategyDict.values():
+            us = tt.contract2name(s.vtSymbol)
+            usList.add(us)
+
+        activeContractDic = {}
+        for us in usList:
+            # 查找品种的所有合约
+            cursor = self.contractCol.find(
+                {'underlyingSymbol': us, 'activeEndDate': {'$ne': None}},
+                {'_id': 0, 'symbol': 1, 'vtSymbol': 1, 'activeEndDate': 1, 'underlyingSymbol': 1}
+                                           )
+            contract = [c for c in cursor]
+            # 找出主力合约
+            activeContract = contract[0]
+            for c in contract[1:]:
+                if c['activeEndDate'] > activeContract['activeEndDate']:
+                    activeContract = c
+            # 缓存主力合约
+            activeContractDic[activeContract['underlyingSymbol']] = activeContract
+
+        # 对比策略使用的合约是否是主力合约
+        for s in self.strategyDict.values():
+            us = tt.contract2name(s.vtSymbol)
+            vtSymbol = activeContractDic[us]['vtSymbol']
+            if s.vtSymbol != vtSymbol:
+                self.log.warning(f'{s.name}:{s.vtSymbol} 使用的不是主力合约 {vtSymbol}')
+
     def loadMarginRate(self, s, dic):
         vm = VtMarginRate()
         vm.loadFromContract(dic)
         s.setMarginRate(vm)
-        self.log.debug(u'预加载保证金率 {} {}'.format(s.vtSymbol, vm.marginRate))
+        self.log.debug('预加载保证金率 {} {}'.format(s.vtSymbol, vm.marginRate))
 
     def loadCommissionRate(self, s, dic):
         vc = VtCommissionRate()
         vc.loadFromContract(dic)
         s.setCommissionRate(vc)
-        self.log.debug(u'预加载手续费率 {}'.format(s.vtSymbol))
+        self.log.debug('预加载手续费率 {}'.format(s.vtSymbol))
 
     def _qryMarginFromStrategy(self, s):
         """
@@ -533,7 +563,7 @@ class CtaEngine(VtCtaEngine):
         if not s.isNeedUpdateMarginRate:
             # 不需要更新保证金
             return
-        self.log.info(u'查询保证金 {}'.format(s.vtSymbol))
+        self.log.info('查询保证金 {}'.format(s.vtSymbol))
         self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
@@ -549,7 +579,7 @@ class CtaEngine(VtCtaEngine):
         if not s.isNeedUpdateCommissionRate:
             # 不需要更新手续费
             return
-        self.log.info(u'查询手续费 {}'.format(s.vtSymbol))
+        self.log.info('查询手续费 {}'.format(s.vtSymbol))
         self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
@@ -562,10 +592,10 @@ class CtaEngine(VtCtaEngine):
         :return:
         """
         self.active = False
-        self.log.info(u'CTA engine 即将关闭……')
+        self.log.info('CTA engine 即将关闭……')
         self.stopAll()
 
-        self.log.info(u'停止心跳')
+        self.log.info('停止心跳')
         self.mainEngine.slavemReport.endHeartBeat()
 
     def savePosition(self, strategy):
@@ -584,14 +614,14 @@ class CtaEngine(VtCtaEngine):
 
         self.posCol.replace_one(flt, d, upsert=True)
 
-        content = u'策略%s持仓保存成功，当前持仓%s' % (strategy.name, strategy.pos)
+        content = '策略%s持仓保存成功，当前持仓%s' % (strategy.name, strategy.pos)
         self.log.info(content)
         self.writeCtaLog(content)
 
     # ----------------------------------------------------------------------
     def loadPosition(self):
         """从数据库载入策略的持仓情况"""
-        for strategy in self.strategyDict.values():
+        for strategy in list(self.strategyDict.values()):
             flt = {'name': strategy.name,
                    'className': strategy.className,
                    'vtSymbol': strategy.vtSymbol}
@@ -602,11 +632,11 @@ class CtaEngine(VtCtaEngine):
             try:
                 strategy.pos = self.posCol.find_one(flt)['pos']
             except TypeError:
-                self.log.info(u'{name} 该策略没有持仓'.format(**flt))
+                self.log.info('{name} 该策略没有持仓'.format(**flt))
 
     def loadStrategy(self, setting):
         r = super(CtaEngine, self).loadStrategy(setting)
-        for s in self.strategyDict.values():
+        for s in list(self.strategyDict.values()):
             self.strategyByVtSymbol[s.vtSymbol].add(s)
 
         return r
@@ -618,7 +648,7 @@ class CtaEngine(VtCtaEngine):
         # 通常会提前10分钟启动，至此策略加载完毕处于运作状态
         # 心跳要等到10分钟后开始接受行情才会触发心跳
         now = time.time()
-        self.log.info(u'启动汇报')
+        self.log.info('启动汇报')
         self.mainEngine.slavemReport.lanuchReport()
 
         def foo():
@@ -715,12 +745,12 @@ class CtaEngine(VtCtaEngine):
             # 订阅合约
             contract = self.mainEngine.getContract(symbol)
             if not contract:
-                err = u'找不到维持心跳的合约 {}'.format(symbol)
+                err = '找不到维持心跳的合约 {}'.format(symbol)
                 self.log.critical(err)
                 time.sleep(1)
                 raise ValueError(err)
 
-            self.log.info(u'订阅维持心跳的合约 {}'.format(symbol))
+            self.log.info('订阅维持心跳的合约 {}'.format(symbol))
             self.heatbeatSymbols.append(symbol)
 
             req = VtSubscribeReq()
@@ -737,15 +767,15 @@ class CtaEngine(VtCtaEngine):
         self.mainEngine.subscribe(req, contract.gatewayName)
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
-        log = u'{} 停止单 {} {} {} {} {}'.format(vtSymbol, strategy.name, orderType, price, volume, stopProfile)
+        log = '{} 停止单 {} {} {} {} {}'.format(vtSymbol, strategy.name, orderType, price, volume, stopProfile)
         if volume == 0:
-            self.log.warning(u'下单手数为0 {}'.format(log))
+            self.log.warning('下单手数为0 {}'.format(log))
         else:
             self.log.info(log)
         return super(CtaEngine, self).sendStopOrder(vtSymbol, orderType, price, volume, strategy, stopProfile)
 
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        log = u'{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
+        log = '{} 限价单 {} {} {} {} '.format(vtSymbol, strategy.name, orderType, price, volume)
         if volume == 0:
             self.log.warning(log)
         else:
@@ -759,7 +789,7 @@ class CtaEngine(VtCtaEngine):
                 time.sleep(3)
 
         if not vtOrderIDList:
-            self.log.warning(u'vtOrderID 为空，检查是否有限价单无法自动撤单\n{}'.format(log))
+            self.log.warning('vtOrderID 为空，检查是否有限价单无法自动撤单\n{}'.format(log))
 
         contract = self.mainEngine.getContract(vtSymbol)
         _price = self.roundToPriceTick(contract.priceTick, price)
@@ -815,16 +845,15 @@ class CtaEngine(VtCtaEngine):
         dt = dic['datetime']
 
         if not dt.tzinfo:
-            t = u'成交单 {} {} 没有时区'.format(trade.symbol, dt)
+            t = '成交单 {} {} 没有时区'.format(trade.symbol, dt)
             raise ValueError(t)
         td = dic['tradingDay']
         if td is None:
-            t = u'成交单 {} {} 没有交易日'.format(trade.symbol, dt)
+            t = '成交单 {} {} 没有交易日'.format(trade.symbol, dt)
             raise ValueError(t)
         dic['class'] = strategy.className
         dic['name'] = strategy.name
         dic['pos'] = strategy.pos
-
 
         self.saveTrade(dic)
         # 监控滑点问题
@@ -844,7 +873,7 @@ class CtaEngine(VtCtaEngine):
             # 间隔时间不够
             return
 
-        for vtSymbol, strategySet in self.strategyByVtSymbol.items():
+        for vtSymbol, strategySet in list(self.strategyByVtSymbol.items()):
             self._checkPositionBySymbol(vtSymbol, strategySet)
 
             # for s in self.strategyDict.values():
@@ -857,35 +886,35 @@ class CtaEngine(VtCtaEngine):
         def errorHandler(err):
             countDic[vtSymbol] += 1
             if countDic[vtSymbol] >= self.reportPosErrCount:
-                err = u'仓位异常 停止交易 {}'.format(err)
+                err = '仓位异常 停止交易 {}'.format(err)
                 for s in strategySet:
                     s.positionErrReport(err)
                     s.trading = False
                     # 全部撤单
                     s.cancelAll()
             else:
-                self.log.info(u'仓位出现异常次数 {}'.format(countDic[vtSymbol]))
-                self.log.info(u'{}'.format(err))
+                self.log.info('仓位出现异常次数 {}'.format(countDic[vtSymbol]))
+                self.log.info('{}'.format(err))
 
         # 仓位详情
         detail = self.mainEngine.dataEngine.getPositionDetail(vtSymbol)
-        posAmount = sum(map(lambda s: s.pos, strategySet))
+        posAmount = sum([s.pos for s in strategySet])
 
         if detail.longPos != detail.longYd + detail.longTd:
             # 多头仓位异常
-            err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=vtSymbol, **detail.__dict__)
+            err = '{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=vtSymbol, **detail.__dict__)
             errorHandler(err)
 
         elif detail.shortPos != detail.shortYd + detail.shortTd:
             # 空头仓位异常
-            err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=vtSymbol,
-                                                                                           **detail.__dict__)
+            err = '{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=vtSymbol,
+                                                                                          **detail.__dict__)
             errorHandler(err)
 
         elif posAmount != detail.longPos - detail.shortPos:
-            err = u'{name} posAmount:{posAmount} longPos:{longPos} shortPos:{shortPos} '.format(name=vtSymbol,
-                                                                                                posAmount=posAmount,
-                                                                                                **detail.__dict__)
+            err = '{name} posAmount:{posAmount} longPos:{longPos} shortPos:{shortPos} '.format(name=vtSymbol,
+                                                                                               posAmount=posAmount,
+                                                                                               **detail.__dict__)
             errorHandler(err)
         else:
             # 没有异常，重置仓位异常次数
@@ -908,32 +937,32 @@ class CtaEngine(VtCtaEngine):
         def errorHandler(err):
             countDic[s] += 1
             if countDic[s] >= self.reportPosErrCount:
-                err = u'仓位异常 停止交易 {}'.format(err)
+                err = '仓位异常 停止交易 {}'.format(err)
                 s.positionErrReport(err)
                 s.trading = False
                 # 全部撤单
                 s.cancelAll()
             else:
-                self.log.info(u'仓位出现异常次数 {}'.format(countDic[s]))
-                self.log.info(u'{}'.format(err))
+                self.log.info('仓位出现异常次数 {}'.format(countDic[s]))
+                self.log.info('{}'.format(err))
 
         d = self.mainEngine.dataEngine.getPositionDetail(s.vtSymbol)
         assert isinstance(d, PositionDetail)
 
         if d.longPos != d.longYd + d.longTd:
             # 多头仓位异常
-            err = u'{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=s.name, **d.__dict__)
+            err = '{name} longPos:{longPos} longYd:{longYd} longTd:{longTd}'.format(name=s.name, **d.__dict__)
             errorHandler(err)
 
         elif d.shortPos != d.shortYd + d.shortTd:
             # 空头仓位异常
-            err = u'{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=s.name,
-                                                                                           **d.__dict__)
+            err = '{name} shortPos:{shortPos} shortYd:{shortYd} shortTd:{shortTd}'.format(name=s.name,
+                                                                                          **d.__dict__)
             errorHandler(err)
 
         elif s.pos != d.longPos - d.shortPos:
-            err = u'{name} s.pos:{pos} longPos:{longPos} shortPos:{shortPos} '.format(name=s.name, pos=s.pos,
-                                                                                      **d.__dict__)
+            err = '{name} s.pos:{pos} longPos:{longPos} shortPos:{shortPos} '.format(name=s.name, pos=s.pos,
+                                                                                     **d.__dict__)
             errorHandler(err)
         else:
             # 没有异常，重置仓位异常次数
@@ -971,7 +1000,7 @@ class CtaEngine(VtCtaEngine):
 
     def accountToHtml(self):
         datas = []
-        for account in self.accounts.values():
+        for account in list(self.accounts.values()):
             dic = account.__dict__.copy()
             if dic['balance'] != 0:
                 dic['marginRate'] = dic['margin'] / dic['balance']
@@ -980,22 +1009,22 @@ class CtaEngine(VtCtaEngine):
         return datas
 
     def cancelOrder(self, vtOrderID):
-        self.log.info(u'撤限价单 {}'.format(vtOrderID))
+        self.log.info('撤限价单 {}'.format(vtOrderID))
         try:
             self.vtOrderReqToShow.pop(vtOrderID)
         except KeyError:
             pass
         req = super(CtaEngine, self).cancelOrder(vtOrderID)
         if req is not None:
-            self.log.info(u'{} orderID:{}'.format(req.symbol, req.orderID))
+            self.log.info('{} orderID:{}'.format(req.symbol, req.orderID))
         return req
 
     def cancelStopOrder(self, stopOrderID):
         """撤销停止单"""
-        self.log.info(u'撤停止单')
+        self.log.info('撤停止单')
         so = super(CtaEngine, self).cancelStopOrder(stopOrderID)
         if so:
-            self.log.info(u'{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))
+            self.log.info('{} orderID:{}'.format(so.vtSymbol, so.stopOrderID))
 
     def processOrderError(self, event):
         """
@@ -1007,9 +1036,9 @@ class CtaEngine(VtCtaEngine):
         err = event.dict_['data']
         assert isinstance(err, VtErrorData)
 
-        log = u'报单错误\n'
-        log += u'errorID:{}\n'.format(err.errorID)
-        log += u'errorMsg:{}\n'.format(err.errorMsg)
-        log += u'additionalInfo:{}\n'.format(err.additionalInfo)
-        log += u'errorTime:{}\n'.format(err.errorTime)
+        log = '报单错误\n'
+        log += 'errorID:{}\n'.format(err.errorID)
+        log += 'errorMsg:{}\n'.format(err.errorMsg)
+        log += 'additionalInfo:{}\n'.format(err.additionalInfo)
+        log += 'errorTime:{}\n'.format(err.errorTime)
         self.log.error(log)

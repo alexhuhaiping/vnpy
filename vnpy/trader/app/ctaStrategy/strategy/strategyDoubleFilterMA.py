@@ -4,7 +4,7 @@
 做一条MA，然后MA上最近3个MA都是涨的， 并且最近两K线都是收阳， 就开多
 """
 
-from __future__ import division
+
 
 from threading import Timer
 from collections import OrderedDict
@@ -26,8 +26,8 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 ########################################################################
 class DoubleFilterMAStrategy(CtaTemplate):
     """日均线策略"""
-    className = u'二重过滤均线策略'
-    author = u'lamter'
+    className = '二重过滤均线策略'
+    author = 'lamter'
 
     barXmin = 60  # 1小时K线
     longBar = 55  # 5均线
@@ -65,12 +65,12 @@ class DoubleFilterMAStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onInit(self):
         """初始化策略（必须由用户继承实现）"""
-        self.writeCtaLog(u'%s策略初始化' % self.name)
+        self.writeCtaLog('%s策略初始化' % self.name)
 
         # 载入历史数据，并采用回放计算的方式初始化策略数值
         initData = self.loadBar(self.maxBarNum)
 
-        self.log.info(u'即将加载 {} 条 bar 数据'.format(len(initData)))
+        self.log.info('即将加载 {} 条 bar 数据'.format(len(initData)))
 
         self.initContract()
 
@@ -90,9 +90,9 @@ class DoubleFilterMAStrategy(CtaTemplate):
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
 
         if len(initData) >= self.maxBarNum:
-            self.log.info(u'初始化完成')
+            self.log.info('初始化完成')
         else:
-            self.log.info(u'初始化数据不足!')
+            self.log.info('初始化数据不足!')
 
         self.isCloseoutVaild = True
         self.putEvent()
@@ -101,7 +101,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
     @exception
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略启动' % self.name)
+        self.log.info('%s策略启动' % self.name)
 
         if not self.isBackTesting():
             # 实盘，可以存库。
@@ -112,7 +112,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
     # ----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
-        self.log.info(u'%s策略停止' % self.name)
+        self.log.info('%s策略停止' % self.name)
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -195,15 +195,15 @@ class DoubleFilterMAStrategy(CtaTemplate):
         log = self.log.info
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            message = u''
-            for k, v in order.rawData.items():
-                message += u'{}:{}\n'.format(k, v)
+            message = ''
+            for k, v in list(order.rawData.items()):
+                message += '{}:{}\n'.format(k, v)
             log(message)
 
             # 补发
             self.orderUntilTradingTime()
 
-        log(u'状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):

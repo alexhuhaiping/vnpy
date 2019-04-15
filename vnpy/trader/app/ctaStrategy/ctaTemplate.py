@@ -212,7 +212,7 @@ class TargetPosTemplate(CtaTemplate):
     """
 
     className = 'TargetPosTemplate'
-    author = u'量衍投资'
+    author = '量衍投资'
 
     # 目标持仓模板的基本变量
     tickAdd = 1  # 委托时相对基准价格的超价

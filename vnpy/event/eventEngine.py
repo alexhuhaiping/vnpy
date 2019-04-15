@@ -2,7 +2,7 @@
 
 # 系统模块
 import logging
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 from time import sleep
 from collections import defaultdict
@@ -13,11 +13,11 @@ try:
     # 第三方模块
     from qtpy.QtCore import QTimer
 except:
-    print(u'QTimer module not find')
+    print('QTimer module not find')
 
 
 # 自己开发的模块
-from eventType import *
+from .eventType import *
 
 
 ########################################################################
@@ -252,7 +252,7 @@ class EventEngine2(object):
                 try:
                     handler(event)
                 except Exception as e:
-                    self.log.error(u'{}'.format(e.message))
+                    self.log.error('{}'.format(e.message))
                     sleep(0.1)
                     raise
 
@@ -290,16 +290,16 @@ class EventEngine2(object):
     def stop(self):
         """停止引擎"""
         # 将引擎设为停止
-        self.log.info(u'即将关闭 EventEngine')
+        self.log.info('即将关闭 EventEngine')
         self.__active = False
         
         # 停止计时器
-        self.log.info(u'停止计时器')
+        self.log.info('停止计时器')
         self.__timerActive = False
         self.__timer.join()
 
         # 等待事件处理线程退出
-        self.log.info(u'等待事件处理线程退出')
+        self.log.info('等待事件处理线程退出')
         self.__thread.join()
             
     #----------------------------------------------------------------------
@@ -364,7 +364,7 @@ def test():
     from PyQt4.QtCore import QCoreApplication
     
     def simpletest(event):
-        print(u'处理每秒触发的计时器事件：%s' % str(datetime.now()))
+        print(('处理每秒触发的计时器事件：%s' % str(datetime.now())))
     
     app = QCoreApplication(sys.argv)
     

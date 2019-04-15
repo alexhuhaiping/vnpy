@@ -1,7 +1,7 @@
 # coding:utf-8
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 import json
@@ -10,7 +10,7 @@ import pandas as pd
 import pytz
 from bson.codec_options import CodecOptions
 import pymongo
-import ConfigParser
+import configparser
 
 import matplotlib.pyplot as plt
 
@@ -54,14 +54,14 @@ class AnalyseBacktesting(object):
         :return:
         """
         # 取出需要计算的数据
-        df = self.df.sort_values(u'最后交易日')
-        cols = [u'日收益率曲线', u'optsv', 'underlyingSymbol', 'activeEndDate']
+        df = self.df.sort_values('最后交易日')
+        cols = ['日收益率曲线', 'optsv', 'underlyingSymbol', 'activeEndDate']
         df = df[cols].copy()
 
         # 根据品种分组
         group = df.groupby('optsv')
 
-        optsvList = group.indices.keys()
+        optsvList = list(group.indices.keys())
 
         # 取得每一组连续的数据
         for optsv in optsvList:
@@ -71,7 +71,7 @@ class AnalyseBacktesting(object):
             dailyReturnRateDict = OrderedDict()
 
             # 取出每日收益率
-            consisDF[u'日收益率曲线'].apply(lambda x: dailyReturnRateDict.update(pickle.loads(x.encode('utf-8'))))
+            consisDF['日收益率曲线'].apply(lambda x: dailyReturnRateDict.update(pickle.loads(x.encode('utf-8'))))
 
             # 生成日收益和日净值
             self.calDaily(optsv, dailyReturnRateDict)
@@ -86,14 +86,14 @@ class AnalyseBacktesting(object):
 
         assert isinstance(dailyReturnRateDict, OrderedDict)
 
-        df = pd.DataFrame({u'日收益率': dailyReturnRateDict.values()}, index=pd.DatetimeIndex(dailyReturnRateDict.keys()))
+        df = pd.DataFrame({'日收益率': list(dailyReturnRateDict.values())}, index=pd.DatetimeIndex(list(dailyReturnRateDict.keys())))
         df = df.sort_index(inplace=False)
 
-        df[u'日收益率'] = df[u'日收益率'].apply(lambda r: -1 if r < -1 else r)
+        df['日收益率'] = df['日收益率'].apply(lambda r: -1 if r < -1 else r)
 
-        df[u'日净值'] = df[u'日收益率'] + 1
-        df[u'日净值'] = df[u'日净值']
-        df[u'日净值'] = df[u'日净值'].cumprod()
+        df['日净值'] = df['日收益率'] + 1
+        df['日净值'] = df['日净值']
+        df['日净值'] = df['日净值'].cumprod()
 
         self.dailyReturnRateByOptsv[optsv] = df
 
@@ -106,7 +106,7 @@ class AnalyseBacktesting(object):
         :return:
         """
         summarize = []
-        for optsv, navDF in self.dailyReturnRateByOptsv.items():
+        for optsv, navDF in list(self.dailyReturnRateByOptsv.items()):
             dic = self._summarizingDaily(optsv, navDF)
             summarize.append(dic)
 
@@ -122,7 +122,7 @@ class AnalyseBacktesting(object):
         """
 
         dic = {
-            u'品种': None,
+            '品种': None,
             # u'首个交易日': None,
             # u'最后交易日': None,
             #
@@ -131,7 +131,7 @@ class AnalyseBacktesting(object):
             # u'亏损交易日': None,
 
             # u'最大保证金占用': None,
-            u'总收益率': navDF[u'日净值'].iloc[-1],
+            '总收益率': navDF['日净值'].iloc[-1],
             # u'最大回撤比': None,
             #
             # u'日均收益率': None,
@@ -140,7 +140,7 @@ class AnalyseBacktesting(object):
         }
 
         us, kwargs = self.parseOptsv(optsv)
-        dic[u'品种'] = us
+        dic['品种'] = us
         # 参数
         dic.update(kwargs)
         return dic
@@ -184,13 +184,13 @@ class AnalyseBacktesting(object):
         # 日收益率df，index=date, column=optsv
 
         dic = {}
-        for optsv, navDF in self.dailyReturnRateByOptsv.items():
+        for optsv, navDF in list(self.dailyReturnRateByOptsv.items()):
             if optsv.startswith('{},'.format(us)):
-                wipedOut = navDF[navDF[u'日净值'] < 0.1]
+                wipedOut = navDF[navDF['日净值'] < 0.1]
                 if wipedOut.shape[0] > 0:
                     # 爆仓了, 忽略改组参数
                     continue
-                dic[optsv] = navDF[u'日收益率'] + 1
+                dic[optsv] = navDF['日收益率'] + 1
 
         # 生成日收益率df
         rollingWinDF = pd.DataFrame(dic)
@@ -205,7 +205,7 @@ class AnalyseBacktesting(object):
         rollingWinDF = rollingWinDF.dropna()
 
         if 0 in rollingWinDF.shape:
-            raise ValueError(u'没有任何数据')
+            raise ValueError('没有任何数据')
 
         # 优化窗口
         optWinDF = rollingWinDF.rolling(optWin, min_periods=1).apply(lambda s: s.prod())
@@ -224,8 +224,8 @@ class AnalyseBacktesting(object):
         # 在下一个滚动窗口期中应用
 
         us, kwargs = self.parseOptsv(preMaxIndex)
-        kwargs[u'收益率'] = 1
-        kwargs[u'前最大收益'] = 0
+        kwargs['收益率'] = 1
+        kwargs['前最大收益'] = 0
         kwargs['optsv'] = preMaxIndex
         rollingNavList = [kwargs, ]
 
@@ -236,8 +236,8 @@ class AnalyseBacktesting(object):
             returnRate = returnRateSeries[preMaxIndex]
             # 解析这组参数
             us, kwargs = self.parseOptsv(preMaxIndex)
-            kwargs[u'收益率'] = returnRate
-            kwargs[u'前最大收益'] = preMax
+            kwargs['收益率'] = returnRate
+            kwargs['前最大收益'] = preMax
             kwargs['optsv'] = preMaxIndex
 
             rollingNavList.append(kwargs)
@@ -246,7 +246,7 @@ class AnalyseBacktesting(object):
 
         # 生成 Series
         df = pd.DataFrame(rollingNavList, index=dateIndex)
-        df[u'净值'] = df[u'收益率'].cumprod()
+        df['净值'] = df['收益率'].cumprod()
         return df
 
     def rollingDrawdown(self, underlyingSymbol, rollingWin='1BM', optWin=3):
@@ -275,7 +275,7 @@ class AnalyseBacktesting(object):
 if __name__ == '__main__':
     configPath = 'optimize.ini'
     with open(configPath, 'r') as f:
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.readfp(f)
 
     host, port, dbn, username, password = 'localhost', 30020, 'cta', 'vnpy', 'vnpy'
@@ -291,5 +291,5 @@ if __name__ == '__main__':
     resutlCol = db['btresult'].with_options(
         codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
 
-    cursor = resutlCol.find({'group': u'开发调试'})
+    cursor = resutlCol.find({'group': '开发调试'})
     a = AnalyseBacktesting([d for d in cursor])

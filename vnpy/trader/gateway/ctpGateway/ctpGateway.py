@@ -16,7 +16,7 @@ import logging
 from threading import Thread
 import traceback
 
-from vnpy.api.ctp import MdApi, TdApi, defineDict
+from vnpy.api.ctp import *
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtFunction import getJsonPath, getTempPath, todayDate
 from vnpy.trader.vtConstant import GATEWAYTYPE_FUTURES
@@ -25,23 +25,23 @@ from .language import text
 # 以下为一些VT类型和CTP类型的映射字典
 # 价格类型映射
 priceTypeMap = {}
-priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["THOST_FTDC_OPT_AnyPrice"]
-priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()}
+priceTypeMap[PRICETYPE_LIMITPRICE] = THOST_FTDC_OPT_LimitPrice
+priceTypeMap[PRICETYPE_MARKETPRICE] = THOST_FTDC_OPT_AnyPrice
+priceTypeMapReverse = {v: k for k, v in list(priceTypeMap.items())}
 
 # 方向类型映射
 directionMap = {}
-directionMap[DIRECTION_LONG] = defineDict['THOST_FTDC_D_Buy']
-directionMap[DIRECTION_SHORT] = defineDict['THOST_FTDC_D_Sell']
-directionMapReverse = {v: k for k, v in directionMap.items()}
+directionMap[DIRECTION_LONG] = THOST_FTDC_D_Buy
+directionMap[DIRECTION_SHORT] = THOST_FTDC_D_Sell
+directionMapReverse = {v: k for k, v in list(directionMap.items())}
 
 # 开平类型映射
 offsetMap = {}
-offsetMap[OFFSET_OPEN] = defineDict['THOST_FTDC_OF_Open']
-offsetMap[OFFSET_CLOSE] = defineDict['THOST_FTDC_OF_Close']
-offsetMap[OFFSET_CLOSETODAY] = defineDict['THOST_FTDC_OF_CloseToday']
-offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict['THOST_FTDC_OF_CloseYesterday']
-offsetMapReverse = {v: k for k, v in offsetMap.items()}
+offsetMap[OFFSET_OPEN] = THOST_FTDC_OF_Open
+offsetMap[OFFSET_CLOSE] = THOST_FTDC_OF_Close
+offsetMap[OFFSET_CLOSETODAY] = THOST_FTDC_OF_CloseToday
+offsetMap[OFFSET_CLOSEYESTERDAY] = THOST_FTDC_OF_CloseYesterday
+offsetMapReverse = {v: k for k, v in list(offsetMap.items())}
 
 # 交易所类型映射
 exchangeMap = {}
@@ -52,29 +52,29 @@ exchangeMap[EXCHANGE_DCE] = 'DCE'
 exchangeMap[EXCHANGE_SSE] = 'SSE'
 exchangeMap[EXCHANGE_INE] = 'INE'
 exchangeMap[EXCHANGE_UNKNOWN] = ''
-exchangeMapReverse = {v: k for k, v in exchangeMap.items()}
+exchangeMapReverse = {v: k for k, v in list(exchangeMap.items())}
 
 # 持仓类型映射
 posiDirectionMap = {}
-posiDirectionMap[DIRECTION_NET] = defineDict["THOST_FTDC_PD_Net"]
-posiDirectionMap[DIRECTION_LONG] = defineDict["THOST_FTDC_PD_Long"]
-posiDirectionMap[DIRECTION_SHORT] = defineDict["THOST_FTDC_PD_Short"]
-posiDirectionMapReverse = {v: k for k, v in posiDirectionMap.items()}
+posiDirectionMap[DIRECTION_NET] = THOST_FTDC_PD_Net
+posiDirectionMap[DIRECTION_LONG] = THOST_FTDC_PD_Long
+posiDirectionMap[DIRECTION_SHORT] = THOST_FTDC_PD_Short
+posiDirectionMapReverse = {v: k for k, v in list(posiDirectionMap.items())}
 
 # 产品类型映射
 productClassMap = {}
-productClassMap[PRODUCT_FUTURES] = defineDict["THOST_FTDC_PC_Futures"]
-productClassMap[PRODUCT_OPTION] = defineDict["THOST_FTDC_PC_Options"]
-productClassMap[PRODUCT_COMBINATION] = defineDict["THOST_FTDC_PC_Combination"]
-productClassMapReverse = {v: k for k, v in productClassMap.items()}
+productClassMap[PRODUCT_FUTURES] = THOST_FTDC_PC_Futures
+productClassMap[PRODUCT_OPTION] = THOST_FTDC_PC_Options
+productClassMap[PRODUCT_COMBINATION] = THOST_FTDC_PC_Combination
+productClassMapReverse = {v: k for k, v in list(productClassMap.items())}
 
 # 委托状态映射
 statusMap = {}
-statusMap[STATUS_ALLTRADED] = defineDict["THOST_FTDC_OST_AllTraded"]
-statusMap[STATUS_PARTTRADED] = defineDict["THOST_FTDC_OST_PartTradedQueueing"]
-statusMap[STATUS_NOTTRADED] = defineDict["THOST_FTDC_OST_NoTradeQueueing"]
-statusMap[STATUS_CANCELLED] = defineDict["THOST_FTDC_OST_Canceled"]
-statusMapReverse = {v: k for k, v in statusMap.items()}
+statusMap[STATUS_ALLTRADED] = THOST_FTDC_OST_AllTraded
+statusMap[STATUS_PARTTRADED] = THOST_FTDC_OST_PartTradedQueueing
+statusMap[STATUS_NOTTRADED] = THOST_FTDC_OST_NoTradeQueueing
+statusMap[STATUS_CANCELLED] = THOST_FTDC_OST_Canceled
+statusMapReverse = {v: k for k, v in list(statusMap.items())}
 
 # 全局字典, key:symbol, value:exchange
 symbolExchangeDict = {}
@@ -108,7 +108,8 @@ class svtCtpGateway(VtGateway):
     def connect(self):
         """连接"""
         try:
-            f = file(self.filePath)
+            with open(self.filePath, 'r') as f:
+                setting = json.load(f)
         except IOError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
@@ -117,7 +118,7 @@ class svtCtpGateway(VtGateway):
             return
 
         # 解析json文件
-        setting = json.load(f)
+
         try:
             userID = str(setting['userID'])
             password = str(setting['password'])
@@ -309,6 +310,7 @@ class CtpMdApi(MdApi):
 
     # ----------------------------------------------------------------------
     def onRspError(self, error, n, last):
+
         """错误回报"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName
@@ -379,7 +381,7 @@ class CtpMdApi(MdApi):
         try:
             return self._onRtnDepthMarketData(data)
         except Exception as e:
-            self.log.error(e.message)
+            self.log.error(traceback.format_exc())
             time.sleep(0.1)
             raise
 
@@ -395,7 +397,7 @@ class CtpMdApi(MdApi):
         tick.lastPrice = data['LastPrice']
         tick.volume = data['Volume']
         tick.openInterest = data['OpenInterest']
-        tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec'] / 100)])
+        tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec'])])
 
         # 上期所和郑商所可以直接使用，大商所需要转换
         tick.date = data['ActionDay']
@@ -449,7 +451,6 @@ class CtpMdApi(MdApi):
         self.password = password  # 密码
         self.brokerID = brokerID  # 经纪商代码
         self.address = address  # 服务器地址
-
         # 如果尚未建立服务器连接，则进行连接
         if not self.connectionStatus:
             # 创建C++环境中的API对象，这里传入的参数是需要用来保存.con文件的文件夹路径
@@ -793,7 +794,7 @@ class svtCtpTdApi(TdApi):
         # 查询回报结束
         if last:
             # 遍历推送
-            for pos in self.posDict.values():
+            for pos in list(self.posDict.values()):
                 self.gateway.onPosition(pos)
 
             # 清空缓存
@@ -865,7 +866,7 @@ class svtCtpTdApi(TdApi):
         contract.symbol = data['InstrumentID']
         contract.exchange = exchangeMapReverse[data['ExchangeID']]
         contract.vtSymbol = contract.symbol  # '.'.join([contract.symbol, contract.exchange])
-        contract.name = data['InstrumentName'].decode('GBK')
+        contract.name = data['InstrumentName']#.decode('GBK')
 
         # 合约数值
         contract.size = data['VolumeMultiple']
@@ -1483,23 +1484,23 @@ class svtCtpTdApi(TdApi):
         req['UserID'] = self.userID
         req['BrokerID'] = self.brokerID
 
-        req['CombHedgeFlag'] = defineDict['THOST_FTDC_HF_Speculation']  # 投机单
-        req['ContingentCondition'] = defineDict['THOST_FTDC_CC_Immediately']  # 立即发单
-        req['ForceCloseReason'] = defineDict['THOST_FTDC_FCC_NotForceClose']  # 非强平
+        req['CombHedgeFlag'] = THOST_FTDC_HF_Speculation# 投机单
+        req['ContingentCondition'] = THOST_FTDC_CC_Immediately# 立即发单
+        req['ForceCloseReason'] = THOST_FTDC_FCC_NotForceClose# 非强平
         req['IsAutoSuspend'] = 0  # 非自动挂起
-        req['TimeCondition'] = defineDict['THOST_FTDC_TC_GFD']  # 今日有效
-        req['VolumeCondition'] = defineDict['THOST_FTDC_VC_AV']  # 任意成交量
+        req['TimeCondition'] = THOST_FTDC_TC_GFD# 今日有效
+        req['VolumeCondition'] = THOST_FTDC_VC_AV# 任意成交量
         req['MinVolume'] = 1  # 最小成交量为1
 
         # 判断FAK和FOK
         if orderReq.priceType == PRICETYPE_FAK:
-            req['OrderPriceType'] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-            req['TimeCondition'] = defineDict['THOST_FTDC_TC_IOC']
-            req['VolumeCondition'] = defineDict['THOST_FTDC_VC_AV']
+            req['OrderPriceType'] = THOST_FTDC_OPT_LimitPrice
+            req['TimeCondition'] = THOST_FTDC_TC_IOC
+            req['VolumeCondition'] = THOST_FTDC_VC_AV
         if orderReq.priceType == PRICETYPE_FOK:
-            req['OrderPriceType'] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-            req['TimeCondition'] = defineDict['THOST_FTDC_TC_IOC']
-            req['VolumeCondition'] = defineDict['THOST_FTDC_VC_CV']
+            req['OrderPriceType'] = THOST_FTDC_OPT_LimitPrice
+            req['TimeCondition'] = THOST_FTDC_TC_IOC
+            req['VolumeCondition'] = THOST_FTDC_VC_CV
 
         self.reqOrderInsert(req, self.reqID)
 
@@ -1521,7 +1522,7 @@ class svtCtpTdApi(TdApi):
         req['FrontID'] = cancelOrderReq.frontID
         req['SessionID'] = cancelOrderReq.sessionID
 
-        req['ActionFlag'] = defineDict['THOST_FTDC_AF_Delete']
+        req['ActionFlag'] = THOST_FTDC_AF_Delete
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
 
@@ -1554,7 +1555,7 @@ class CtpGateway(svtCtpGateway):
         self.tdApi.qryCommissionRate(symbol)
 
     def close(self):
-        self.log.info(u'关闭交易、行情接口')
+        self.log.info('关闭交易、行情接口')
         super(CtpGateway, self).close()
         # if self.mdConnected:
         #     self.mdApi.close()
@@ -1574,7 +1575,7 @@ class CtpTdApi(svtCtpTdApi):
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
         req['InstrumentID'] = str(symbol)
-        req['HedgeFlag'] = defineDict['THOST_FTDC_HF_Speculation']  # 投机单
+        req['HedgeFlag'] = THOST_FTDC_HF_Speculation# 投机单
 
         self.reqQryInstrumentMarginRate(req, self.reqID)
 

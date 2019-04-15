@@ -1,10 +1,10 @@
 # encoding: utf-8
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 
 import requests
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from threading import Thread
 from time import sleep
 
@@ -27,9 +27,9 @@ FUNCTION_ORDERSINFOHISTORY = ('orders_info_history.do', 'post')
 #----------------------------------------------------------------------
 def signature(params, secretKey):
     """生成签名"""
-    params = sorted(params.iteritems(), key=lambda d:d[0], reverse=False)
+    params = sorted(iter(params.items()), key=lambda d:d[0], reverse=False)
     params.append(('secret_key', secretKey))
-    message = urllib.urlencode(params)
+    message = urllib.parse.urlencode(params)
     
     m = hashlib.md5()
     m.update(message)
@@ -90,7 +90,7 @@ class LhangApi(object):
         params['sign'] = sign
         
         # 发送请求
-        payload = urllib.urlencode(params)
+        payload = urllib.parse.urlencode(params)
     
         r = requests.request(method, url, params=payload)
         if r.status_code == 200:
@@ -112,15 +112,15 @@ class LhangApi(object):
                 
                 # 请求失败
                 if data is None:
-                    error = u'请求失败'
+                    error = '请求失败'
                     self.onError(error, req, reqID)
                 elif 'error_code' in data:
-                    error = u'请求出错，错误代码：%s' % data['error_code']
+                    error = '请求出错，错误代码：%s' % data['error_code']
                     self.onError(error, req, reqID)
                 # 请求成功
                 else:
                     if self.DEBUG:
-                        print callback.__name__                        
+                        print(callback.__name__)                        
                     callback(data, req, reqID)
 
                 # 流控等待
@@ -149,7 +149,7 @@ class LhangApi(object):
     #----------------------------------------------------------------------
     def onError(self, error, req, reqID):
         """错误推送"""
-        print error, req, reqID
+        print(error, req, reqID)
 
     ###############################################
     # 行情接口
@@ -203,22 +203,22 @@ class LhangApi(object):
     #----------------------------------------------------------------------
     def onGetTicker(self, data, req, reqID):
         """查询行情回调"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onGetDepth(self, data, req, reqID):
         """查询深度回调"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onGetTrades(self, data, req, reqID):
         """查询历史成交"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onGetKline(self, data, req, reqID):
         """查询Ｋ线回报"""
-        print data, reqID
+        print(data, reqID)
 
     ###############################################
     # 交易接口
@@ -283,25 +283,25 @@ class LhangApi(object):
     # ----------------------------------------------------------------------
     def onGetUserInfo(self, data, req, reqID):
         """查询账户信息"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onCreateOrder(self, data, req, reqID):
         """委托回报"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onCancelOrder(self, data, req, reqID):
         """撤单回报"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onGetOrdersInfo(self, data, req, reqID):
         """查询委托回报"""
-        print data, reqID
+        print(data, reqID)
 
     # ----------------------------------------------------------------------
     def onGetOrdersInfoHistory(self, data, req, reqID):
         """撤单回报"""
-        print data, reqID
+        print(data, reqID)
 

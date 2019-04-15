@@ -3,7 +3,7 @@
 import logging
 import datetime as dtt
 try:
-    from Queue import Queue, Empty
+    from queue import Queue, Empty
 except ImportError:
     from queue import Queue, Empty
 import arrow
@@ -164,7 +164,7 @@ class VtGateway(sVtGateway):
         #     self.log.addFilter(f)
         # for h in logger.handlers:
         #     self.log.addHandler(h)
-        self.log.info(u'加载 {}'.format(self.gatewayName))
+        self.log.info('加载 {}'.format(self.gatewayName))
         self.qryQueue = Queue()
 
     def onMraginRate(self, marginRate):
@@ -216,7 +216,7 @@ class VtGateway(sVtGateway):
         super(VtGateway, self).onTrade(trade)
 
     def close(self):
-        self.log.info(u'即将关闭 gateWay')
+        self.log.info('即将关闭 gateWay')
         super(VtGateway, self).close()
 
 
