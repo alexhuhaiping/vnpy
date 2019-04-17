@@ -654,15 +654,16 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             # 仓位平仓完成,且有仓位开仓了
             # 本次入场结束，统计盈利，重置
             # 统计盈利
-            self.log.info('全部平仓完成'.format())
-            profile = 0
+            self.log.info('全部平仓完成')
+            _profile = 0
             for u in self.units:
+                self.log.info(f'{u.index} u.closeTurnover\t{u.closeTurnover} u.openTurnover\t{u.openTurnover}')
                 if posChange > 0:
-                    profile += u.closeTurnover - u.openTurnover
+                    _profile += u.closeTurnover - u.openTurnover
                 else:
-                    profile += u.openTurnover - u.closeTurnover
-
-            if profile > 0:
+                    _profile += u.openTurnover - u.closeTurnover
+            self.log.info(f'_profile\t{_profile}')
+            if _profile > 0:
                 self.setBig()
             else:
                 self.setSmall()
@@ -685,7 +686,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
-        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
+        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def setBig(self):
         self.log.info('进入大周期')
