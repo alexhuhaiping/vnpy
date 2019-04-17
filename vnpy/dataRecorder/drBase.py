@@ -165,6 +165,7 @@ class DrBarData(object):
         """
         return {
             'symbol': self.symbol,
+            'vtSymbol': self.vtSymbol,
             'tradingDay': self.tradingDay,
             'open': self.open,
             'high': self.high,

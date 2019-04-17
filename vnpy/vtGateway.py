@@ -190,9 +190,11 @@ class VtMarginRate(VtBaseData):
         """Constructor"""
         super(VtMarginRate, self).__init__()
 
-        self.vtSymbol = EMPTY_STRING  # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
+        self.symbol = EMPTY_STRING                  # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
+        self.vtSymbol = EMPTY_STRING                # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
+        self.name = EMPTY_STRING                    # 合约名
         self.ShortMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
-        self.LongMarginRatioByMoney = EMPTY_FLOAT  # 该合约的保证金率
+        self.LongMarginRatioByMoney = EMPTY_FLOAT   # 该合约的保证金率
         self.rate = EMPTY_FLOAT
 
 ########################################################################
@@ -433,6 +435,42 @@ class VtContractData(VtBaseData):
         self.underlyingSymbol = EMPTY_STRING    # 标的物合约代码
         self.optionType = EMPTY_UNICODE         # 期权类型
 
+        self.last = False                       # 是否是最后一个合约
+
+        # 原始数据
+        self.InstrumentID = ''
+        self.ExchangeID = ''
+        self.InstrumentName = ''
+        self.ExchangeInstID = ''
+        self.ProductID = ''
+        self.ProductClass = ''
+        self.DeliveryYear = 0
+        self.DeliveryMonth = 0
+        self.MaxMarketOrderVolume = 0
+        self.MinMarketOrderVolume = 0
+        self.MaxLimitOrderVolume = 0
+        self.MinLimitOrderVolume = 0
+        self.VolumeMultiple = 0
+        self.PriceTick = 0.
+        self.CreateDate = ''
+        self.OpenDate = ''
+        self.ExpireDate = ''
+        self.StartDelivDate = ''
+        self.EndDelivDate = ''
+        self.InstLifePhase = ''
+        self.IsTrading = 0
+        self.PositionType = ''
+        self.PositionDateType = ''
+        self.LongMarginRatio = 0.
+        self.ShortMarginRatio = 0.
+        self.MaxMarginSideAlgorithm = ''
+        self.UnderlyingInstrID = ''
+        self.StrikePrice = 0.
+        self.OptionsType = ''
+        self.UnderlyingMultiple = 0.
+        self.CombinationType = ''
+
+
     def toFuturesDB(self):
         """
 
@@ -442,6 +480,50 @@ class VtContractData(VtBaseData):
         dic.pop('rawData')
         return dic
 
+    def fromRawData(self):
+        """
+        InstrumentID rb1910 <class 'str'>
+        ExchangeID SHFE <class 'str'>
+        InstrumentName rb1910 <class 'str'>
+        ExchangeInstID rb1910 <class 'str'>
+        ProductID rb <class 'str'>
+        ProductClass 1 <class 'str'>
+        DeliveryYear 2019 <class 'int'>
+        DeliveryMonth 10 <class 'int'>
+        MaxMarketOrderVolume 30 <class 'int'>
+        MinMarketOrderVolume 1 <class 'int'>
+        MaxLimitOrderVolume 500 <class 'int'>
+        MinLimitOrderVolume 1 <class 'int'>
+        VolumeMultiple 10 <class 'int'>
+        PriceTick 1.0 <class 'float'>
+        CreateDate 20180912 <class 'str'>
+        OpenDate 20181016 <class 'str'>
+        ExpireDate 20191015 <class 'str'>
+        StartDelivDate 20191016 <class 'str'>
+        EndDelivDate 20191022 <class 'str'>
+        InstLifePhase 1 <class 'str'>
+        IsTrading 1 <class 'int'>
+        PositionType 2 <class 'str'>
+        PositionDateType 1 <class 'str'>
+        LongMarginRatio 0.08 <class 'float'>
+        ShortMarginRatio 0.08 <class 'float'>
+        MaxMarginSideAlgorithm 1 <class 'str'>
+        UnderlyingInstrID rb <class 'str'>
+        StrikePrice 0.0 <class 'float'>
+        OptionsType 0 <class 'str'>
+        UnderlyingMultiple 1.0 <class 'float'>
+        CombinationType 0 <class 'str'>
+        :return:
+        """
+        for k,v in self.rawData.items():
+            setattr(self, k, v)
+
+        # 生成 vtSymbol 的规则
+        self.vtSymbol = self.toVtSymbol(**self.rawData)
+
+    @staticmethod
+    def toVtSymbol(ProductID, DeliveryYear, DeliveryMonth, ExchangeID, **kwargs):
+        return f'{ProductID}{str(DeliveryYear)[-2:]}{str(DeliveryMonth).zfill(2)}.{ExchangeID}'
 
 ########################################################################
 class VtSubscribeReq(object):
