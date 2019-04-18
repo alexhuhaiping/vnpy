@@ -44,8 +44,8 @@ except NameError:
 dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTradingDay, endTradingDay=endTradingDay)
 originTrlList.append(dbt)
 #
-# dbt.clearCollection()  # 清空数据库
-# dbt.runArg()  # 生成参数
+dbt.clearCollection()  # 清空数据库
+dbt.runArg()  # 生成参数
 dbt.runBacktesting()  # 批量回测
 # e = arrow.now()
 # print(('运行 {} -> {} 耗时 {}'.format(b, e, e - b)))

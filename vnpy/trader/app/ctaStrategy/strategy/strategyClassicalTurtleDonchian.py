@@ -50,7 +50,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'DOWN_IN', 'UP_IN', 'DOWN_OUT', 'UP_OUT', 'BIG_DOWN_IN', 'BIG_UP_IN', 'BIG_UP_OUT', 'BIG_DOWN_OUT',
-        'ATR_N','BIG_ATR_N',
+        'ATR_N',
         'UNITS',
         'BIG',
         'fixhands',
