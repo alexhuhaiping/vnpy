@@ -250,7 +250,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             longInUnits = 0
             for smallLongIn in self.smallLongInList:
                 if bar.high >= smallLongIn:
-                    if not self.smallAtr:
+                    if self.smallAtr is None:
                         self.smallAtr = self.atr
                     longInUnits += 1
             self.smallUnits = max(longInUnits, self.smallUnits)
@@ -258,7 +258,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             shortInUnits = 0
             for smallShortIn in self.smallShortInList:
                 if bar.low <= smallShortIn:
-                    if not self.smallAtr:
+                    if self.smallAtr is None:
                         self.smallAtr = self.atr
                     shortInUnits -= 1
             self.smallUnits = min(shortInUnits, self.smallUnits)
@@ -639,9 +639,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 开平仓成本
         if unit.status == unit.STATUS_OPENING:
             unit.openTurnover += trade.volume * trade.price
+            self.log.info(f'unit {unit.index} unit.openTurnover\t{unit.openTurnover}')
         # 平仓成本
         if unit.status == unit.STATUS_DONE:
             unit.closeTurnover += trade.volume * trade.price
+            self.log.info(f'unit {unit.index} unit.closeTurnover\t{unit.closeTurnover}')
 
         # 统计仓位
         unit.pos += posChange
