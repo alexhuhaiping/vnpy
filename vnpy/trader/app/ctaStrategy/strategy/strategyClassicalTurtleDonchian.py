@@ -154,7 +154,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             if not self.isBackTesting():
                 self.tradingDay = bar.tradingDay
             self.onBar(bar)
-            print(self.bar.datetime)
             self.bm.preBar = bar
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
@@ -475,13 +474,13 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         if self.smallUnits == 0:
             self.smallAtr = self.atr
-            self.smallLongInList = (
+            self.smallLongInList = [
                 self.roundToPriceTick(self.upIn + i * self.ADD_ATR * self.atr) for i in range(self.UNITS)
-            )
+            ]
 
-            self.smallShortInList = (
+            self.smallShortInList = [
                 self.roundToPriceTick(self.downIn - i * self.ADD_ATR * self.atr) for i in range(self.UNITS)
-            )
+            ]
 
         if self.pos == 0:
             # 更新入场指标
