@@ -23,8 +23,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from . import optweb
-from . import optcomment
+import optweb
+import optcomment
 
 
 class OptimizeService(object):
@@ -55,7 +55,7 @@ class OptimizeService(object):
         # self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.read_file(f)
