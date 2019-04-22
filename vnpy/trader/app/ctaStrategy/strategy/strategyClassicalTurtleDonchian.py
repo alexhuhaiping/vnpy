@@ -40,7 +40,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     BIG_DOWN_IN = BIG_UP_IN = 55  # 大周期入场
     BIG_DOWN_OUT = BIG_UP_OUT = 20  # 大周期离场
     ATR_N = 20  # ATR 长度
-    BIG_ATR_N = 55   # 大周期 ATR 长度
     fixhands = 1  # 固定手数
     UNITS = 4  # 分仓数量
     ADD_ATR = 0.5  # 每 0.5 ATR 加仓一次
@@ -51,7 +50,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'DOWN_IN', 'UP_IN', 'DOWN_OUT', 'UP_OUT', 'BIG_DOWN_IN', 'BIG_UP_IN', 'BIG_UP_OUT', 'BIG_DOWN_OUT',
-        'ATR_N','BIG_ATR_N',
+        'ATR_N',
         'UNITS',
         'BIG',
         'fixhands',
@@ -67,7 +66,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
     bigUpOut = None  # 多离场
     bigDownOut = None  # 低点离场
     atr = None  # ATR 值
-    bigAtr = None  # 大周期 ATR 值
     big = False  # 是否处于大周期，开启默认处于小周期
     smallLongInList = []  # 大周期中的小周期开仓价
     smallShortInList = []  # 大周期中的小周期开仓价
@@ -85,7 +83,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         'bigUpOut',
         'bigDownOut',
         'atr',
-        'bigAtr',
         'big',
         'smallLongInList',
         'smallShortInList',
@@ -157,7 +154,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             if not self.isBackTesting():
                 self.tradingDay = bar.tradingDay
             self.onBar(bar)
-            print(self.bar.datetime)
             self.bm.preBar = bar
 
         # self.log.warning(u'加载的最后一个 bar {}'.format(bar.datetime))
@@ -183,7 +179,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
         if self.bar is None:
             return
-        
+
         # 更新技术指标
         self.updateHands()
         self.updateUnitInd()
@@ -250,16 +246,12 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             longInUnits = 0
             for smallLongIn in self.smallLongInList:
                 if bar.high >= smallLongIn:
-                    if not self.smallAtr:
-                        self.smallAtr = self.atr
                     longInUnits += 1
             self.smallUnits = max(longInUnits, self.smallUnits)
         elif self.smallUnits <= 0:
             shortInUnits = 0
             for smallShortIn in self.smallShortInList:
                 if bar.low <= smallShortIn:
-                    if not self.smallAtr:
-                        self.smallAtr = self.atr
                     shortInUnits -= 1
             self.smallUnits = min(shortInUnits, self.smallUnits)
 
@@ -267,14 +259,14 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         if self.smallUnits > 0:
             longIn = self.smallLongInList[abs(self.smallUnits) - 1]
             stopPrice = longIn - self.STOP_ATR * self.smallAtr
-            longOut = max(self.downOut, stopPrice)
+            longOut = max(self.upOut, stopPrice)
             # 触发小周期平仓
             setSmall = bar.low <= longOut
 
         elif self.smallUnits < 0:
             shortIn = self.smallShortInList[abs(self.smallUnits) - 1]
             stopPrice = shortIn + self.STOP_ATR * self.smallAtr
-            shortOut = min(self.upOut, stopPrice)
+            shortOut = min(self.downOut, stopPrice)
             setSmall = bar.high >= shortOut
         else:
             setSmall = False
@@ -443,7 +435,6 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.bigDownOut, self.bigUpOut = self.getUpDown(self.BIG_DOWN_OUT, self.BIG_UP_OUT)
 
         self.atr = self.roundToPriceTick(am.atr(self.ATR_N))
-        self.bigAtr = self.roundToPriceTick(am.atr(self.BIG_ATR_N))
 
         # msg = u''
         # for k in self._varList:
@@ -482,14 +473,20 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
                 return
 
         if self.smallUnits == 0:
-            self.smallLongInList = [self.roundToPriceTick(self.upIn + i * self.ADD_ATR) for i in range(self.UNITS)]
-            self.smallShortInList = [self.roundToPriceTick(self.downIn - i * self.ADD_ATR) for i in range(self.UNITS)]
+            self.smallAtr = self.atr
+            self.smallLongInList = [
+                self.roundToPriceTick(self.upIn + i * self.ADD_ATR * self.atr) for i in range(self.UNITS)
+            ]
+
+            self.smallShortInList = [
+                self.roundToPriceTick(self.downIn - i * self.ADD_ATR * self.atr) for i in range(self.UNITS)
+            ]
 
         if self.pos == 0:
             # 更新入场指标
             # 空仓时才更新，一旦开仓，所有入场指标都固定
             for u in self.units:
-                u.atr = self.roundToPriceTick(self.bigAtr if self.isBig else self.atr)
+                u.atr = self.roundToPriceTick(self.atr)
                 longIn, shortIn = (self.bigUpIn, self.bigDownIn) if self.isBig else (self.upIn, self.downIn)
                 # 直接根据公式 轨道 ± n * ATR 来计算开仓价格
                 # 当 pos != 0，即已经开仓后，其他的 Unit 的开仓价格不再变化
@@ -639,9 +636,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 开平仓成本
         if unit.status == unit.STATUS_OPENING:
             unit.openTurnover += trade.volume * trade.price
+            self.log.info(f'unit {unit.index} unit.openTurnover\t{unit.openTurnover}')
         # 平仓成本
         if unit.status == unit.STATUS_DONE:
             unit.closeTurnover += trade.volume * trade.price
+            self.log.info(f'unit {unit.index} unit.closeTurnover\t{unit.closeTurnover}')
 
         # 统计仓位
         unit.pos += posChange
@@ -654,15 +653,16 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             # 仓位平仓完成,且有仓位开仓了
             # 本次入场结束，统计盈利，重置
             # 统计盈利
-            self.log.info('全部平仓完成'.format())
-            profile = 0
+            self.log.info('全部平仓完成')
+            _profile = 0
             for u in self.units:
+                self.log.info(f'{u.index} u.closeTurnover\t{u.closeTurnover} u.openTurnover\t{u.openTurnover}')
                 if posChange > 0:
-                    profile += u.closeTurnover - u.openTurnover
+                    _profile += u.closeTurnover - u.openTurnover
                 else:
-                    profile += u.openTurnover - u.closeTurnover
-
-            if profile > 0:
+                    _profile += u.openTurnover - u.closeTurnover
+            self.log.info(f'_profile\t{_profile}')
+            if _profile > 0:
                 self.setBig()
             else:
                 self.setSmall()
@@ -685,7 +685,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.saveDB()
         self.putEvent()
 
-        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
+        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
 
     def setBig(self):
         self.log.info('进入大周期')

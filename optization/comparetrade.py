@@ -51,7 +51,9 @@ dbt.runBacktesting()  # 批量回测
 # print(('运行 {} -> {} 耗时 {}'.format(b, e, e - b)))
 # import os
 # costTime = e-b
-# os.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
+# o
+#
+# s.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
 
 # optsv = 'j,"BIG":False,"UNITS":1,"barXmin":120'
 # # optsv = 'ni,"barXmin":124'

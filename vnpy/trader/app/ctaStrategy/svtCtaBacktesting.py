@@ -829,8 +829,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.dailyResult['日最大回撤'] = maxDrawdown
         self.dailyResult['日最大回撤率'] = maxDrawdownPer
 
-        self.dailyResult['总手续费'] = totalCommission
-        self.dailyResult['总滑点'] = totalSlippage
+        self.dailyResult['总手续费'] = float(totalCommission)
+        self.dailyResult['总滑点'] = float(totalSlippage)
         self.dailyResult['总成交金额'] = totalTurnover
         self.dailyResult['总成交笔数'] = totalTradeCount
 
@@ -1203,8 +1203,8 @@ class BacktestingEngine(VTBacktestingEngine):
 
         self.tradeResult['初始金'] = self.capital
         self.tradeResult['总盈亏'] = d['capital']
-        self.tradeResult['总手续费'] = d['totalCommission']
-        self.tradeResult['总滑点'] = d['totalSlippage']
+        self.tradeResult['总手续费'] = float(d['totalCommission'])
+        self.tradeResult['总滑点'] = float(d['totalSlippage'])
         self.tradeResult['交易成本'] = d['totalSlippage'] + d['totalCommission']
         self.tradeResult['纯盈亏'] = self.tradeResult['总盈亏'] + self.tradeResult['交易成本']
         self.tradeResult['成本比例'] = 1 if self.tradeResult['纯盈亏'] == 0 else self.tradeResult['交易成本'] / self.tradeResult['纯盈亏']

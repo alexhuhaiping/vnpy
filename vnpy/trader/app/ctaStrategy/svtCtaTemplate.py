@@ -1062,7 +1062,7 @@ class CtaTemplate(vtCtaTemplate):
             return
 
     def updateLastTickTime(self, tick):
-        # print(tick.time, tick.askPrice1, tick.askVolume1)
+        # print(tick.time,tem tick.askPrice1, tick.askVolume1)
         self.lastTickTime = max(self.lastTickTime, tick.datetime)
 
     def _calHandsByLoseCountPct(self, hands, flinch):
