@@ -352,9 +352,17 @@ class OptimizeService(object):
         """
         self.results = []
         begin = time.time()
-        while not self.stoped.wait(0):
+        # while not self.stoped.wait(0):
+        while not self.stoped.wait(1):
             try:
-                r = self.resultQueue.get(timeout=1)
+                # r = self.resultQueue.get(timeout=1)
+                r = self.resultQueue.get_nowait()
+                if not r:
+                    if self.results:
+                        self.insertResult(self.results)
+                        self.results = []
+                    continue
+
                 now = time.time()
                 if now - begin > 30:
                     begin = now
@@ -374,6 +382,14 @@ class OptimizeService(object):
 
     def insertResult(self, results):
         try:
+            # try:
+            #     for k, v in self.results[0].items():
+            #         print('{}\t{}\t{}'.format(k,type(v), v))
+            #         self.resultCol.insert_one({k:v})
+            # except Exception:
+            #     print('{}\t{}\t{}'.format(k,type(v), v))
+            #     time.sleep(1)
+            #     raise
             self.resultCol.insert_many(self.results)
         except pymongo.errors.BulkWriteError:
             # 出现重复的 _id
