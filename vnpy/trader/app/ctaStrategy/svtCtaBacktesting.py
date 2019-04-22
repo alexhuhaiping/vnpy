@@ -1253,7 +1253,7 @@ class BacktestingEngine(VTBacktestingEngine):
             return
 
         import matplotlib.pyplot as plt
-        
+
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 

@@ -15,7 +15,10 @@ import copy
 import pymongo
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print('找不到 matplotlib')
 import tradingtime as tt
 
 # 如果安装了seaborn则设置为白色风格
