@@ -26,7 +26,6 @@ import pymongo
 import pymongo.errors
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtGlobal import globalSetting, settingFilePath
@@ -864,6 +863,8 @@ class BacktestingEngine(VTBacktestingEngine):
         if not self.isShowFig:
             return
 
+        import matplotlib.pyplot as plt
+
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
@@ -1251,6 +1252,8 @@ class BacktestingEngine(VTBacktestingEngine):
         if not self.isShowFig:
             return
 
+        import matplotlib.pyplot as plt
+        
         # 绘图
         fig = plt.figure(figsize=(10, 16))
 
