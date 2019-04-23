@@ -1096,6 +1096,7 @@ class BacktestingEngine(VTBacktestingEngine):
         balanceList = []  # 盈亏汇总的时间序列
         capitalList = []  # 资金时间序列
         drawdownList = []  # 回撤的时间序列
+        closeTimeList = []  # 每笔交易平仓时间序列
         # drawdownPerList = []  # 回撤比率的时间序列
         # drawdownRatePerTradeList = []  # 单笔最大回撤率
         posList = []  # 仓位变化
@@ -1139,6 +1140,8 @@ class BacktestingEngine(VTBacktestingEngine):
                 losingResult += 1
                 totalLosing += result.pnl
 
+            closeTimeList.append(result.exitDt)
+
         # 计算盈亏相关数据
         winningRate = winningResult / totalResult  # 胜率
 
@@ -1167,6 +1170,7 @@ class BacktestingEngine(VTBacktestingEngine):
         d['pnlList'] = pnlList
         d['pnlpList'] = pnlpList
         d['capitalList'] = capitalList
+        d['closeTimeList'] = closeTimeList
         d['drawdownList'] = drawdownList
         # d['drawdownPerList'] = drawdownPerList
         d['winningRate'] = winningRate
@@ -1248,6 +1252,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult['成交单'] = [r.toReutlDB() for r in d['resultList']]
         self.tradeResult['pnl'] = d['pnlList']
         self.tradeResult['pnlp'] = d['pnlpList']
+        self.tradeResult['平仓时间'] = d['closeTimeList']
 
         if not self.isShowFig:
             return

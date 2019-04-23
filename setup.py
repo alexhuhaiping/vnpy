@@ -147,7 +147,6 @@ setup(
         "Operating System :: Microsoft :: Windows :: Windows Server 2012",
         "Operating System :: Microsoft :: Windows :: Windows Server 2012",
         "Operating System :: POSIX :: Linux"
-        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Topic :: Office/Business :: Financial :: Investment",
         "Programming Language :: Python :: Implementation :: CPython",
