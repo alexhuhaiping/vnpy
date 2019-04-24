@@ -948,6 +948,7 @@ class PositionDetail(object):
         """
         dic = OrderedDict([
             ('vtSymbol', self.vtSymbol),
+            ('pos', self.pos),
             ('longPos', self.longPos),
             ('longYd', self.longYd),
             ('longTd', self.longTd),
@@ -963,3 +964,11 @@ class PositionDetail(object):
             ('shortTdFrozen', self.shortTdFrozen),
         ])
         return dic
+
+    @property
+    def pos(self):
+        """
+
+        :return:
+        """
+        return self.longPos - self.shortPos
