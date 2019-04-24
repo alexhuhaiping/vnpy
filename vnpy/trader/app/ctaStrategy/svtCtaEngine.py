@@ -599,15 +599,19 @@ class CtaEngine(VtCtaEngine):
         self.mainEngine.slavemReport.endHeartBeat()
 
     def savePosition(self, strategy):
+        gateWay = self.mainEngine.getGateway('CTP')
+
         """保存策略的持仓情况到数据库"""
         flt = {'name': strategy.name,
                'className': strategy.className,
-               'vtSymbol': strategy.vtSymbol}
+               'vtSymbol': strategy.vtSymbol,
+               'userID': gateWay.tdApi.userID}
 
         d = {'name': strategy.name,
              'vtSymbol': strategy.vtSymbol,
              'className': strategy.className,
-             'pos': strategy.pos}
+             'pos': strategy.pos,
+             'userID': gateWay.tdApi.userID}
 
         # self.mainEngine.dbUpdate(POSITION_DB_NAME, POSITION_COLLECTION_NAME,
         #                          d, flt, True)
@@ -621,10 +625,13 @@ class CtaEngine(VtCtaEngine):
     # ----------------------------------------------------------------------
     def loadPosition(self):
         """从数据库载入策略的持仓情况"""
+        gateWay = self.mainEngine.getGateway('CTP')
+
         for strategy in list(self.strategyDict.values()):
             flt = {'name': strategy.name,
                    'className': strategy.className,
-                   'vtSymbol': strategy.vtSymbol}
+                   'vtSymbol': strategy.vtSymbol,
+                   'userID': gateWay.tdApi.userID}
 
             # posData = self.mainEngine.dbQuery(POSITION_DB_NAME, POSITION_COLLECTION_NAME, flt)
             # for d in posData:
