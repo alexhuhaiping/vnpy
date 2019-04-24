@@ -98,7 +98,7 @@ def showCtaStrategy():
             html += '</br>'
 
 
-        posDetailList = [posDetail.toHtml() for posDetail in ctaApp.mainEngine.dataEngine.detailDict.values()]
+        posDetailList = [posDetail.toHtml() for posDetail in ctaApp.mainEngine.dataEngine.detailDict.values() if posDetail != 0]
         html = pd.DataFrame([dic]).to_html() + '</br>' + pd.DataFrame(posDetailList).sort_values('vtSymbol').to_html() + '</br>' + html
         ctaApp.log.info('获得 strategy 页面')
 
