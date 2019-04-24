@@ -947,7 +947,7 @@ class PositionDetail(object):
         :return:
         """
         dic = OrderedDict([
-            ('longPos', self.vtSymbol),
+            ('vtSymbol', self.vtSymbol),
             ('longPos', self.longPos),
             ('longYd', self.longYd),
             ('longTd', self.longTd),
