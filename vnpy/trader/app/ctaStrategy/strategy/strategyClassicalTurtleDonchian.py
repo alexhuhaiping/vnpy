@@ -658,9 +658,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             for u in self.units:
                 self.log.info(f'{u.index} u.closeTurnover\t{u.closeTurnover} u.openTurnover\t{u.openTurnover}')
                 if posChange > 0:
-                    _profile += u.closeTurnover - u.openTurnover
-                else:
+                    # 平空仓
                     _profile += u.openTurnover - u.closeTurnover
+                else:
+                    # 平多仓
+                    _profile += u.closeTurnover - u.openTurnover
             self.log.info(f'_profile\t{_profile}')
             if _profile > 0:
                 self.setBig()

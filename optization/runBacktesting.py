@@ -73,7 +73,7 @@ if __name__ == '__main__':
         # 'strategyClass': 'AtrBottomFishStrategy',
 
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 100, 'BIG': True, 'UNITS': 4,
+        "fixhands": 1, "barXmin": 10, 'BIG': True, 'UNITS': 4,
         'strategyClass': 'ClassicalTurtleDonchianStrategy',
     }
 
