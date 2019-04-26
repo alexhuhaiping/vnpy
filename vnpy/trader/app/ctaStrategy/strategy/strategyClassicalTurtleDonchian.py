@@ -1,12 +1,4 @@
-# encoding: UTF-8
-
-
-
-
-from threading import Timer
-from collections import OrderedDict
-import time
-
+import datetime
 import arrow
 import pandas as pd
 
@@ -110,6 +102,10 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         self.units = [Unit(i, self) for i in range(0, self.UNITS)]
         self.vtOrderID2Unit = {}  # {'vtOrderID': Unit}
 
+        # 仓位开仓耗时
+        self.unitOpeningTime = None
+        self.maxUnitOpingWaiting = datetime.timedelta(seconds=5)
+
     @property
     def direction(self):
         if self.pos > 0:
@@ -200,6 +196,29 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
         # 下单
         self.orderOpenOnStart()
         self.orderCloseOnStart()
+
+    # ----------------------------------------------------------------------
+    def onTimer(self, event):
+        # 检查开仓时间过长问题
+        now = event.dict_['now']
+        if self.unitOpeningTime and now - self.unitOpeningTime > self.maxUnitOpingWaiting:
+            for u in self.units:
+                if u.status == u.STATUS_OPENING:
+                    self.log.warning(f'开仓耗时过长 {u}')
+                    break
+            else:
+                # 重置时间
+                self.clearUnitOpeningTime()
+
+            self.unitOpeningTime += datetime.timedelta(minutes=1)
+
+        return super(self, ClassicalTurtleDonchianStrategy).onTimer(event)
+
+    def setUnitOpeningTime(self):
+        self.unitOpeningTime = arrow.now().datetime
+
+    def clearUnitOpeningTime(self):
+        self.unitOpeningTime = None
 
     # ----------------------------------------------------------------------
     def onStop(self):
@@ -816,6 +835,11 @@ class Unit(object):
     def setStatus(self, status):
         log = 'Unit:{} {} -> {}'.format(self.index, self.status, status)
         self.status = status
+
+        if status == self.STATUS_OPENING and self.strategy.unitOpeningTime is None:
+            # 设置仓位开仓时间，用于开仓超时警示
+            self.strategy.setUnitOpeningTime()
+
         return log
 
     def getAllStopOrders(self):
