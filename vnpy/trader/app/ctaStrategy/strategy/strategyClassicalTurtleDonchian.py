@@ -212,7 +212,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
 
             self.unitOpeningTime += datetime.timedelta(minutes=1)
 
-        return super(self, ClassicalTurtleDonchianStrategy).onTimer(event)
+        return super(ClassicalTurtleDonchianStrategy, self).onTimer(event)
 
     def setUnitOpeningTime(self):
         self.unitOpeningTime = arrow.now().datetime
