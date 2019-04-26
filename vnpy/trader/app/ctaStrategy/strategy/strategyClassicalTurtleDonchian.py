@@ -205,12 +205,11 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             for u in self.units:
                 if u.status == u.STATUS_OPENING:
                     self.log.warning(f'开仓耗时过长 {u}')
+                    self.unitOpeningTime += datetime.timedelta(minutes=1)
                     break
             else:
                 # 重置时间
                 self.clearUnitOpeningTime()
-
-            self.unitOpeningTime += datetime.timedelta(minutes=1)
 
         return super(ClassicalTurtleDonchianStrategy, self).onTimer(event)
 
