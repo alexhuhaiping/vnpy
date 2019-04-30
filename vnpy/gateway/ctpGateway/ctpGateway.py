@@ -904,6 +904,8 @@ class CtpTdApi(TdApi):
         contract.productClass = productClassMapReverse.get(data['ProductClass'], PRODUCT_UNKNOWN)
         contract.last = last # 是否最后一条合约
 
+        contract.fromRawData()
+
         # 期权类型
         if data['OptionsType'] == '1':
             contract.optionType = OPTION_CALL
@@ -915,7 +917,8 @@ class CtpTdApi(TdApi):
         self.symbolSizeDict[contract.symbol] = contract.size
         self.gateway.symbol2contract[contract.symbol] = contract
         self.gateway.vtSymbol2contract[contract.vtSymbol] = contract
-        contract.fromRawData()
+
+
         # for k, v in data.items():
         #     print(f'{k}\t{v}\t{type(v)}')
         # print('=========================')

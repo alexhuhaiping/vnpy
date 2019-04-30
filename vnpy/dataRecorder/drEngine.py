@@ -128,14 +128,15 @@ class DrEngine(object):
         # 检查是否已经存在合约
         oldContract = collection.find_one({'vtSymbol': vtSymbol}, {'_id': 0})
         is_tradingtime, tradeday = tt.get_tradingday(arrow.now().datetime)
+
+        data['startDate'] = arrow.get(str(datetime.datetime.strptime(contract.OpenDate, '%Y%m%d')) + '+08').datetime
+        data['endDate'] = arrow.get(str(datetime.datetime.strptime(contract.ExpireDate, '%Y%m%d')) + '+08').datetime
         if not oldContract:
             # 尚未存在新合约,保存
-            data['startDate'] = arrow.get(str(datetime.datetime.strptime(contract.OpenDate, '%Y%m%d')) + '+08').datetime
-            data['endDate'] = arrow.get(str(datetime.datetime.strptime(contract.ExpireDate, '%Y%m%d')) + '+08').datetime
             collection.insert_one(data)
-        # else:
-        #     # 已经存在的合约，更新 endDate
-        #     collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': tradeday}})
+        else:
+            # 已经存在的合约，更新 endDate
+            collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': data['endDate']}})
 
         # 尚未更新保证金率
         self.marginRateBySymbol[symbol] = None
@@ -390,6 +391,10 @@ class DrEngine(object):
         if 'symbol' not in indexDic:
             indexes.append(
                 IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
+            )
+        if 'vtSymbol' not in indexDic:
+            indexes.append(
+                IndexModel([('vtSymbol', ASCENDING)], name='vtSymbol', background=True)
             )
         if 'underlyingStymbol' not in indexDic:
             indexes.append(
