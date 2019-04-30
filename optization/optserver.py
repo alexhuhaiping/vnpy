@@ -199,11 +199,11 @@ class OptimizeService(object):
             self.log.info('没有需要核对的回测任务')
             return
 
-        cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
-        argsIDs = {d['_id'] for d in cursor}
+        cursor = self.argCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
+        argsIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
 
-        cursor = self.resultCol.find({}, {}, no_cursor_timeout=True)
-        resultIDs = {d['_id'] for d in cursor}
+        cursor = self.resultCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
+        resultIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
 
         # 对比回测
         finishIDs = argsIDs & resultIDs

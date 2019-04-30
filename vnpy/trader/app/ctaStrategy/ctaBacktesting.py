@@ -80,6 +80,7 @@ class BacktestingEngine(object):
         self.initData = []  # 初始化用的数据
         self.dbName = ''  # 回测数据库名
         self.symbol = ''  # 回测集合名
+        self.vtSymbol = ''  # 回测vt合约名
 
         self.dataStartDate = None  # 回测数据开始日期，datetime对象
         self.dataEndDate = None  # 回测数据结束日期，datetime对象

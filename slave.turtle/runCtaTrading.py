@@ -5,6 +5,8 @@ from time import sleep
 import logging
 import traceback
 import logging.config
+import tradingtime as tt
+tt.load_futures_tradingtime()
 
 from vnpy.event import EventEngine2
 from vnpy.trader.svtEngine import MainEngine

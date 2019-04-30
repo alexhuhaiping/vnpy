@@ -121,10 +121,10 @@ class CtaEngine(VtCtaEngine):
             assert isinstance(self.ctpCol1dayBar, pymongo.collection.Collection)
             assert isinstance(self.ctpCol1minBar, pymongo.collection.Collection)
 
-    def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
+    def loadBar(self, vtSymbol, collectionName, barNum, barPeriod=1):
         """
         从数据库中读取历史行情
-        :param symbol:
+        :param vtSymbol:
         :param collectionName:  bar_1min  OR bar_1day
         :param barNum: 要加载的 bar 的数量
         :param barPeriod:
@@ -135,7 +135,7 @@ class CtaEngine(VtCtaEngine):
             'bar_1day': self.ctpCol1dayBar,
         }.get(collectionName)
         # 假设周期 barPeriod=7, barNum=10
-        cursor = collection.find({'symbol': symbol}).hint('symbol')
+        cursor = collection.find({'vtSymbol': vtSymbol}).hint('vtSymbol')
         amount = cursor.count()
         # 先取余数
         rest = amount % barPeriod
@@ -152,7 +152,7 @@ class CtaEngine(VtCtaEngine):
         while noDataDays <= 30:
             # 连续一个月没有该合约数据，则退出
             sql = {
-                'symbol': symbol,
+                'vtSymbol': vtSymbol,
                 'tradingDay': loadDate
             }
             # 获取一天的 1min bar
@@ -564,7 +564,7 @@ class CtaEngine(VtCtaEngine):
             # 不需要更新保证金
             return
         self.log.info('查询保证金 {}'.format(s.vtSymbol))
-        self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
+        self.mainEngine.qryMarginRate('CTP', s.symbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
 
@@ -580,7 +580,7 @@ class CtaEngine(VtCtaEngine):
             # 不需要更新手续费
             return
         self.log.info('查询手续费 {}'.format(s.vtSymbol))
-        self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
+        self.mainEngine.qryCommissionRate('CTP', s.symbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
 
@@ -608,6 +608,7 @@ class CtaEngine(VtCtaEngine):
                'userID': gateWay.tdApi.userID}
 
         d = {'name': strategy.name,
+             'symbol': strategy.symbol,
              'vtSymbol': strategy.vtSymbol,
              'className': strategy.className,
              'pos': strategy.pos,

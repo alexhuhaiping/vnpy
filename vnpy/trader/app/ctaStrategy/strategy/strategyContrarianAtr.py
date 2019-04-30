@@ -35,7 +35,8 @@ class ContrarianAtrStrategy(CtaTemplate):
     risk = 0.6  # 每笔风险投入
     flinch = 0  # 畏缩指标
     fixhands = None  # 固定手数
-    loseCountAdd = 5 # 累计 5 次亏损之后重新计算风险投入
+    loseCountAdd = 0 # 累计 n 次亏损之后重新计算风险投入，为0时不启用
+    winCountAdd = 0 # 累计 n 次盈利之后重新计算风险投入，为0 时不启用
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -219,7 +220,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
 
-        self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        # self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
 
     def orderOpenOnTrade(self):
         # 开仓价
@@ -323,9 +324,13 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 平仓了，开始对连胜连败计数
             if profile > 0:
                 self.winCount += 1
+                if self.winCountAdd and self.winCount % self.winCountAdd == 0:
+                    # 重新计算风险投入
+                    self.updateStop()
+
             else:
                 self.loseCount += 1
-                if self.loseCount % self.loseCountAdd == 0:
+                if self.loseCountAdd and self.loseCount % self.loseCountAdd == 0:
                     # 重新计算风险投入
                     self.updateStop()
 
@@ -395,11 +400,9 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = min(self.maxHands, self.fixhands)
             return
 
-        # # 理论仓位
-        # minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
-        # if self.hands == 0:
-        #     self.hands = int(self.maxHands / 2)
-
+        # 理论仓位
+        hands = max(1, int(self.stop / self.margin))
+        self.hands = min(self.maxHands, hands)
 
         # 固定比例仓位,每2万本金对应1仓，不减仓
         # if self.hands:
@@ -439,5 +442,3 @@ class ContrarianAtrStrategy(CtaTemplate):
     def updateStop(self):
         self.log.info('调整风险投入')
         self.stop = self.capital * self.risk
-
-        self.hands = self.stop / self.marginRate

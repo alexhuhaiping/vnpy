@@ -322,9 +322,9 @@ class BacktestingEngine(VTBacktestingEngine):
         :param vtSymbol:
         :return:
         """
-        self.symbol = vtSymbol
+        self.vtSymbol = vtSymbol
         sql = {
-            'vtSymbol': self.symbol
+            'vtSymbol': self.vtSymbol
         }
         contractDic = self.ctpColContract.find_one(sql, {'_id': 0})
 
@@ -354,7 +354,7 @@ class BacktestingEngine(VTBacktestingEngine):
         startDate = contractDic['activeStartDate']
         endDate = contractDic['activeEndDate']
         if startDate is None:
-            err = '{} 不是主力合约'.format(self.symbol)
+            err = '{} 不是主力合约'.format(self.vtSymbol)
             self.log.error(err)
             raise ValueError(err)
         self.setStartDate(startDate)  # 设置回测用的数据起始日期
@@ -402,7 +402,7 @@ class BacktestingEngine(VTBacktestingEngine):
             dataClass = VtTickData
 
         # 载入初始化需要用的数据
-        flt = {'symbol': self.symbol}
+        flt = {'vtSymbol': self.vtSymbol}
 
         initCursor = collection.find(flt, {'_id': 0})
         initCount = initCursor.count()
@@ -873,17 +873,17 @@ class BacktestingEngine(VTBacktestingEngine):
 
         subPlotCount += 1
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
-        pBalance.set_title('Balance {}'.format(self.symbol))
+        pBalance.set_title('Balance {}'.format(self.vtSymbol))
         df['balance'].plot(legend=True, grid=True)
 
         subPlotCount += 1
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
-        pBalance.set_title('Daily Pnl Cumsum {}'.format(self.symbol))
+        pBalance.set_title('Daily Pnl Cumsum {}'.format(self.vtSymbol))
         df['netPnl'].cumsum().plot(legend=True, grid=True)
         
         subPlotCount += 1
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
-        pBalance.set_title('Daily Pnlp Cumsum {}'.format(self.symbol))
+        pBalance.set_title('Daily Pnlp Cumsum {}'.format(self.vtSymbol))
         df['netPnlp'].cumsum().plot(legend=True, grid=True)
 
         subPlotCount += 1
@@ -924,11 +924,11 @@ class BacktestingEngine(VTBacktestingEngine):
         """
         if result is self.dailyResult:
             print(('-' * 30))
-            print(('{} 计算按日统计结果'.format(self.symbol)))
+            print(('{} 计算按日统计结果'.format(self.vtSymbol)))
             print(('-' * 30))
         elif result is self.tradeResult:
             print(('-' * 30))
-            print(('{} 逐笔计算回测结果'.format(self.symbol)))
+            print(('{} 逐笔计算回测结果'.format(self.vtSymbol)))
             print(('-' * 30))
 
         for k, v in list(result.items()):

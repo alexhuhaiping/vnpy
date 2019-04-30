@@ -429,7 +429,9 @@ class CtaEngine(object):
 
             # 订阅合约
             contract = self.mainEngine.getContract(strategy.vtSymbol)
+
             if contract:
+                strategy.symbol = contract.symbol
                 req = VtSubscribeReq()
                 req.symbol = contract.symbol
                 req.exchange = contract.exchange

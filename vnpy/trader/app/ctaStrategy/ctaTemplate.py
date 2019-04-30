@@ -28,6 +28,7 @@ class CtaTemplate(object):
     # 策略的基本参数
     name = EMPTY_UNICODE  # 策略实例名称
     vtSymbol = EMPTY_STRING  # 交易的合约vt系统代码
+    symbol = EMPTY_STRING  # 交易的合约交易所系统代码
     productClass = EMPTY_STRING  # 产品类型（只有IB接口需要）
     currency = EMPTY_STRING  # 货币（只有IB接口需要）
 
@@ -40,7 +41,8 @@ class CtaTemplate(object):
     paramList = ['name',
                  'className',
                  'author',
-                 'vtSymbol']
+                 'vtSymbol',
+                 ]
 
     # 变量列表，保存了变量的名称
     varList = ['inited',

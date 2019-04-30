@@ -234,6 +234,7 @@ class MainEngine(object):
     # ----------------------------------------------------------------------
     def dbQuery(self, dbName, collectionName, d, sortKey='', sortDirection=ASCENDING):
         """从MongoDB中读取数据，d是查询要求，返回的是数据库查询的指针"""
+
         if self.dbClient:
             db = self.dbClient[dbName]
             collection = db[collectionName]
@@ -488,13 +489,13 @@ class DataEngine(object):
         else:
             detail = PositionDetail(vtSymbol)
             self.detailDict[vtSymbol] = detail
-            
+
             # 设置持仓细节的委托转换模式
             contract = self.getContract(vtSymbol)
             
             if contract:
                 detail.exchange = contract.exchange
-                
+                detail.symbol = contract.symbol
                 # 上期所合约
                 if contract.exchange == EXCHANGE_SHFE:
                     detail.mode = detail.MODE_SHFE
@@ -660,6 +661,7 @@ class PositionDetail(object):
     def __init__(self, vtSymbol):
         """Constructor"""
         self.vtSymbol = vtSymbol
+        self.symbol = EMPTY_STRING
         self.log = logging.getLogger(self.vtSymbol)
         
         self.longPos = EMPTY_INT
@@ -948,6 +950,7 @@ class PositionDetail(object):
         """
         dic = OrderedDict([
             ('vtSymbol', self.vtSymbol),
+            ('symbol', self.symbol),
             ('pos', self.pos),
             ('longPos', self.longPos),
             ('longYd', self.longYd),

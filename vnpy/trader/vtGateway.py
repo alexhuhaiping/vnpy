@@ -72,11 +72,12 @@ class sVtGateway(object):
         event1 = Event(type_=EVENT_POSITION)
         event1.dict_['data'] = position
         self.eventEngine.put(event1)
-        
+
         # 特定合约代码的事件
         event2 = Event(type_=EVENT_POSITION+position.vtSymbol)
         event2.dict_['data'] = position
         self.eventEngine.put(event2)
+
     
     #----------------------------------------------------------------------
     def onAccount(self, account):
@@ -208,7 +209,12 @@ class VtGateway(sVtGateway):
             tradeTime = dtt.datetime.combine(dtt.date.today() - dtt.timedelta(days=1), t)
             tradeTime = LOCAL_TIMEZONE.localize(tradeTime)
 
-        _, tradingDay = tt.get_tradingday(tradeTime)
+        try:
+            print()
+            _, tradingDay = tt.get_tradingday(tradeTime)
+        except AttributeError:
+            print(f'141414, {tradeTime}')
+            raise
 
         trade.datetime = tradeTime
         trade.tradingDay = tradingDay
