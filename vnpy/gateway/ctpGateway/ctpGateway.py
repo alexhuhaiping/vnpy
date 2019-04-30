@@ -93,6 +93,8 @@ class CtpGateway(VtGateway):
         self.qryEnabled = False  # 是否要启动循环查询
 
         self.requireAuthentication = False
+        self.symbol2contract = {}
+        self.vtSymbol2contract = {}
 
     def qryMarginRate(self, symbol):
         self.tdApi.qryMarginRate(symbol)
@@ -352,7 +354,9 @@ class CtpMdApi(MdApi):
 
         tick.symbol = data['InstrumentID']
         tick.exchange = exchangeMapReverse.get(data['ExchangeID'], '未知')
-        tick.vtSymbol = tick.symbol  # '.'.join([tick.symbol, EXCHANGE_UNKNOWN])
+        # tick.vtSymbol = tick.symbol  # '.'.join([tick.symbol, EXCHANGE_UNKNOWN])
+        contract = self.gateway.symbol2contract[tick.symbol]
+        tick.vtSymbol = contract.vtSymbol
 
         tick.lastPrice = data['LastPrice']
         tick.volume = data['Volume']
@@ -628,7 +632,7 @@ class CtpTdApi(TdApi):
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol
+        order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
         order.orderID = data['OrderRef']
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
         order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
@@ -830,7 +834,11 @@ class CtpTdApi(TdApi):
         mr.gatewayName = self.gatewayName
         mr.rawData = data
 
-        mr.vtSymbol = data['InstrumentID']
+        # mr.vtSymbol = data['InstrumentID']
+        mr.symbol = data['InstrumentID']
+        contract = self.gateway.symbol2contract[mr.symbol]
+        mr.name = contract.name
+        mr.vtSymbol = contract.vtSymbol
         mr.ShortMarginRatioByMoney = data['ShortMarginRatioByMoney']
         mr.LongMarginRatioByMoney = data['LongMarginRatioByMoney']
         mr.marginRate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)
@@ -878,21 +886,25 @@ class CtpTdApi(TdApi):
     def onRspQryInstrument(self, data, error, n, last):
         """合约查询回报"""
         contract = VtContractData()
+        contract.rawData = data
         contract.gatewayName = self.gatewayName
 
         contract.symbol = data['InstrumentID']
         contract.exchange = exchangeMapReverse[data['ExchangeID']]
-        contract.vtSymbol = contract.symbol  # '.'.join([contract.symbol, contract.exchange])
+        # contract.vtSymbol = contract.symbol
+        # contract.vtSymbol = '.'.join([contract.symbol, contract.exchange])
         contract.name = data['InstrumentName']#.decode('GBK')
 
         # 合约数值
         contract.size = data['VolumeMultiple']
         contract.priceTick = data['PriceTick']
         contract.strikePrice = data['StrikePrice']
-        contract.underlyingSymbol = data['UnderlyingInstrID']
+        contract.underlyingSymbol = data['ProductID']
 
         contract.productClass = productClassMapReverse.get(data['ProductClass'], PRODUCT_UNKNOWN)
         contract.last = last # 是否最后一条合约
+
+        contract.fromRawData()
 
         # 期权类型
         if data['OptionsType'] == '1':
@@ -903,8 +915,16 @@ class CtpTdApi(TdApi):
         # 缓存代码和交易所的印射关系
         self.symbolExchangeDict[contract.symbol] = contract.exchange
         self.symbolSizeDict[contract.symbol] = contract.size
+        self.gateway.symbol2contract[contract.symbol] = contract
+        self.gateway.vtSymbol2contract[contract.vtSymbol] = contract
+
+
+        # for k, v in data.items():
+        #     print(f'{k}\t{v}\t{type(v)}')
+        # print('=========================')
 
         # 推送
+
         self.gateway.onContract(contract)
 
         if last:
@@ -1079,7 +1099,7 @@ class CtpTdApi(TdApi):
         # 保存代码和报单号
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol  # '.'.join([order.symbol, order.exchange])
+        order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
 
         order.orderID = data['OrderRef']
         # CTP的报单号一致性维护需要基于frontID, sessionID, orderID三个字段
@@ -1144,7 +1164,7 @@ class CtpTdApi(TdApi):
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol
+        order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
         order.orderID = data['OrderRef']
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
         order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)

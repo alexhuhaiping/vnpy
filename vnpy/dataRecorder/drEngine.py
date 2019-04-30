@@ -22,7 +22,7 @@ from vnpy.vtFunction import todayDate
 from vnpy.dataRecorder.drBase import *
 from vnpy.eventEngine import *
 from vnpy.dataRecorder.language import text
-from vnpy.vtGateway import VtSubscribeReq, VtLogData
+from vnpy.vtGateway import VtSubscribeReq, VtLogData, VtContractData
 from vnpy import vtGlobal
 
 
@@ -84,6 +84,7 @@ class DrEngine(object):
         :return:
         """
         contract = event.dict_['data']
+        assert isinstance(contract, VtContractData)
 
         if contract.last:
             # 汇报启动
@@ -94,13 +95,18 @@ class DrEngine(object):
 
         if contract.productClass != '期货':
             return
-        vtSymbol = symbol = contract.symbol
+
+        symbol = contract.symbol
+        vtSymbol = contract.vtSymbol
+
+        if symbol != 'MA909':
+            return
 
         self.log.debug('订阅 {}'.format(vtSymbol))
 
         # 检查 tradingtime 是否已经添加了该品种
         try:
-            tt.get_trading_status(vtSymbol)
+            tt.get_trading_status(symbol)
         except TypeError:
             self.log.warning('tradingtime 缺少品种 {}'.format(vtSymbol))
             return
@@ -122,19 +128,20 @@ class DrEngine(object):
         # 检查是否已经存在合约
         oldContract = collection.find_one({'vtSymbol': vtSymbol}, {'_id': 0})
         is_tradingtime, tradeday = tt.get_tradingday(arrow.now().datetime)
+
+        data['startDate'] = arrow.get(str(datetime.datetime.strptime(contract.OpenDate, '%Y%m%d')) + '+08').datetime
+        data['endDate'] = arrow.get(str(datetime.datetime.strptime(contract.ExpireDate, '%Y%m%d')) + '+08').datetime
         if not oldContract:
             # 尚未存在新合约,保存
-            data['startDate'] = tradeday
-            data['endDate'] = tradeday
             collection.insert_one(data)
         else:
             # 已经存在的合约，更新 endDate
-            collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': tradeday}})
+            collection.update_one({'vtSymbol': vtSymbol}, {'$set': {'endDate': data['endDate']}})
 
         # 尚未更新保证金率
-        self.marginRateBySymbol[vtSymbol] = None
+        self.marginRateBySymbol[symbol] = None
         # 尚未更新手续费
-        self.vtCommissionRateBySymbol[vtSymbol] = None
+        self.vtCommissionRateBySymbol[symbol] = None
 
     # ----------------------------------------------------------------------
     def loadSetting(self):
@@ -252,6 +259,7 @@ class DrEngine(object):
         #
         # if vtSymbol in self.barDict:
         bar = self.barDict.get(vtSymbol)
+        assert isinstance(bar, DrBarData)
 
         # 如果第一个TICK或者新的一分钟
         if not bar.datetime:
@@ -384,6 +392,10 @@ class DrEngine(object):
             indexes.append(
                 IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
             )
+        if 'vtSymbol' not in indexDic:
+            indexes.append(
+                IndexModel([('vtSymbol', ASCENDING)], name='vtSymbol', background=True)
+            )
         if 'underlyingStymbol' not in indexDic:
             indexes.append(
                 IndexModel([('underlyingStymbol', ASCENDING)], name='underlyingStymbol', background=True)
@@ -400,9 +412,9 @@ class DrEngine(object):
         indexDic = collection.index_information()
         indexes = []
 
-        if 'symbol' not in indexDic:
+        if 'vtSymbol' not in indexDic:
             indexes.append(
-                IndexModel([('symbol', ASCENDING)], name='symbol', background=True)
+                IndexModel([('vtSymbol', ASCENDING)], name='vtSymbol', background=True)
             )
         if 'tradingDay' not in indexDic:
             indexes.append(
@@ -443,7 +455,7 @@ class DrEngine(object):
         :return:
         """
         marginRate = event.dict_['data']
-        self.marginRateBySymbol[marginRate.vtSymbol] = marginRate.rate
+        self.marginRateBySymbol[marginRate.symbol] = marginRate.rate
 
         # 保存到数据库
         collection = self.mainEngine.dbClient[CONTRACT_DB_NAME][CONTRACT_INFO_COLLECTION_NAME]
