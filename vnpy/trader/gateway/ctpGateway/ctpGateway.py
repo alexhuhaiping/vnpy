@@ -21,6 +21,7 @@ from vnpy.trader.vtGateway import *
 from vnpy.trader.vtFunction import getJsonPath, getTempPath, todayDate
 from vnpy.trader.vtConstant import GATEWAYTYPE_FUTURES
 from .language import text
+from threading import Timer
 
 # 以下为一些VT类型和CTP类型的映射字典
 # 价格类型映射
@@ -102,6 +103,9 @@ class svtCtpGateway(VtGateway):
 
         self.fileName = self.gatewayName + '_connect.json'
         self.filePath = getJsonPath(self.fileName, __file__)
+
+        self.symbol2contract = {}
+        self.vtSymbol2contract = {}
 
         # ----------------------------------------------------------------------
 
@@ -392,7 +396,8 @@ class CtpMdApi(MdApi):
 
         tick.symbol = data['InstrumentID']
         tick.exchange = symbolExchangeDict.get(tick.symbol, EXCHANGE_UNKNOWN)
-        tick.vtSymbol = tick.symbol  # '.'.join([tick.symbol, tick.exchange])
+        # tick.vtSymbol = tick.symbol  # '.'.join([tick.symbol, tick.exchange])
+        tick.vtSymbol = self.gateway.symbol2contract[data['InstrumentID']].vtSymbol
 
         tick.lastPrice = data['LastPrice']
         tick.volume = data['Volume']
@@ -643,7 +648,8 @@ class svtCtpTdApi(TdApi):
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol
+        # order.vtSymbol = order.symbol
+        order.vtSymbol = self.gateway.symbol2contract[data['InstrumentID']].vtSymbol
         order.orderID = data['OrderRef']
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
         order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
@@ -757,6 +763,7 @@ class svtCtpTdApi(TdApi):
 
         # 获取持仓缓存对象
         posName = '.'.join([data['InstrumentID'], data['PosiDirection']])
+
         if posName in self.posDict:
             pos = self.posDict[posName]
         else:
@@ -765,7 +772,8 @@ class svtCtpTdApi(TdApi):
 
             pos.gatewayName = self.gatewayName
             pos.symbol = data['InstrumentID']
-            pos.vtSymbol = pos.symbol
+
+            pos.vtSymbol = self.gateway.symbol2contract[data['InstrumentID']].vtSymbol
             pos.direction = posiDirectionMapReverse.get(data['PosiDirection'], '')
             pos.vtPositionName = '.'.join([pos.vtSymbol, pos.direction])
 
@@ -861,11 +869,12 @@ class svtCtpTdApi(TdApi):
     def onRspQryInstrument(self, data, error, n, last):
         """合约查询回报"""
         contract = VtContractData()
+        contract.rawData = data
         contract.gatewayName = self.gatewayName
 
         contract.symbol = data['InstrumentID']
         contract.exchange = exchangeMapReverse[data['ExchangeID']]
-        contract.vtSymbol = contract.symbol  # '.'.join([contract.symbol, contract.exchange])
+        # contract.vtSymbol = contract.symbol  # '.'.join([contract.symbol, contract.exchange])
         contract.name = data['InstrumentName']#.decode('GBK')
 
         # 合约数值
@@ -883,9 +892,13 @@ class svtCtpTdApi(TdApi):
             elif data['OptionsType'] == '2':
                 contract.optionType = OPTION_PUT
 
+        contract.fromRawData()
+
         # 缓存代码和交易所的印射关系
         self.symbolExchangeDict[contract.symbol] = contract.exchange
         self.symbolSizeDict[contract.symbol] = contract.size
+        self.gateway.symbol2contract[contract.symbol] = contract
+        self.gateway.vtSymbol2contract[contract.vtSymbol] = contract
 
         # 推送
         self.gateway.onContract(contract)
@@ -1055,7 +1068,6 @@ class svtCtpTdApi(TdApi):
         """报单回报"""
         # 更新最大报单编号
         newref = data['OrderRef']
-        self.orderRef = max(self.orderRef, int(newref))
 
         # 创建报单数据对象
         order = VtOrderData()
@@ -1064,7 +1076,16 @@ class svtCtpTdApi(TdApi):
         # 保存代码和报单号
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol  # '.'.join([order.symbol, order.exchange])
+        # order.vtSymbol = order.symbol  # '.'.join([order.symbol, order.exchange])
+
+        try:
+            order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
+        except KeyError:
+            t = Timer(5, self.onRtnOrder, args=(data,))
+            t.start()
+            return
+
+        self.orderRef = max(self.orderRef, int(newref))
 
         order.orderID = data['OrderRef']
         # CTP的报单号一致性维护需要基于frontID, sessionID, orderID三个字段
@@ -1101,7 +1122,14 @@ class svtCtpTdApi(TdApi):
         # 保存代码和报单号
         trade.symbol = data['InstrumentID']
         trade.exchange = exchangeMapReverse[data['ExchangeID']]
-        trade.vtSymbol = trade.symbol  # '.'.join([trade.symbol, trade.exchange])
+        # trade.vtSymbol = trade.symbol  # '.'.join([trade.symbol, trade.exchange])
+
+        try:
+            trade.vtSymbol = self.gateway.symbol2contract[trade.symbol].vtSymbol
+        except KeyError:
+            t = Timer(5, self.onRtnTrade, args=(data,))
+            t.start()
+            return
 
         trade.tradeID = data['TradeID']
         trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID])
@@ -1109,6 +1137,8 @@ class svtCtpTdApi(TdApi):
         trade.orderID = data['OrderRef']
         # trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
         trade.vtOrderID = self.getVtOrderID(trade.orderID, trade.symbol)
+
+
 
         # 方向
         trade.direction = directionMapReverse.get(data['Direction'], '')
@@ -1133,7 +1163,8 @@ class svtCtpTdApi(TdApi):
         order.gatewayName = self.gatewayName
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
-        order.vtSymbol = order.symbol
+        # order.vtSymbol = order.symbol
+        order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
         order.orderID = data['OrderRef']
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
         order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
@@ -1592,7 +1623,8 @@ class CtpTdApi(svtCtpTdApi):
         mr.gatewayName = self.gatewayName
         mr.rawData = data
 
-        mr.vtSymbol = data['InstrumentID']
+        # mr.vtSymbol = data['InstrumentID']
+        mr.vtSymbol = self.gateway.symbol2contract[data['InstrumentID']].vtSymbol
         mr.ShortMarginRatioByMoney = data['ShortMarginRatioByMoney']
         mr.LongMarginRatioByMoney = data['LongMarginRatioByMoney']
         mr.marginRate = max(mr.ShortMarginRatioByMoney, mr.LongMarginRatioByMoney)

@@ -126,12 +126,6 @@ def checkPosition():
     s.log.debug(s.trading)
 
 
-def checkPositionDetail():
-    for k, detail in list(me.dataEngine.detailDict.items()):
-        print(k)
-        print((detail.output()))
-
-
 def checkContinueCaution():
     s = getStrategy(vtSymbol)
     s.ctaEngine.get()
@@ -289,6 +283,13 @@ def reSubscribe():
             break
     print((s.name))
 
+
+def checkPositionDetail():
+    for k, detail in list(me.dataEngine.detailDict.items()):
+        print(f'vtSymbol : {k}')
+        print((detail.output()))
+        print('===========')
+
 # vtSymbol = 'AP905'
 vtSymbol = 'j1905'
 import logging
@@ -298,7 +299,8 @@ def run():
     load()
     return
     me.log.info('====================================================')
-    reSubscribe()
+    checkPositionDetail()
+    # reSubscribe()
 
     # checkMargin()
     # showStopOrder()
@@ -326,7 +328,6 @@ def run():
 
     # checkContinueCaution()
 
-    # checkPositionDetail()
     # showStopOrder()
 
     # checkPosition()

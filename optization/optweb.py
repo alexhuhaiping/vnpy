@@ -1,5 +1,5 @@
-# encoding: utf-8
 import os
+import hashlib
 import time
 from io import BytesIO, StringIO, FileIO
 
@@ -24,7 +24,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
     except ImportError:
         import pickle
 
-    from . import optcomment
+    import optcomment
     log = optcomment.Logger(logQueue)
     log.warning('启动web服务')
     app = Flask(__name__)
@@ -87,6 +87,7 @@ def run_app(ppid, localGitHash, salt, logQueue, tasksQueue, resultQueue):
         dataPickle = request.files['data'].read()
 
         localHash = optcomment.saltedByHash(dataPickle, salt)
+
         if str(localHash) != originHash:
             logger.warning('hash不符合')
             return

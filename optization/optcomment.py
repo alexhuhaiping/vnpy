@@ -1,5 +1,4 @@
-# coding:utf-8
-
+import hashlib
 def saltedByHash(data, salt):
     """
     >>> salted_password('123', '123123123')
@@ -9,7 +8,8 @@ def saltedByHash(data, salt):
     :param salt:
     :return:
     """
-    hash1 = hash(data+salt)
+    # hash1 = hash(data+salt)
+    hash1 = hashlib.md5(data+salt).hexdigest()
     return hash1
 
 class Logger(object):

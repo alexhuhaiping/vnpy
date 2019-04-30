@@ -23,8 +23,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from . import optweb
-from . import optcomment
+import optweb
+import optcomment
 
 
 class OptimizeService(object):
@@ -55,7 +55,7 @@ class OptimizeService(object):
         # self.cpuCount = 1
         self.localzone = pytz.timezone('Asia/Shanghai')
 
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
             self.config.read_file(f)
@@ -199,11 +199,11 @@ class OptimizeService(object):
             self.log.info('没有需要核对的回测任务')
             return
 
-        cursor = self.argCol.find({}, {}, no_cursor_timeout=True)
-        argsIDs = {d['_id'] for d in cursor}
+        cursor = self.argCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
+        argsIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
 
-        cursor = self.resultCol.find({}, {}, no_cursor_timeout=True)
-        resultIDs = {d['_id'] for d in cursor}
+        cursor = self.resultCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
+        resultIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
 
         # 对比回测
         finishIDs = argsIDs & resultIDs

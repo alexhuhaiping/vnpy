@@ -303,6 +303,93 @@ class VtContractData(VtBaseData):
         self.optionType = EMPTY_UNICODE  # 期权类型
         self.expiryDate = EMPTY_STRING  # 到期日
 
+        # 原始数据
+        self.InstrumentID = ''
+        self.ExchangeID = ''
+        self.InstrumentName = ''
+        self.ExchangeInstID = ''
+        self.ProductID = ''
+        self.ProductClass = ''
+        self.DeliveryYear = 0
+        self.DeliveryMonth = 0
+        self.MaxMarketOrderVolume = 0
+        self.MinMarketOrderVolume = 0
+        self.MaxLimitOrderVolume = 0
+        self.MinLimitOrderVolume = 0
+        self.VolumeMultiple = 0
+        self.PriceTick = 0.
+        self.CreateDate = ''
+        self.OpenDate = ''
+        self.ExpireDate = ''
+        self.StartDelivDate = ''
+        self.EndDelivDate = ''
+        self.InstLifePhase = ''
+        self.IsTrading = 0
+        self.PositionType = ''
+        self.PositionDateType = ''
+        self.LongMarginRatio = 0.
+        self.ShortMarginRatio = 0.
+        self.MaxMarginSideAlgorithm = ''
+        self.UnderlyingInstrID = ''
+        self.StrikePrice = 0.
+        self.OptionsType = ''
+        self.UnderlyingMultiple = 0.
+        self.CombinationType = ''
+
+
+    def toFuturesDB(self):
+        """
+
+        :return:
+        """
+        dic = self.__dict__.copy()
+        dic.pop('rawData')
+        return dic
+
+    def fromRawData(self):
+        """
+        InstrumentID rb1910 <class 'str'>
+        ExchangeID SHFE <class 'str'>
+        InstrumentName rb1910 <class 'str'>
+        ExchangeInstID rb1910 <class 'str'>
+        ProductID rb <class 'str'>
+        ProductClass 1 <class 'str'>
+        DeliveryYear 2019 <class 'int'>
+        DeliveryMonth 10 <class 'int'>
+        MaxMarketOrderVolume 30 <class 'int'>
+        MinMarketOrderVolume 1 <class 'int'>
+        MaxLimitOrderVolume 500 <class 'int'>
+        MinLimitOrderVolume 1 <class 'int'>
+        VolumeMultiple 10 <class 'int'>
+        PriceTick 1.0 <class 'float'>
+        CreateDate 20180912 <class 'str'>
+        OpenDate 20181016 <class 'str'>
+        ExpireDate 20191015 <class 'str'>
+        StartDelivDate 20191016 <class 'str'>
+        EndDelivDate 20191022 <class 'str'>
+        InstLifePhase 1 <class 'str'>
+        IsTrading 1 <class 'int'>
+        PositionType 2 <class 'str'>
+        PositionDateType 1 <class 'str'>
+        LongMarginRatio 0.08 <class 'float'>
+        ShortMarginRatio 0.08 <class 'float'>
+        MaxMarginSideAlgorithm 1 <class 'str'>
+        UnderlyingInstrID rb <class 'str'>
+        StrikePrice 0.0 <class 'float'>
+        OptionsType 0 <class 'str'>
+        UnderlyingMultiple 1.0 <class 'float'>
+        CombinationType 0 <class 'str'>
+        :return:
+        """
+        for k,v in self.rawData.items():
+            setattr(self, k, v)
+
+        # 生成 vtSymbol 的规则
+        self.vtSymbol = self.toVtSymbol(**self.rawData)
+
+    @staticmethod
+    def toVtSymbol(ProductID, DeliveryYear, DeliveryMonth, ExchangeID, **kwargs):
+        return f'{ProductID}{str(DeliveryYear)[-2:]}{str(DeliveryMonth).zfill(2)}.{ExchangeID}'
 
 ########################################################################
 class VtMarginRate(VtBaseData):

@@ -1,6 +1,6 @@
 # coding:utf-8
 import traceback
-from .runBacktesting import runBacktesting
+import runBacktesting
 
 try:
     import queue as queue
@@ -12,7 +12,7 @@ import signal
 
 def newEngine(datas, setting, results, log):
     vtSymbol = setting['vtSymbol']
-    engine = runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False,
+    engine = runBacktesting.runBacktesting(vtSymbol, setting, setting['className'], isShowFig=False,
                             isOutputResult=False)
 
     if datas:

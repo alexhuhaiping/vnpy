@@ -32,9 +32,11 @@ class ContrarianAtrStrategy(CtaTemplate):
     # 策略参数
     longBar = 20
     n = 1  # 高点 n atr 算作反转
-    risk = 0.05  # 每笔风险投入
+    risk = 0.6  # 每笔风险投入
     flinch = 0  # 畏缩指标
     fixhands = None  # 固定手数
+    loseCountAdd = 0 # 累计 n 次亏损之后重新计算风险投入，为0时不启用
+    winCountAdd = 0 # 累计 n 次盈利之后重新计算风险投入，为0 时不启用
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -43,6 +45,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         'longBar',
         'risk',
         'fixhands',
+        'loseCountAdd',
     ])
 
     # 策略变量
@@ -217,7 +220,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             longStopOrderID, = self.buy(longPrice, self.hands, stop=True)
             self.longStopOrder = self.ctaEngine.workingStopOrderDict[longStopOrderID]
 
-        self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
+        # self.log.info('high: {};low: {};atr: {};'.format(self.high, self.low, self.atr))
 
     def orderOpenOnTrade(self):
         # 开仓价
@@ -321,13 +324,15 @@ class ContrarianAtrStrategy(CtaTemplate):
             # 平仓了，开始对连胜连败计数
             if profile > 0:
                 self.winCount += 1
-                self.loseCount = 0
-            else:
-                self.winCount = 0
-                self.loseCount += 1
+                if self.winCountAdd and self.winCount % self.winCountAdd == 0:
+                    # 重新计算风险投入
+                    self.updateStop()
 
-                # 重新计算风险投入
-                self.updateStop()
+            else:
+                self.loseCount += 1
+                if self.loseCountAdd and self.loseCount % self.loseCountAdd == 0:
+                    # 重新计算风险投入
+                    self.updateStop()
 
             self.highBalance = max(self.highBalance, self.rtBalance)
             self.log.info('highBalance:{}; rtBalance:{}'.format(self.highBalance, self.rtBalance))
@@ -388,17 +393,16 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.hands = 0
             return
 
-        # 理论仓位
-        minHands = max(0, int(self.stop / (self.n * self.atr * self.size)))
-        if self.hands == 0:
-            self.hands = int(self.maxHands / 2)
-
         # 仓位计算方法 ===========>
         # 固定仓位
         if self.fixhands is not None:
             # 有固定手数时直接使用固定手数
             self.hands = min(self.maxHands, self.fixhands)
             return
+
+        # 理论仓位
+        hands = max(1, int(self.stop / self.margin))
+        self.hands = min(self.maxHands, hands)
 
         # 固定比例仓位,每2万本金对应1仓，不减仓
         # if self.hands:

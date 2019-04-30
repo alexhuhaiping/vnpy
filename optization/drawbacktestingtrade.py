@@ -26,7 +26,7 @@ class DrawBacktestingTrade(object):
     def __init__(self, configPath='drawtrade.ini', startTradingDay=None, endTradingDay=None):
         self.config = MyConfigParser()
         with open(configPath, 'r') as f:
-            self.config.readfp(f)
+            self.config.read_file(f)
 
         # 生成批量参数使用哪个文件
         self.argFileName = self.config.autoget('DrawBacktestingTrade', 'argFileName')

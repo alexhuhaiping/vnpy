@@ -51,20 +51,26 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     # vtSymbol = 'AP810'
-    vtSymbol = 'rb1901'
+    # vtSymbol = 'rb1901'
     # vtSymbol = 'p1309'
-    # vtSymbol = 'ni1901'
+    # vtSymbol = 'ni1809'
     # vtSymbol = 'ru1705'
-    # vtSymbol = 'j1909'
+    vtSymbol = 'SR1909.CZCE'
 
     setting = {
 
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # # ATR 反转策略
-        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # 'barXmin': 20, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # # ATR 反转策略， 单利模式
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
+
+        # # ATR 反转策略, 复利模式
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # 'barXmin': 140, 'longBar': 10, 'n': 1,
+        # 'fixhands': None, 'loseCountAdd': 1, 'winCountAdd': 0, 'risk': 0.6,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
@@ -72,6 +78,7 @@ if __name__ == '__main__':
         # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
         # 'strategyClass': 'AtrBottomFishStrategy',
 
+        # 经典海龟
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
         "fixhands": 1, "barXmin": 10, 'BIG': True, 'UNITS': 4,
         'strategyClass': 'ClassicalTurtleDonchianStrategy',

@@ -1,10 +1,9 @@
-# coding:utf-8
-
 import os
 import logging
 import threading
 import time
 from queue import Empty
+import hashlib
 import pytz
 from bson.codec_options import CodecOptions
 import configparser
@@ -27,8 +26,8 @@ from pymongo.errors import OperationFailure
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from . import optcomment
-from .optchild import child
+import optcomment
+import optchild
 
 
 class Optimization(object):
@@ -199,7 +198,7 @@ class Optimization(object):
         """
         # 重置子进程标记
         self.childStoped.clear()
-        self.child = multiprocessing.Process(name=self.name, target=child,
+        self.child = multiprocessing.Process(name=self.name, target=optchild.child,
                                              args=(
                                                  self.name, self.childStoped, self.tasks, self.results, self.logQueue))
 
@@ -277,8 +276,8 @@ class Optimization(object):
         # 返回回测结果
         data = {'result': result}
         dataPickle = pickle.dumps(data)
-        hash = optcomment.saltedByHash(dataPickle, self.salt)
-        data = {'data': dataPickle, 'hash': hash}
+        _hash = optcomment.saltedByHash(dataPickle, self.salt)
+        data = {'data': dataPickle, 'hash': _hash}
 
         dataPikcle = BytesIO(dataPickle)
         url = self.getBtrUrl()
@@ -286,8 +285,9 @@ class Optimization(object):
         dataPikcle.close()
 
         if r.status_code != 200:
-            raise ValueError('返回码异常')
-
+            msg = f'返回码异常 {r.status_code} != 200'
+            msg += f'\n {data}'
+            raise ValueError(msg)
 
         # 正常完成回测，继续下一个
         self.setShortWait()

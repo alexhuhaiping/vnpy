@@ -9,7 +9,7 @@ import configparser
 from queue import Empty
 
 from vnpy.trader.vtFunction import getTempPath, getJsonPath
-from .optworker import childProcess
+import optworker
 
 
 class WorkService(object):
@@ -21,10 +21,10 @@ class WorkService(object):
         # 要使用的CPU数量
         self.cpuCount = multiprocessing.cpu_count()
 
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         configPath = config or getJsonPath('optimize.ini', __file__)
         with open(configPath, 'r') as f:
-            self.config.readfp(f)
+            self.config.read_file(f)
 
         self.log = logging.getLogger('{}_boss'.format(self.config.get('slavem', 'localhost')))
         try:
@@ -42,7 +42,7 @@ class WorkService(object):
         # 以子线程来运行 optwork
         for i in range(self.cpuCount):
             name = 'woker_{}'.format(i + 1)
-            w = threading.Thread(name=name, target=childProcess, args=(name, self.stoped, self.logQueue, config))
+            w = threading.Thread(name=name, target=optworker.childProcess, args=(name, self.stoped, self.logQueue, config))
             self.workers.append(w)
 
         for w in self.workers:
