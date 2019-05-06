@@ -99,9 +99,6 @@ class DrEngine(object):
         symbol = contract.symbol
         vtSymbol = contract.vtSymbol
 
-        if symbol != 'MA909':
-            return
-
         self.log.debug('订阅 {}'.format(vtSymbol))
 
         # 检查 tradingtime 是否已经添加了该品种
