@@ -748,18 +748,19 @@ class CtaEngine(VtCtaEngine):
             # 逆序, 取出第一个，就是当前的主力合约
             cursor = self.contractCol.find(sql).sort('activeEndDate', -1)
             d = next(cursor)
+            vtSymbol = d['vtSymbol']
             symbol = d['symbol']
 
             # 订阅合约
-            contract = self.mainEngine.getContract(symbol)
+            contract = self.mainEngine.getContract(vtSymbol)
             if not contract:
-                err = '找不到维持心跳的合约 {}'.format(symbol)
+                err = '找不到维持心跳的合约 {}'.format(vtSymbol)
                 self.log.critical(err)
                 time.sleep(1)
                 raise ValueError(err)
 
-            self.log.info('订阅维持心跳的合约 {}'.format(symbol))
-            self.heatbeatSymbols.append(symbol)
+            self.log.info('订阅维持心跳的合约 {}'.format(vtSymbol))
+            self.heatbeatSymbols.append(vtSymbol)
 
             req = VtSubscribeReq()
             req.symbol = contract.symbol

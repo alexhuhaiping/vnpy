@@ -328,6 +328,7 @@ class BacktestingEngine(VTBacktestingEngine):
         }
         contractDic = self.ctpColContract.find_one(sql, {'_id': 0})
 
+
         # 合约详情
         self.vtContract = vtCon = VtContractData()
         # 保证金率
@@ -404,7 +405,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 载入初始化需要用的数据
         flt = {'vtSymbol': self.vtSymbol}
 
-        initCursor = collection.find(flt, {'_id': 0})
+        initCursor = collection.find(flt, {'_id': 0, 'symbol':0})
         initCount = initCursor.count()
         self.log.info('预计加载数据 {}'.format(initCount))
 
