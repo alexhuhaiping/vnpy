@@ -43,9 +43,10 @@ class CtaTemplate(vtCtaTemplate):
     # 默认初始资金是1万, 在 onTrade 中平仓时计算其盈亏
     # 有存库的时候使用存库中的 capital 值，否则使用 CTA_setting.json 中的值
     capital = 10000
-
+    origin = 10000
     paramList = vtCtaTemplate.paramList[:]
     paramList.extend([
+        'origin',
         'barXmin',
         'marginRate',
         'capital',
@@ -58,6 +59,7 @@ class CtaTemplate(vtCtaTemplate):
 
     # 权益情况
     BALANCE = [
+        'origin',
         'capital',
         'turnover',
         'averagePrice',

@@ -711,7 +711,7 @@ class CtaEngine(VtCtaEngine):
             Thread(name='heartBeat', target=self.heartBeat).start()
 
     def heartBeat(self):
-        # self.log.info(u'触发心跳')
+        self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
     def writeCtaLog(self, content):
@@ -762,17 +762,17 @@ class CtaEngine(VtCtaEngine):
             self.log.info('订阅维持心跳的合约 {}'.format(vtSymbol))
             self.heatbeatSymbols.append(vtSymbol)
 
-            req = VtSubscribeReq()
-            req.symbol = contract.symbol
-            self.mainEngine.subscribe(req, contract.gatewayName)
+            self.reSubscribe(vtSymbol)
 
             # 仅对 ag 和 T 的tick推送进行心跳
-            self.eventEngine.register(EVENT_TICK + symbol, self._heartBeat)
+            self.eventEngine.register(EVENT_TICK + vtSymbol, self._heartBeat)
 
     def reSubscribe(self, vtSymbol):
         req = VtSubscribeReq()
         contract = self.mainEngine.getContract(vtSymbol)
         req.symbol = contract.symbol
+        req.exchange = contract.exchange
+
         self.mainEngine.subscribe(req, contract.gatewayName)
 
     def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy, stopProfile=False):
