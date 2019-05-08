@@ -711,7 +711,7 @@ class CtaEngine(VtCtaEngine):
             Thread(name='heartBeat', target=self.heartBeat).start()
 
     def heartBeat(self):
-        self.log.info(u'触发心跳')
+        # self.log.info(u'触发心跳')
         self.mainEngine.slavemReport.heartBeat()
 
     def writeCtaLog(self, content):
