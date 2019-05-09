@@ -43,7 +43,7 @@ except NameError:
 
 dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTradingDay, endTradingDay=endTradingDay)
 originTrlList.append(dbt)
-#
+
 # dbt.clearCollection()  # 清空数据库
 # dbt.runArg()  # 生成参数
 # dbt.runBacktesting()  # 批量回测
@@ -53,17 +53,17 @@ originTrlList.append(dbt)
 # costTime = e-b
 # os.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
 
-# optsv = 'rb,"BIG":False,"UNITS":1,"barXmin":30'
-optsv = 'ni,"barXmin":140'
-dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
-dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
-
-# dbt.btresult = 'btresult_ClassicalTurtleDonchian_selected'
-# dbt.btresult = 'btresult_ClassicalTurtleDonchian_all'
-# dbt.btresult = 'btresult_ContrarianAtrStrategy_ni'
-
+# # optsv = 'rb,"BIG":False,"UNITS":1,"barXmin":30'
+# optsv = 'ni,"barXmin":140'
+# dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
+# dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
+#
+# # dbt.btresult = 'btresult_ClassicalTurtleDonchian_selected'
+# # dbt.btresult = 'btresult_ClassicalTurtleDonchian_all'
+# # dbt.btresult = 'btresult_ContrarianAtrStrategy_ni'
+#
 dbt.loadTrade()   # 加载成交单
-# dbt.loadIndLine()   # 加载技术指标
+dbt.loadIndLine()   # 加载技术指标
 dbt.loadBar()# 加载数据并绘制成交图
 dbt.draw(PERIOD)
 #

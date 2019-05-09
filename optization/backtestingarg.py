@@ -273,7 +273,7 @@ class BacktestingArg(object):
         self.log.info('共 {} 个品种'.format(len(usSet)))
 
         self.btinfo['underlyingSymbols'] = list(usSet)
-        self.btinfo['symbols'] = [c['symbol'] for c in availbeContracts]
+        self.btinfo['vtSymbols'] = [c['vtSymbol'] for c in availbeContracts]
 
         return availbeContracts
 
