@@ -115,10 +115,10 @@ class MainEngine(object):
         if gateway:
             gateway.connect()
 
-            # 接口连接后自动执行数据库连接的任务
-            self.dbConnect()
+        # 接口连接后自动执行数据库连接的任务
+        self.dbConnect()
 
-            # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
 
     def subscribe(self, subscribeReq, gatewayName):
         """订阅特定接口的行情"""

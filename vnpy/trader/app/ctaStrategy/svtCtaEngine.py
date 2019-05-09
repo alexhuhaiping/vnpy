@@ -38,7 +38,7 @@ from vnpy.trader.vtFunction import todayDate, getJsonPath
 from vnpy.trader.app.ctaStrategy.ctaEngine import CtaEngine as VtCtaEngine
 from vnpy.trader.vtGlobal import globalSetting
 from vnpy.trader.svtEngine import MainEngine, PositionDetail
-from vnpy.trader.vtObject import VtMarginRate, VtCommissionRate
+from vnpy.trader.vtObject import VtMarginRate, VtCommissionRate, VtContractData
 
 from .ctaBase import *
 from .strategy import STRATEGY_CLASS
@@ -525,7 +525,7 @@ class CtaEngine(VtCtaEngine):
             cursor = self.contractCol.find(
                 {'underlyingSymbol': us, 'activeEndDate': {'$ne': None}},
                 {'_id': 0, 'symbol': 1, 'vtSymbol': 1, 'activeEndDate': 1, 'underlyingSymbol': 1}
-                                           )
+            )
             contract = [c for c in cursor]
             # 找出主力合约
             activeContract = contract[0]
@@ -642,7 +642,24 @@ class CtaEngine(VtCtaEngine):
             except TypeError:
                 self.log.info('{name} 该策略没有持仓'.format(**flt))
 
+    def preloadContract(self, vtSymbol):
+        ctpGateway = self.mainEngine.getGateway('CTP')
+        if vtSymbol not in ctpGateway.vtSymbol2contract:
+            self.log.info(f'预加载合约信息 {vtSymbol}')
+            contract = VtContractData()
+            dic = self.contractCol.find_one({'vtSymbol': vtSymbol})
+            for k, v in dic.items():
+                setattr(contract, k, v)
+
+            ctpGateway.tdApi.symbolExchangeDict[contract.symbol] = contract.exchange
+            ctpGateway.tdApi.symbolSizeDict[contract.symbol] = contract.size
+            ctpGateway.symbol2contract[contract.symbol] = contract
+            ctpGateway.vtSymbol2contract[contract.vtSymbol] = contract
+
     def loadStrategy(self, setting):
+        # 预加载 CTP 接口的合约
+        self.preloadContract(setting['vtSymbol'])
+
         r = super(CtaEngine, self).loadStrategy(setting)
         for s in list(self.strategyDict.values()):
             self.strategyByVtSymbol[s.vtSymbol].add(s)
@@ -761,7 +778,7 @@ class CtaEngine(VtCtaEngine):
 
             self.log.info('订阅维持心跳的合约 {}'.format(vtSymbol))
             self.heatbeatSymbols.append(vtSymbol)
-
+            self.preloadContract(vtSymbol)
             self.reSubscribe(vtSymbol)
 
             # 仅对 ag 和 T 的tick推送进行心跳
