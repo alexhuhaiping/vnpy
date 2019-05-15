@@ -588,8 +588,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             unit = so.unit
             assert isinstance(unit, Unit)
             unit.dropSO(so)
-            print(1515151515)
-            print(list(self.vtOrderID2Unit.keys()))
+
             self.vtOrderID2Unit[so.vtOrderID] = unit
 
             self.log.info('绑定 {} {}'.format(so.vtOrderID, unit))

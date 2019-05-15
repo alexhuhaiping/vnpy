@@ -414,7 +414,7 @@ class CtaEngine(VtCtaEngine):
             ctaCol = db[CTA_COL_NAME]
 
         # 创建创建索引
-        indexSymbol = IndexModel([('symbol', DESCENDING)], name='symbol', background=True)
+        indexSymbol = IndexModel([('vtSymbol', DESCENDING)], name='vtSymbol', background=True)
         indexClass = IndexModel([('class', ASCENDING)], name='class', background=True)
         indexDatetime = IndexModel([('datetime', DESCENDING)], name='datetime', background=True)
 

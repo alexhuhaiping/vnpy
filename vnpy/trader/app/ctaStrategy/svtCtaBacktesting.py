@@ -327,6 +327,8 @@ class BacktestingEngine(VTBacktestingEngine):
             'vtSymbol': self.vtSymbol
         }
         contractDic = self.ctpColContract.find_one(sql, {'_id': 0})
+        if contractDic is None:
+            self.log.error(f'请检查是否后缀交易所 vtSymbol : {vtSymbol}')
 
 
         # 合约详情
