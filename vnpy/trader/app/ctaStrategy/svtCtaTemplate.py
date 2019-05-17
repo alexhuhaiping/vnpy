@@ -1384,7 +1384,7 @@ class BarManager(VtBarManager):
             self.hourBar.time = self.hourBar.datetime.strftime('%H:%M:%S.%f')
 
             # 推送
-            self.onhourBar(self.hourBar)
+            # self.onhourBar(self.hourBar)
 
     def updateXminBar(self, bar):
         """

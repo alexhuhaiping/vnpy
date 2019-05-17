@@ -31,12 +31,12 @@ class BacktestingArg(object):
         sh.setLevel(logging.INFO)
         self.log.addHandler(sh)
 
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         configPath = getJsonPath(optfile, __file__)
 
         # 指定回测参数的 collection
         with open(configPath, 'r') as f:
-            self.config.readfp(f)
+            self.config.read_file(f)
 
         with open(argFileName, 'r') as f:
             dic = json.load(f)

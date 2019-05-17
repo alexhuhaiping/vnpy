@@ -51,9 +51,9 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     # vtSymbol = 'AP810'
-    # vtSymbol = 'rb1810.SHFE'
+    vtSymbol = 'rb1810.SHFE'
     # vtSymbol = 'p1309'
-    vtSymbol = 'ni1809.SHFE'
+    # vtSymbol = 'ni1809.SHFE'
     # vtSymbol = 'ru1705'
     # vtSymbol = 'SR1909.CZCE'
 
@@ -62,10 +62,10 @@ if __name__ == '__main__':
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # ATR 反转策略， 单利模式
-        'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 20000,
-        'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # # ATR 反转策略， 单利模式
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 20000,
+        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR 反转策略, 复利模式
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
@@ -82,6 +82,11 @@ if __name__ == '__main__':
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 20000,
         # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
+
+        # 放量突破
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 5,
+        'strategyClass': 'HighVolumeStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -93,6 +98,7 @@ if __name__ == '__main__':
         isShowFig=False,
         isOutputResult=True,
     )
+    engine.collectionName = 'bar_1day'
     # 运行回测`
     engine.runBacktesting()  # 运行回测
     # 输出回测结果
