@@ -110,10 +110,9 @@ class DrawBacktestingTrade(object):
         sleepSec = 1 if btInfoDic['amount'] < 10 else 60
         b = arrow.now()
         startNum = None
-        time.sleep(10)
+        time.sleep(5)
         while True:
-            cursor = self.btresultCol.find()
-            count = cursor.count()
+            count = self.btresultCol.count_documents({})
             startNum = startNum or count
             try:
                 overCount = count - startNum
@@ -121,17 +120,17 @@ class DrawBacktestingTrade(object):
                 e = arrow.now()
                 costTime = e - b
                 needTime = costTime / overCount * (btInfoDic['amount'] - count)
-                print(('============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e)))
+                logging.info('============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e))
             except ZeroDivisionError:
                 pass
             if btInfoDic['amount'] == count:
                 # 已经全部回测完毕
                 break
-            cursor.close()
             time.sleep(sleepSec)
         child_runBackTesting.terminate()
         child_runOptBoss.terminate()
 
+        # 为何要在这里设置呢？为了子进程的问题？
         logging.root.setLevel(logging.INFO)
 
     # 运行批量回测

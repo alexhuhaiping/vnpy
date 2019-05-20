@@ -200,10 +200,10 @@ class OptimizeService(object):
             return
 
         cursor = self.argCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
-        argsIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
+        argsIDs = {d['optsv']+ '@@' + d['vtSymbol'] for d in cursor}
 
         cursor = self.resultCol.find({}, {'optsv': 1, 'vtSymbol':1}, no_cursor_timeout=True)
-        resultIDs = {d['optsv']+d['vtSymbol'] for d in cursor}
+        resultIDs = {d['optsv']+ '@@' + d['vtSymbol'] for d in cursor}
 
         # 对比回测
         finishIDs = argsIDs & resultIDs
@@ -212,7 +212,8 @@ class OptimizeService(object):
 
         # 删除已经完成的回测参数
         for _id in finishIDs:
-            self.argCol.delete_many({'_id': _id})
+            optsv, vtSymbol = _id.split('@@')
+            self.argCol.delete_one({'optsv': optsv, 'vtSymbol': vtSymbol})
 
     def run(self):
         originInterval = 30
@@ -302,18 +303,19 @@ class OptimizeService(object):
         :return:
         """
         # 检查 colleciton 中是否有新的回测任务
-        cursor = self.argCol.find(no_cursor_timeout=True)
+        count = self.argCol.count_documents({})
 
-        count = cursor.count()
         if count == 0:
             # 没有任何任务
             self.log.info('没有回测任务')
             # 关闭心跳
-            self.slavemReport.heartBeat()
+            # self.slavemReport.heartBeat()
             self.slavemReport.endHeartBeat()
             return
         else:
             self.log.info('即将开始回测任务 {} 个'.format(count))
+
+        cursor = self.argCol.find({}, no_cursor_timeout=True)
 
         for setting in cursor:
             # 持续尝试塞入

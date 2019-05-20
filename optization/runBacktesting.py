@@ -62,31 +62,31 @@ if __name__ == '__main__':
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # # ATR 反转策略， 单利模式
-        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 20000,
-        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        # 'strategyClass': 'ContrarianAtrStrategy',
+        # ATR 反转策略， 单利模式
+        'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
+        'barXmin': 240, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        'strategyClass': 'ContrarianAtrStrategy',
+
+        # # ATR反转抄底策略
+        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "barXmin": 180, "longBar": 10, "n": 1, "fixhands": 1,
+        # 'strategyClass': 'AtrBottomFishStrategy',
 
         # # ATR 反转策略, 复利模式
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # 'barXmin': 140, 'longBar': 10, 'n': 1,
+        # 'barXmin': 30, 'longBar': 10, 'n': 1,
         # 'fixhands': None, 'loseCountAdd': 1, 'winCountAdd': 0, 'risk': 0.6,
         # 'strategyClass': 'ContrarianAtrStrategy',
-
-        # # ATR反转抄底策略
-        # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # "barXmin": 5, "longBar": 10, "n": 1, "fixhands": 1,
-        # 'strategyClass': 'AtrBottomFishStrategy',
 
         # # 经典海龟
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 20000,
         # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
-        # 放量突破
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 5,
-        'strategyClass': 'HighVolumeStrategy',
+        # # 放量突破
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 5, 'STD_DAYS': 10,
+        # 'strategyClass': 'HighVolumeStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')
@@ -98,7 +98,6 @@ if __name__ == '__main__':
         isShowFig=False,
         isOutputResult=True,
     )
-    engine.collectionName = 'bar_1day'
     # 运行回测`
     engine.runBacktesting()  # 运行回测
     # 输出回测结果

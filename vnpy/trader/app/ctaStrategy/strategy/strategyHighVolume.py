@@ -1,6 +1,7 @@
 import datetime
 import arrow
 import pandas as pd
+import talib
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
@@ -25,17 +26,20 @@ class HighVolumeStrategy(CtaTemplate):
 
     # 策略参数
     fixhands = 1  # 固定手数
+    STD_DAYS = 10  # 标准差统计天数
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'fixhands',
+        'STD_DAYS',
     ])
 
     # 策略变量
-
+    volume_std = 0  # 成交量标准差
     # 变量列表，保存了变量的名称
     _varList = [
+        'volume_std',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
@@ -109,6 +113,10 @@ class HighVolumeStrategy(CtaTemplate):
         if self.bar is None:
             return
 
+        # 计算之前的成交量标准差
+        self.volume_std = int(talib.STDDEV(self.am.volume, self.STD_DAYS)[-1])
+        self.log.info(f'volume_std {self.volume_std}')
+
         self.putEvent()
 
     # ----------------------------------------------------------------------
@@ -135,10 +143,9 @@ class HighVolumeStrategy(CtaTemplate):
         # 此处先调用 self.onXminBar
         self.bm.updateXminBar(bar)
 
-        # 求成交量的标准差
-
         if not self.trading:
             return
+
 
         if self.isCloseoutVaild and self.rtBalance < 0:
             # 爆仓，一键平仓
@@ -246,5 +253,3 @@ class HighVolumeStrategy(CtaTemplate):
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
-
-
