@@ -91,6 +91,9 @@ class CtaTemplate(vtCtaTemplate):
     def __init__(self, ctaEngine, setting):
         super(CtaTemplate, self).__init__(ctaEngine, setting)
         self.log = logging.getLogger(self.name + '_' + self.vtSymbol)
+        if self.isBackTesting():
+            self.log.parent = logging.getLogger('ctabacktesting')
+
         self._setting = setting.copy()
 
         if not isinstance(self.barXmin, int):
