@@ -94,4 +94,5 @@ optization/localmongo.ini
 optization/drawtrade_*
 optization/droptradeid_*
 optization/opt_arg_*.json
+redis.conf
 
