@@ -53,8 +53,8 @@ if __name__ == '__main__':
     # vtSymbol = 'AP810'
     vtSymbol = 'rb1810.SHFE'
     # vtSymbol = 'p1309'
-    # vtSymbol = 'ni1809.SHFE'
-    # vtSymbol = 'ru1705'
+    # vtSymbol = 'ni1906.SHFE'
+    # vtSymbol = 'fu1105.SHFE'
     # vtSymbol = 'SR1909.CZCE'
 
     setting = {
@@ -62,10 +62,10 @@ if __name__ == '__main__':
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # ATR 反转策略， 单利模式
-        'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
-        'barXmin': 240, 'longBar': 10, 'n': 1, 'fixhands': 1,
-        'strategyClass': 'ContrarianAtrStrategy',
+        # # ATR 反转策略， 单利模式
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
@@ -79,9 +79,14 @@ if __name__ == '__main__':
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # 经典海龟
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 20000,
-        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        # "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
+
+        # 止盈海龟
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
+        "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
+        'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,

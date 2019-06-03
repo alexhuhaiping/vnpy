@@ -96,6 +96,7 @@ class OptimizeService(object):
         dic = self.result_col.find_one({}, {}, no_cursor_timeout=True)
         if not dic:
             self.log.info('不需要核对回测任务')
+            self.total = self.arg_col.count_documents({})
             return
 
         dic = self.arg_col.find_one({}, {}, no_cursor_timeout=True)
@@ -131,7 +132,11 @@ class OptimizeService(object):
     def start(self):
         self.log.info('清除 task 和 result 队列')
         # 清空任务队列
-        self.task_queue.clear()
+        try:
+            self.task_queue.clear()
+        except redis.exceptions.ConnectionError:
+            self.log.critical('检查是否启动了 redis 队列服务')
+            raise
 
         # 清空结果队列
         self.result_queue.clear()
@@ -185,7 +190,7 @@ class OptimizeService(object):
     def _run(self):
         self.log.info('进入主循环')
         cursor = self.arg_col.find({})
-        while not self.stoped.wait(1):
+        while not self.stoped.wait(2):
             # 检查任务数量，并补充任务
             supp = self.MAX_TASK - self.task_queue.qsize()
             for i in range(max(1, supp)):

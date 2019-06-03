@@ -107,9 +107,9 @@ class OptWoker(object):
             # engine 需要自己重新加载合约
             self.bars.clear()
 
-        self.log.info('开始运行回测')
+        self.log.debug('开始运行回测')
         engine.runBacktesting()  # 运行回测
-        self.log.info('回测运行完毕')
+        self.log.debug('回测运行完毕')
 
         # 缓存合约行情
         self.bars = engine.datas
