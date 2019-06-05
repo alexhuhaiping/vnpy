@@ -51,7 +51,7 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     # vtSymbol = 'AP810'
-    vtSymbol = 'rb1810.SHFE'
+    vtSymbol = 'rb1905.SHFE'
     # vtSymbol = 'p1309'
     # vtSymbol = 'ni1906.SHFE'
     # vtSymbol = 'fu1105.SHFE'
@@ -79,13 +79,13 @@ if __name__ == '__main__':
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # 经典海龟
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 120, 'BIG': False, 'UNITS': 1,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
         # 止盈海龟
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 120, 'BIG': False, 'UNITS': 1, "STOP_PRO_P": 0.05,
         'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破

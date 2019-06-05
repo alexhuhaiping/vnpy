@@ -560,6 +560,7 @@ class BacktestingEngine(VTBacktestingEngine):
                     return True
                 else:
                     # 要做撮合前，先将 vtOrder
+                    self.limitOrderCount += 1
                     orderID = str(self.limitOrderCount)
                     so.vtOrderID = orderID
                     self.strategy.onStopOrder(so)
