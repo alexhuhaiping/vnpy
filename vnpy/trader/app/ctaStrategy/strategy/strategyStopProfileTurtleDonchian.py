@@ -14,6 +14,13 @@ OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 class StopProfileTurtleDonchianStrategy(CtaTemplate):
     """
+    经典海龟：唐奇安通道策略
+        - 两个唐奇安通道指标，20-10和 55-20，分别称之为小周期和大周期
+        - 当突破小周期上轨做多，突破下轨做空
+        - 分仓入场，最后入场的仓位价格下跌 2atr 之后止损平仓
+        - 当反转触及止盈周期时，止盈离场
+        - 当前一次离场是止盈离场，则进入等待状态，下一次小周期入场信号忽略
+        - 当处于等待状态时，触发了大周期入场信号，依然入场
     相对于经典海龟，加入止盈机制
     止盈机制:
     1. 当多单浮盈达到保证金的 p% 立即止盈，并且使用标记位，不再开仓
