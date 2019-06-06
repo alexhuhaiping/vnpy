@@ -74,15 +74,15 @@ if __name__ == '__main__':
         # 'fixhands': None, 'loseCountAdd': 1, 'winCountAdd': 0, 'risk': 0.6,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
-        # 经典海龟
+        # # 经典海龟
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4, "STOP_PRO_P": 0.05,
+        # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
+
+        # 止盈海龟
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
         "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4, "STOP_PRO_P": 0.05,
-        'strategyClass': 'ClassicalTurtleDonchianStrategy',
-
-        # # 止盈海龟
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # "fixhands": 1, "barXmin": 120, 'BIG': False, 'UNITS': 1, "STOP_PRO_P": 0.05,
-        # 'strategyClass': 'StopProfileTurtleDonchianStrategy',
+        'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,

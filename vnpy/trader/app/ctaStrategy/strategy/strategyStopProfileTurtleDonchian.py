@@ -13,7 +13,7 @@ from vnpy.trader.app.ctaStrategy.ctaBase import *
 OFFSET_CLOSE_LIST = (OFFSET_CLOSE, OFFSET_CLOSETODAY, OFFSET_CLOSEYESTERDAY)
 
 
-class StopProfileTurtleDonchian(CtaTemplate):
+class StopProfileTurtleDonchianStrategy(CtaTemplate):
     """
     经典海龟：唐奇安通道策略
         - 两个唐奇安通道指标，20-10和 55-20，分别称之为小周期和大周期
@@ -30,7 +30,7 @@ class StopProfileTurtleDonchian(CtaTemplate):
     3. 反之亦然
     """
 
-    className = 'StopProfileTurtleDonchian'
+    className = 'StopProfileTurtleDonchianStrategy'
     name = '经典海龟：唐奇安通道策略'
     author = 'lamter'
 
@@ -100,7 +100,7 @@ class StopProfileTurtleDonchian(CtaTemplate):
 
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(StopProfileTurtleDonchian, self).__init__(ctaEngine, setting)
+        super(StopProfileTurtleDonchianStrategy, self).__init__(ctaEngine, setting)
 
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
@@ -230,7 +230,7 @@ class StopProfileTurtleDonchian(CtaTemplate):
                 # 重置时间
                 self.clearUnitOpeningTime()
 
-        return super(StopProfileTurtleDonchian, self).onTimer(event)
+        return super(StopProfileTurtleDonchianStrategy, self).onTimer(event)
 
     def setUnitOpeningTime(self):
         self.unitOpeningTime = arrow.now().datetime
@@ -894,14 +894,14 @@ class StopProfileTurtleDonchian(CtaTemplate):
         将策略新增的 varList 全部存库
         :return:
         """
-        dic = super(StopProfileTurtleDonchian, self).toSave()
+        dic = super(StopProfileTurtleDonchianStrategy, self).toSave()
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         dic['units'] = [u.toSave() for u in self.units]
         return dic
 
     def loadCtaDB(self, document=None):
-        super(StopProfileTurtleDonchian, self).loadCtaDB(document)
+        super(StopProfileTurtleDonchianStrategy, self).loadCtaDB(document)
         if document and 'units' in document:
             units = document.pop('units')
             for i, dic in enumerate(units):
@@ -916,7 +916,7 @@ class StopProfileTurtleDonchian(CtaTemplate):
         self._loadVar(document)
 
     def toHtml(self):
-        orderDic = super(StopProfileTurtleDonchian, self).toHtml()
+        orderDic = super(StopProfileTurtleDonchianStrategy, self).toHtml()
         orderDic['units'] = pd.DataFrame([u.toHtml() for u in self.units]).to_html()
         return orderDic
 
@@ -931,7 +931,7 @@ class Unit(object):
     STATUS_FULL = '满仓'
     STATUS_DONE = '完结'
 
-    def __init__(self, index, strategy: StopProfileTurtleDonchian):
+    def __init__(self, index, strategy: StopProfileTurtleDonchianStrategy):
         self.strategy = strategy
         self.index = index
         self.pos = 0  # 多正空负
