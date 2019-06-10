@@ -51,7 +51,9 @@ if __name__ == '__main__':
     logging.config.fileConfig(loggingConFile)
 
     # vtSymbol = 'rb1710.SHFE'
-    vtSymbol = 'rb1905.SHFE'
+    # vtSymbol = 'rb1905.SHFE'
+    # vtSymbol = 'b1909.DCE'
+    vtSymbol = 'b1109.DCE'
 
     setting = {
 
@@ -76,12 +78,12 @@ if __name__ == '__main__':
 
         # # 经典海龟
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4, "STOP_PRO_P": 0.05,
+        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
         # 止盈海龟
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4, "STOP_PRO_P": 0.05,
+        "fixhands": 1, "barXmin": 90, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.02,
         'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破

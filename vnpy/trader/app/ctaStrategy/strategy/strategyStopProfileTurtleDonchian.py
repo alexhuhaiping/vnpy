@@ -31,7 +31,7 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
     """
 
     className = 'StopProfileTurtleDonchianStrategy'
-    name = '经典海龟：唐奇安通道策略'
+    name = '止盈海龟：唐奇安通道策略'
     author = 'lamter'
 
     # 策略参数
