@@ -337,7 +337,7 @@ class AtrBottomFishStrategy(CtaTemplate):
             # 补发
             self.orderUntilTradingTime()
 
-        log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
+        # log('状态:{status} 成交:{tradedVolume}'.format(**order.__dict__))
 
     # ----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -371,7 +371,7 @@ class AtrBottomFishStrategy(CtaTemplate):
             # 开仓成交
             self.orderOnTrade()
 
-        # self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile)
+        self.log.info(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
 
         # 发出状态更新事件
         self.saveDB()

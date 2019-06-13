@@ -5,8 +5,6 @@
 可以使用和实盘相同的代码进行回测。
 '''
 
-
-
 from collections import OrderedDict
 import time
 import logging
@@ -64,7 +62,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
 
         self.marginRate = None  # 保证金比例对象 VtMarginRate()
-        self.margin = None # 最后保证金
+        self.margin = None  # 最后保证金
 
         self.isShowFig = True  # 回测后输出结果时是否展示图片
         self.isOutputResult = True  # 回测后输出结果时是否展示图片
@@ -99,8 +97,6 @@ class BacktestingEngine(VTBacktestingEngine):
 
     # ------------------------------------------------
 
-
-
     # def resample(self):
     #     """
     #     聚合数据
@@ -110,7 +106,7 @@ class BacktestingEngine(VTBacktestingEngine):
     #     self.initData = self._resample(self.barPeriod, self._initData)
     #     self.datas = self._resample(self.barPeriod, self._datas)
     def initMongoDB(self):
-        print(('globalSetting: {}'.format(settingFilePath)))
+        # print(('globalSetting: {}'.format(settingFilePath)))
         self.dbClient = pymongo.MongoClient(globalSetting['mongoHost'], globalSetting['mongoPort'],
                                             connectTimeoutMS=500)
 
@@ -233,7 +229,6 @@ class BacktestingEngine(VTBacktestingEngine):
     #
     #     self.log.warning(u'strategyStartDate {}'.format(str(self.strategyStartDate)))
 
-
     def setShowFig(self, isShow):
         """
         回测后是否展示图片
@@ -330,7 +325,6 @@ class BacktestingEngine(VTBacktestingEngine):
         if contractDic is None:
             self.log.error(f'请检查是否后缀交易所 vtSymbol : {vtSymbol}')
 
-
         # 合约详情
         self.vtContract = vtCon = VtContractData()
         # 保证金率
@@ -407,7 +401,7 @@ class BacktestingEngine(VTBacktestingEngine):
         # 载入初始化需要用的数据
         flt = {'vtSymbol': self.vtSymbol}
 
-        initCursor = collection.find(flt, {'_id': 0, 'symbol':0})
+        initCursor = collection.find(flt, {'_id': 0, 'symbol': 0})
         initCount = initCursor.count()
         self.log.info('预计加载数据 {}'.format(initCount))
 
@@ -814,8 +808,8 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 输出统计结果
 
-        self.dailyResult['首个交易日'] = startDate
-        self.dailyResult['最后交易日'] = endDate
+        self.dailyResult['首个交易日'] = arrow.get(f'{startDate} 00:00:00+08').datetime
+        self.dailyResult['最后交易日'] = arrow.get(f'{endDate} 00:00:00+08').datetime
 
         self.dailyResult['总交易日'] = totalDays
         self.dailyResult['盈利交易日'] = profitDays
@@ -883,7 +877,7 @@ class BacktestingEngine(VTBacktestingEngine):
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
         pBalance.set_title('Daily Pnl Cumsum {}'.format(self.vtSymbol))
         df['netPnl'].cumsum().plot(legend=True, grid=True)
-        
+
         subPlotCount += 1
         pBalance = plt.subplot(subPlotNum, 1, subPlotCount)
         pBalance.set_title('Daily Pnlp Cumsum {}'.format(self.vtSymbol))
@@ -1215,7 +1209,8 @@ class BacktestingEngine(VTBacktestingEngine):
         self.tradeResult['总滑点'] = float(d['totalSlippage'])
         self.tradeResult['交易成本'] = d['totalSlippage'] + d['totalCommission']
         self.tradeResult['纯盈亏'] = self.tradeResult['总盈亏'] + self.tradeResult['交易成本']
-        self.tradeResult['成本比例'] = 1 if self.tradeResult['纯盈亏'] == 0 else self.tradeResult['交易成本'] / self.tradeResult['纯盈亏']
+        self.tradeResult['成本比例'] = 1 if self.tradeResult['纯盈亏'] == 0 else self.tradeResult['交易成本'] / self.tradeResult[
+            '纯盈亏']
         self.tradeResult['盈利次数'] = d['winningResult']
         self.tradeResult['亏损次数'] = d['losingResult']
         self.tradeResult['总盈利'] = d['totalWinning']

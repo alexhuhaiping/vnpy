@@ -8,15 +8,16 @@ import logging.config
 import logging
 import time
 import multiprocessing
+from threading import Thread
 
 import myplot.kline as mk
 import arrow
 import pymongo
 from mystring import MyConfigParser
 
-from . import optserver
+from opt_server import OptimizeService
+from opt_boss import OptBoss
 from . import backtestingarg
-from . import optboss
 
 # 输出日志的级别
 logging.basicConfig(level=logging.INFO)
@@ -64,7 +65,6 @@ class DrawBacktestingTrade(object):
         self.startTradingDay = startTradingDay
         self.endTradingDay = endTradingDay
 
-
     @property
     def backtestingdrawfile(self):
         return self.config.autoget('DrawBacktestingTrade', 'backtestingdrawfile')
@@ -95,50 +95,31 @@ class DrawBacktestingTrade(object):
     def runBacktesting(self):
         """
 
+
         :return:
         """
         logging.root.setLevel(logging.WARNING)
 
-        child_runBackTesting = multiprocessing.Process(target=self._runBacktesting, args=(self.optfile,))
-        # logging.info(u'启动批量回测服务端')
-        child_runBackTesting.start()
+        logging.info(u'启动 server')
+        opt_server = OptimizeService(self.optfile)
+        opt_server.start()
 
-        child_runOptBoss = multiprocessing.Process(target=self.runOptBoss, args=(self.optfile,))
-        child_runOptBoss.start()
+        logging.info(u'启动 BOSS ')
+        opt_boss = OptBoss(self.optfile)
+        opt_boss.start()
+        opt_boss_threading = Thread(target=opt_boss.run)
+        opt_boss_threading.start()
 
-        btInfoDic = self.btinfoCol.find_one({})
-        sleepSec = 1 if btInfoDic['amount'] < 10 else 60
-        b = arrow.now()
-        startNum = None
-        time.sleep(10)
-        while True:
-            cursor = self.btresultCol.find()
-            count = cursor.count()
-            startNum = startNum or count
-            try:
-                overCount = count - startNum
-                per = round(count * 1. / btInfoDic['amount'], 4)
-                e = arrow.now()
-                costTime = e - b
-                needTime = costTime / overCount * (btInfoDic['amount'] - count)
-                print(('============================================================== 完成 {}/{} {}% 还需 {} 预计完成时间 {}'.format(count, btInfoDic['amount'], per * 100, needTime, needTime + e)))
-            except ZeroDivisionError:
-                pass
-            if btInfoDic['amount'] == count:
-                # 已经全部回测完毕
-                break
-            cursor.close()
-            time.sleep(sleepSec)
-        child_runBackTesting.terminate()
-        child_runOptBoss.terminate()
+        # 10秒没有新的任务完成判定为批量回测完成
+        opt_server.set_auto_close(True)
 
-        logging.root.setLevel(logging.INFO)
+        # 启动服务
+        opt_server.run()
 
-    # 运行批量回测
-    @staticmethod
-    def _runBacktesting(optfile):
-        server = optserver.OptimizeService(optfile)
-        server.start()
+        # 关闭 boss
+        opt_boss.stop()
+        while opt_boss_threading.isAlive():
+            pass
 
     @staticmethod
     def runOptBoss(optfile):
@@ -148,7 +129,7 @@ class DrawBacktestingTrade(object):
         """
         time.sleep(2)
         logging.info('启动批量回测算力')
-        server = optboss.WorkService(optfile)
+        server = OptBoss(optfile)
         server.start()
 
     def loadBar(self):
@@ -202,7 +183,8 @@ class DrawBacktestingTrade(object):
         绘制成交图
         :return:
         """
-        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, self.originIndLine, title=self.title, width=width, height=height)
+        tradeOnKlinePlot = mk.tradeOnKLine(period, self.bars, self.originTrl, self.originIndLine, title=self.title,
+                                           width=width, height=height)
         if '{optsv}' in self.backtestingdrawfile:
             f = self.backtestingdrawfile.format(optsv=self.optsv)
         else:
@@ -213,6 +195,7 @@ class DrawBacktestingTrade(object):
     @property
     def title(self):
         return '回测' + '{}'.format(self.optsv)
+
 
 if __name__ == '__main__':
     dbt = DrawBacktestingTrade()

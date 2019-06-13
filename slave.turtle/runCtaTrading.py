@@ -10,6 +10,7 @@ tt.load_futures_tradingtime()
 
 from vnpy.event import EventEngine2
 from vnpy.trader.svtEngine import MainEngine
+# from vnpy.trader.gateway import ctptestGateway
 from vnpy.trader.gateway import ctpGateway
 from vnpy.trader.app import ctaStrategy
 from vnpy.trader.app import webUI

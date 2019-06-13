@@ -596,7 +596,7 @@ class ClassicalTurtleDonchianStrategy(CtaTemplate):
             if unit.status == unit.STATUS_EMPTY:
                 # 开仓单
                 self.log.info(unit.setStatus(unit.STATUS_OPENING))
-                  # 更改状态
+                # 更改状态
                 # 撤销所有反方向开仓单
                 for u in self.units:
                     if so.direction == DIRECTION_LONG:
@@ -766,8 +766,7 @@ class Unit(object):
     STATUS_FULL = '满仓'
     STATUS_DONE = '完结'
 
-    def __init__(self, index, strategy):
-        assert isinstance(strategy, ClassicalTurtleDonchianStrategy)
+    def __init__(self, index, strategy: ClassicalTurtleDonchianStrategy):
         self.strategy = strategy
         self.index = index
         self.pos = 0  # 多正空负

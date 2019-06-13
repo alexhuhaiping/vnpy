@@ -336,7 +336,6 @@ class BarManager(object):
         self.xminBar = None         # X分钟K线对象
         self.xmin = xmin            # X的值
         self.onXminBar = onXminBar  # X分钟K线的回调函数
-        
         self.lastTick = None        # 上一TICK缓存对象
         
     #----------------------------------------------------------------------
