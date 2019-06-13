@@ -71,49 +71,55 @@ with open('requirements.txt', 'r') as f:
     requirements = [r for r in f.readlines() if '#' not in r and r != '']
 
 if platform.uname().system == "Windows":
-    compiler_flags = ["/MP", "/std:c++17",  # standard
-                      "/O2", "/Ob2", "/Oi", "/Ot", "/Oy", "/GL",  # Optimization
-                      "/wd4819"  # 936 code page
-                      ]
+    compiler_flags = [
+        "/MP", "/std:c++17",  # standard
+        "/O2", "/Ob2", "/Oi", "/Ot", "/Oy", "/GL",  # Optimization
+        "/wd4819"  # 936 code page
+    ]
     extra_link_args = []
 else:
-    compiler_flags = ["-std=c++17",
-                      "-Wno-delete-incomplete", "-Wno-sign-compare",
-                      ]
+    compiler_flags = [
+        "-std=c++17",  # standard
+        "-O3",  # Optimization
+        "-Wno-delete-incomplete", "-Wno-sign-compare",
+    ]
     extra_link_args = ["-lstdc++"]
 
-vnctpmd = Extension("vnpy.api.ctp.vnctpmd",
-                    [
-                        "vnpy/api/ctp/vnctp/vnctpmd/vnctpmd.cpp",
-                    ],
-                    include_dirs=["vnpy/api/ctp/include",
-                                  "vnpy/api/ctp/vnctp", ],
-                    define_macros=[],
-                    undef_macros=[],
-                    library_dirs=["vnpy/api/ctp/libs", "vnpy/api/ctp"],
-                    libraries=["thostmduserapi", "thosttraderapi", ],
-                    extra_compile_args=compiler_flags,
-                    extra_link_args=extra_link_args,
-                    depends=[],
-                    runtime_library_dirs=["$ORIGIN"],
-                    language="cpp",
-                    )
-vnctptd = Extension("vnpy.api.ctp.vnctptd",
-                    [
-                        "vnpy/api/ctp/vnctp/vnctptd/vnctptd.cpp",
-                    ],
-                    include_dirs=["vnpy/api/ctp/include",
-                                  "vnpy/api/ctp/vnctp", ],
-                    define_macros=[],
-                    undef_macros=[],
-                    library_dirs=["vnpy/api/ctp/libs", "vnpy/api/ctp"],
-                    libraries=["thostmduserapi", "thosttraderapi", ],
-                    extra_compile_args=compiler_flags,
-                    extra_link_args=extra_link_args,
-                    runtime_library_dirs=["$ORIGIN"],
-                    depends=[],
-                    language="cpp",
-                    )
+
+vnctpmd = Extension(
+    "vnpy.api.ctp.vnctpmd",
+    [
+        "vnpy/api/ctp/vnctp/vnctpmd/vnctpmd.cpp",
+    ],
+    include_dirs=["vnpy/api/ctp/include",
+                  "vnpy/api/ctp/vnctp", ],
+    define_macros=[],
+    undef_macros=[],
+    library_dirs=["vnpy/api/ctp/libs", "vnpy/api/ctp"],
+    libraries=["thostmduserapi_se", "thosttraderapi_se", ],
+    extra_compile_args=compiler_flags,
+    extra_link_args=extra_link_args,
+    depends=[],
+    runtime_library_dirs=["$ORIGIN"],
+    language="cpp",
+)
+vnctptd = Extension(
+    "vnpy.api.ctp.vnctptd",
+    [
+        "vnpy/api/ctp/vnctp/vnctptd/vnctptd.cpp",
+    ],
+    include_dirs=["vnpy/api/ctp/include",
+                  "vnpy/api/ctp/vnctp", ],
+    define_macros=[],
+    undef_macros=[],
+    library_dirs=["vnpy/api/ctp/libs", "vnpy/api/ctp"],
+    libraries=["thostmduserapi_se", "thosttraderapi_se", ],
+    extra_compile_args=compiler_flags,
+    extra_link_args=extra_link_args,
+    runtime_library_dirs=["$ORIGIN"],
+    depends=[],
+    language="cpp",
+)
 
 ext_modules = [vnctptd, vnctpmd]
 

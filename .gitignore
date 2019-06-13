@@ -59,6 +59,11 @@ vn.trader/
 tmp/
 temp/
 # vnpy/api/ctp/
+
+vnpy/api/ctp/*.so
+vnpy/api/ctp/*.dll
+
+
 *-info/
 CTA_setting.json
 CTP_connect.json

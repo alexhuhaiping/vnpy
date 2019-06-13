@@ -152,8 +152,8 @@ class MainEngine(VtMaingEngine):
         self.log.info('开始运行')
 
         while self.active:
-            if __debug__:
-                self.testfunc()
+            # if __debug__:
+            #     self.testfunc()
             sleep(1)
 
         self.log.info('系统完全关闭')
