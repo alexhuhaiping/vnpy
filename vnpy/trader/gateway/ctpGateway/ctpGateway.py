@@ -146,7 +146,7 @@ class svtCtpGateway(VtGateway):
             self.onLog(log)
             return
 
-            # 创建行情和交易接口对象
+        # 创建行情和交易接口对象
         self.mdApi.connect(userID, password, brokerID, mdAddress)
         self.tdApi.connect(userID, password, brokerID, tdAddress, authCode, appID)
 
@@ -1475,8 +1475,7 @@ class svtCtpTdApi(TdApi):
             self.reqID += 1
             self.reqUserLogin(req, self.reqID)
 
-            # ----------------------------------------------------------------------
-
+    # ----------------------------------------------------------------------
     def authenticate(self):
         """申请验证"""
         if self.userID and self.brokerID and self.authCode and self.appID:
