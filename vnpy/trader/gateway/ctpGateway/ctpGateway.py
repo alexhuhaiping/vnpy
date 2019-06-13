@@ -613,7 +613,7 @@ class svtCtpTdApi(TdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']#.decode('gbk')
             self.gateway.onError(err)
 
             # 标识登录失败，防止用错误信息连续重复登录
