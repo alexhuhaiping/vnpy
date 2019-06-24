@@ -303,7 +303,7 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
 
         if self.pos > 0:
             # 止盈价差 = 保证金 * 止盈比例
-            # 止盈价格 = 开仓价格 + 止盈价格
+            # 止盈价格 = 开仓价格 + 止盈价格l
             stopProfilePrice = self.averagePrice * (1 + self.STOP_PRO_P)
             stopProfilePrice = self.roundToPriceTick(stopProfilePrice)
             isSendOrderClose = True
@@ -983,9 +983,6 @@ class Unit(object):
             "shortIn": self.shortIn,
             "longOut": self.longOut,
             "shortOut": self.shortOut,
-            "longInSO": self.longInSO,
-            # "shortInSO": self.shortInSO,
-            # "longOutSO": self.longOutSO,
             "openTurnover": self.openTurnover,
             "closeTurnover": self.closeTurnover,
         }
