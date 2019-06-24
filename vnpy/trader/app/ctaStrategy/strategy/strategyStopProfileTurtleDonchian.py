@@ -213,6 +213,7 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
         # 下单
         self.orderOpenOnStart()
         self.orderCloseOnStart()
+
         # 开盘下止盈单
         self.orderCloseStopProfile()
 
@@ -305,9 +306,12 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
             # 止盈价格 = 开仓价格 + 止盈价格
             stopProfilePrice = self.averagePrice * (1 + self.STOP_PRO_P)
             stopProfilePrice = self.roundToPriceTick(stopProfilePrice)
-            if not self.isBackTesting() and stopProfilePrice > self.bm.lastTick.upperLimit:
-                # 实盘中可能止盈价格超过封板价格
-                return
+            isSendOrderClose = True
+            if not self.isBackTesting():
+                if self.bm.lastTick and stopProfilePrice > self.bm.lastTick.upperLimit:
+                    # 实盘中可能止盈价格超过封板价格
+                    self.log.debug(f'止盈价高于涨停价 {stopProfilePrice} > {self.bm.lastTick.upperLimit}不下止盈单 ')
+                    return
 
             for unit in self.units:
                 if not unit.longOutStopProVtOrderID:
@@ -321,8 +325,11 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
             # 止盈价格 = 开仓价格 - 止盈价格
             stopProfilePrice = self.averagePrice * (1 - self.STOP_PRO_P)
             stopProfilePrice = self.roundToPriceTick(stopProfilePrice)
-            if not self.isBackTesting() and stopProfilePrice < self.bm.lastTick.lowerLimit:
-                return
+            if not self.isBackTesting():
+                if self.bm.lastTick and stopProfilePrice < self.bm.lastTick.lowerLimit:
+                    self.log.debug(f'止盈价低于跌停价 {stopProfilePrice} < {self.bm.lastTick.lowerLimit} 不下止盈单')
+                    return
+
             for unit in self.units:
                 if not unit.shortOutStopProVtOrderID:
                     # 下限价单，通常限价单价格不会再发生变化
@@ -977,8 +984,8 @@ class Unit(object):
             "longOut": self.longOut,
             "shortOut": self.shortOut,
             "longInSO": self.longInSO,
-            "shortInSO": self.shortInSO,
-            "longOutSO": self.longOutSO,
+            # "shortInSO": self.shortInSO,
+            # "longOutSO": self.longOutSO,
             "openTurnover": self.openTurnover,
             "closeTurnover": self.closeTurnover,
         }

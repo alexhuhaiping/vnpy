@@ -179,11 +179,6 @@ def sendStopProfileOrder():
     s.buy(price, volume, stop)
 
 
-def saveStrategy():
-    s = getStrategy(vtSymbol)
-    s.saveDB()
-
-
 def showWorkingStopOrderDic():
     print((list(ce.workingStopOrderDict.keys())))
 
@@ -232,29 +227,11 @@ def sell():
         s.log.debug('下单完成 {}'.format(price))
 
 
-def orderToShow():
-    sList = getStrategy(vtSymbol)
-    print(sList)
-    for s in sList:
-
-        for vtOrderID, order in list(s.orders.items()):
-            print('+++++++++++')
-            for k, v in list(order.__dict__.items()):
-                print(('{} {}'.format(k, v)))
-
-        orderList = s.ctaEngine.getAllOrderToShow(s.name)
-        # print(len(orderList), len(s.orders))
-        for order in orderList:
-            print('+++++++++++')
-            for k, v in list(order.items()):
-                print(('{} {}'.format(k, v)))
-
-
-
 def checkMargin():
     sList = getStrategy(vtSymbol)
     s = sList[0]
     print((s.marginRate))
+
 
 def reSubscribe():
     sList = getStrategy(vtSymbol)
@@ -276,7 +253,6 @@ def checkContract():
         print(vtSymbol)
 
 
-
 def showStopOrder():
     sList = getStrategy(vtSymbol)
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
@@ -296,8 +272,63 @@ def showStopOrder():
             me.log.info(log)
 
 
+def saveStrategy():
+    s = getStrategy(vtSymbol)[0]
+    s.saveDB()
+
+
+def sell():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        # s.log.info(u'{}'.format(vtSymbol))
+        # s.pos = -15
+
+        price = s.bm.bar.close
+        volume = 1
+        stop = True
+        s.sell(price, volume, stop)
+        s.log.debug('下单完成 {}'.format(price))
+
+
+def showStopOrder():
+    sList = getStrategy(vtSymbol)
+    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
+    stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
+    me.log.info('停止单数量{}'.format(len(ce.stopOrderDict)))
+    price = 3711.0
+    for os in stopOrderIDs:
+        # if os.direction == '多' and os.status == '等待中':
+        if os.direction == u'空' and os.status == u'等待中':
+            if os.status == '等待中':
+                pass
+                os.price = price
+                # price -= 2
+            log = ''
+            for k, v in list(os.toHtml().items()):
+                log += '{}:{} '.format(k, v)
+            me.log.info(log)
+
+
+def orderToShow():
+    sList = getStrategy(vtSymbol)
+    for s in sList:
+
+        # for vtOrderID, order in list(s.orders.items()):
+        #     print('+++++++++++')
+        #     for k, v in list(order.__dict__.items()):
+        #         print(('{} {}'.format(k, v)))
+
+        orderList = ce.getAllOrderToShow(s.name)
+        # print(len(orderList), len(s.orders))
+        for order in orderList:
+            print('+++++++++++')
+            for k, v in list(order.items()):
+                print(('{} {}'.format(k, v)))
+
+
 # vtSymbol = 'AP905'
-vtSymbol = 'SR1909.CZCE'
+vtSymbol = 'rb1910.SHFE'
 import logging
 
 
@@ -305,7 +336,8 @@ def run():
     load()
     return
     me.log.info('====================================================')
-    showStopOrder()
+    orderToShow()
+    # showStopOrder()
 
     # checkContract()
     # checkPositionDetail()
@@ -320,7 +352,6 @@ def run():
     # showWorkingStopOrderDic()
     # saveStrategy()
 
-
     # sendStopProfileOrder()
 
     # cancelOrder()
@@ -328,9 +359,7 @@ def run():
     # sendOrder()
     # short()
 
-
     # orderToShow()
-
 
     # strategyOrder()
 

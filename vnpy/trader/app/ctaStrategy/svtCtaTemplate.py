@@ -716,6 +716,9 @@ class CtaTemplate(vtCtaTemplate):
                 self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
             except Exception:
                 self.log.error(str(document))
+                for k, v in document.items():
+                    print(k, v)
+                    self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
                 raise
 
     def filterSql(self):
@@ -1000,7 +1003,7 @@ class CtaTemplate(vtCtaTemplate):
             if self.isBackTesting():
                 # 回测时
                 self._orderOnThreading()
-            else:
+            else: # 实盘时
                 if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
                     _now = self.bm.lastTick.datetime
                 else:
