@@ -32,9 +32,9 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     engine = BacktestingEngine()
 
     # 设置回测使用的数据
-    engine.setSlippage(setting.get('slippage', 1))
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol)  # 设置该次回测使用的合约
+    engine.setSlippage(setting.get('slippage', 1))
     engine.setShowFig(isShowFig)
     engine.setOutputResult(isOutputResult)
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # vtSymbol = 'rb1710.SHFE'
     # vtSymbol = 'rb1905.SHFE'
     # vtSymbol = 'b1909.DCE'
-    vtSymbol = 'b1109.DCE'
+    vtSymbol = 'AP1905.CZCE'
 
     setting = {
 
@@ -82,8 +82,8 @@ if __name__ == '__main__':
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
         # 止盈海龟
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 90, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.02,
+        'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 30, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.05,
         'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破

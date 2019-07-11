@@ -358,9 +358,7 @@ class BacktestingEngine(VTBacktestingEngine):
         if endDate:
             self.setEndDate(endDate)  # 设置回测用的数据起始日期
 
-        # 默认都是1滑点
-        if self.slippage == 0:
-            self.setSlippage(1)
+        self.setPriceTick(contractDic['priceTick'])
 
         # 设置手续费
         self.setRate(vtCom)
