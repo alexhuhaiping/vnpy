@@ -776,7 +776,7 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
         unit = self.vtOrderID2Unit.get(order.vtOrderID)
         if order.status == STATUS_REJECTED:
             log = self.log.warning
-            message = ''
+            message = f'{order.vtOrderID} {order.orderID}'
             for k, v in list(order.rawData.items()):
                 message += '{}:{}\n'.format(k, v)
             log(message)
