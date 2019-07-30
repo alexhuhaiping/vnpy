@@ -32,9 +32,9 @@ def runBacktesting(vtSymbol, setting, strategyClass, mode=BacktestingEngine.BAR_
     engine = BacktestingEngine()
 
     # 设置回测使用的数据
-    engine.setSlippage(setting.get('slippage', 1))
     engine.setBacktestingMode(mode)  # 设置引擎的回测模式为K线
     engine.setSymbol(vtSymbol)  # 设置该次回测使用的合约
+    engine.setSlippage(setting.get('slippage', 1))
     engine.setShowFig(isShowFig)
     engine.setOutputResult(isOutputResult)
 
@@ -50,12 +50,11 @@ if __name__ == '__main__':
     loggingConFile = 'logging.conf'
     logging.config.fileConfig(loggingConFile)
 
-    # vtSymbol = 'AP810'
-    vtSymbol = 'rb1810.SHFE'
-    # vtSymbol = 'p1309'
-    # vtSymbol = 'ni1906.SHFE'
-    # vtSymbol = 'fu1105.SHFE'
-    # vtSymbol = 'SR1909.CZCE'
+    # vtSymbol = 'rb1710.SHFE'
+    # vtSymbol = 'rb1905.SHFE'
+    # vtSymbol = 'b1909.DCE'
+    # vtSymbol = 'AP1905.CZCE'
+    vtSymbol = 'i1909.DCE'
 
     setting = {
 
@@ -64,7 +63,7 @@ if __name__ == '__main__':
 
         # # ATR 反转策略， 单利模式
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'barXmin': 30, 'longBar': 10, 'n': 1, 'fixhands': 1,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
@@ -79,14 +78,14 @@ if __name__ == '__main__':
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # 经典海龟
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        # "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
-        # 止盈海龟
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 1000000,
-        "fixhands": 1, "barXmin": 60, 'BIG': True, 'UNITS': 4,
-        'strategyClass': 'StopProfileTurtleDonchianStrategy',
+        # # 止盈海龟
+        # 'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 30, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.05,
+        # 'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,

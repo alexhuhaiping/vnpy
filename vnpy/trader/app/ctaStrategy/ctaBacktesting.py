@@ -69,7 +69,7 @@ class BacktestingEngine(object):
         self.endDate = ''
 
         self.capital = 1000000  # 回测时的起始本金（默认100万）
-        self._slippage = 0  # 回测时假设的滑点
+        self._slippage = 1  # 回测时假设的滑点
         self.rate = 0  # 回测时假设的佣金比例（适用于百分比佣金）
         self.size = 1  # 合约大小，默认为1
         self.priceTick = 0  # 价格最小变动
@@ -173,6 +173,7 @@ class BacktestingEngine(object):
     def setSlippage(self, slippage):
         """设置滑点点数"""
         self._slippage = slippage
+
 
     # ----------------------------------------------------------------------
     def setSize(self, size):

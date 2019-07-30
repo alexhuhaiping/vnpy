@@ -7,9 +7,11 @@ from bson import CodecOptions
 import pytz
 from threading import Event
 import time
+import traceback
 
 import arrow
 import pymongo
+from pymongo.errors import CursorNotFound, BulkWriteError
 import redis
 
 import redis_queue
@@ -39,7 +41,7 @@ class OptimizeService(object):
             self.config.read_file(f)
 
         # 链接回测数据库
-        mongo_confg = self.config['backtesting_mongo']
+        mongo_confg = self.mongo_confg = self.config['backtesting_mongo']
         self.mongo_client = pymongo.MongoClient(
             host=mongo_confg['host'],
             port=mongo_confg.getint('port'),
@@ -152,7 +154,20 @@ class OptimizeService(object):
 
         try:
             while not self.stoped.wait(0):
-                self._run()
+                try:
+                    self._run()
+                except CursorNotFound:
+                    self.log.error(f'出现异常 ')
+                    self.log.error(f'{traceback.format_exc()}')
+                    # 重置
+                    self.start()
+                except BulkWriteError:
+                    self.result_col = self.db[self.mongo_confg['btresult']].with_options(
+                        codec_options=CodecOptions(tz_aware=True, tzinfo=pytz.timezone('Asia/Shanghai')))
+                    # 重置
+                    self.start()
+
+
         except KeyboardInterrupt:
             self.stop()
 
@@ -206,6 +221,7 @@ class OptimizeService(object):
 
             # 检查回测结果数量，存储回测结果
             results = self.save_result()
+
             # 对是否自动关闭服务进行判定
             if not results and self.auto_close:
                 if arrow.now().datetime - self.last_result_time > self.free_2_auto_close_time:

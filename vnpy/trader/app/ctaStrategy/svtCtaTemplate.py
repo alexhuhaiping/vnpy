@@ -25,7 +25,7 @@ from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate as vtCtaTemplate
 from vnpy.trader.app.ctaStrategy.ctaTemplate import ArrayManager as VtArrayManager
 from vnpy.trader.app.ctaStrategy.ctaTemplate import BarManager as VtBarManager
 from vnpy.trader.app.ctaStrategy.ctaTemplate import TargetPosTemplate as vtTargetPosTemplate
-from vnpy.trader.vtObject import VtBarData, VtCommissionRate, VtTradeData
+from vnpy.trader.vtObject import VtBarData, VtCommissionRate, VtTradeData, VtTickData
 
 if __debug__:
     from vnpy.trader.svtEngine import MainEngine
@@ -716,6 +716,9 @@ class CtaTemplate(vtCtaTemplate):
                 self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
             except Exception:
                 self.log.error(str(document))
+                for k, v in document.items():
+                    print(k, v)
+                    self.ctaEngine.saveCtaDB(self.filterSql(), {'$set': document})
                 raise
 
     def filterSql(self):
@@ -1000,7 +1003,7 @@ class CtaTemplate(vtCtaTemplate):
             if self.isBackTesting():
                 # 回测时
                 self._orderOnThreading()
-            else:
+            else: # 实盘时
                 if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
                     _now = self.bm.lastTick.datetime
                 else:
@@ -1145,7 +1148,7 @@ class CtaTemplate(vtCtaTemplate):
         if trade.splippage and trade.splippage / self.priceTick < overSplipage:
             self.log.warning(
                 '成交滑点过大,方向 {} 触发价  {} 成交价 {} 滑点 {} / {} <= {}'.format(trade.direction, trade.stopPrice, trade.price,
-                                                                       trade.splippage, self.priceTick, overSplipage))
+                                                                      trade.splippage, self.priceTick, overSplipage))
 
     def _onTrade(self, trade):
         """
@@ -1266,7 +1269,7 @@ class BarManager(VtBarManager):
         return self.strategy.inited
 
     # ----------------------------------------------------------------------
-    def updateTick(self, tick):
+    def updateTick(self, tick: VtTickData):
         """
         onTick -> updateTick -> updateBar -> onBar -> updateXminBar -> onXminBar
         :param tick:
