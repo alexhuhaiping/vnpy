@@ -2,6 +2,7 @@ import datetime
 import arrow
 import pandas as pd
 import numpy as np
+import time
 
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtFunction import waitToContinue, exception, logDate
@@ -306,7 +307,6 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
             # 止盈价格 = 开仓价格 + 止盈价格l
             stopProfilePrice = self.averagePrice * (1 + self.STOP_PRO_P)
             stopProfilePrice = self.roundToPriceTick(stopProfilePrice)
-            isSendOrderClose = True
             if not self.isBackTesting():
                 if self.bm.lastTick and stopProfilePrice > self.bm.lastTick.upperLimit:
                     # 实盘中可能止盈价格超过封板价格
@@ -315,10 +315,16 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
 
             for unit in self.units:
                 if not unit.longOutStopProVtOrderID:
-                    vtOrderID = self.sell(stopProfilePrice, abs(unit.pos))[0]
-                    self.vtOrderID2Unit[vtOrderID] = unit
-                    unit.longOutStopProVtOrderID = vtOrderID
-                    self.log.info(f'空平止盈单 Unit:{unit.index} {vtOrderID} {self.averagePrice} => {stopProfilePrice} ')
+                    # if self.isBackTesting() or abs(unit.shortOutSO.price - self.bar.close) < abs(stopProfilePrice - self.bar.close):
+                        vtOrderID = self.sell(stopProfilePrice, abs(unit.pos))[0]
+                        self.vtOrderID2Unit[vtOrderID] = unit
+                        unit.longOutStopProVtOrderID = vtOrderID
+                        self.log.info(f'空平止盈单 Unit:{unit.index} {vtOrderID} {self.averagePrice} => {stopProfilePrice} ')
+                        if not self.isBackTesting():
+                            time.sleep(0.5)
+
+                    # else:
+                    #     self.log.info('保持多头的止损单')
 
         if self.pos < 0:
             # 止盈价差 = 保证金 * 止盈比例
@@ -332,11 +338,16 @@ class StopProfileTurtleDonchianStrategy(CtaTemplate):
 
             for unit in self.units:
                 if not unit.shortOutStopProVtOrderID:
-                    # 下限价单，通常限价单价格不会再发生变化
-                    vtOrderID = self.cover(stopProfilePrice, abs(unit.pos))[0]
-                    self.vtOrderID2Unit[vtOrderID] = unit
-                    unit.shortOutStopProVtOrderID = vtOrderID
-                    self.log.info(f'多平止盈单 Unit:{unit.index} {vtOrderID} {self.averagePrice} => {stopProfilePrice}')
+                    # if self.isBackTesting()  or abs(unit.longOutSO.price - self.bar.close) < abs(stopProfilePrice - self.bar.close):
+                        # 下限价单，通常限价单价格不会再发生变化
+                        vtOrderID = self.cover(stopProfilePrice, abs(unit.pos))[0]
+                        self.vtOrderID2Unit[vtOrderID] = unit
+                        unit.shortOutStopProVtOrderID = vtOrderID
+                        self.log.info(f'多平止盈单 Unit:{unit.index} {vtOrderID} {self.averagePrice} => {stopProfilePrice}')
+                        if not self.isBackTesting():
+                            time.sleep(0.5)
+                    # else:
+                    #     self.log.info('保持空头的止损单')
 
     def simSmallTradeOnBar(self, bar):
         """

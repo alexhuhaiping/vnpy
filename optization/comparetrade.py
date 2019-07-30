@@ -44,7 +44,7 @@ dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTra
 originTrlList.append(dbt)
 
 # dbt.clearCollection()  # 清空数据库
-# dbt.runArg()  # 生成参数
+dbt.runArg()  # 生成参数
 dbt.runBacktesting()  # 批量回测
 e = arrow.now()
 print(('运行 {} -> {} 耗时 {}'.format(b, e, e - b)))

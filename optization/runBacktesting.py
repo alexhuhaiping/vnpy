@@ -53,7 +53,8 @@ if __name__ == '__main__':
     # vtSymbol = 'rb1710.SHFE'
     # vtSymbol = 'rb1905.SHFE'
     # vtSymbol = 'b1909.DCE'
-    vtSymbol = 'AP1905.CZCE'
+    # vtSymbol = 'AP1905.CZCE'
+    vtSymbol = 'i1909.DCE'
 
     setting = {
 
@@ -62,7 +63,7 @@ if __name__ == '__main__':
 
         # # ATR 反转策略， 单利模式
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1,
+        # 'barXmin': 30, 'longBar': 10, 'n': 1, 'fixhands': 1,
         # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
@@ -81,10 +82,10 @@ if __name__ == '__main__':
         # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
-        # 止盈海龟
-        'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 30, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.05,
-        'strategyClass': 'StopProfileTurtleDonchianStrategy',
+        # # 止盈海龟
+        # 'slippage': 3, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 30, 'BIG': True, 'UNITS': 1, "STOP_PRO_P": 0.05,
+        # 'strategyClass': 'StopProfileTurtleDonchianStrategy',
 
         # # 放量突破
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
