@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # vtSymbol = 'rb1905.SHFE'
     # vtSymbol = 'b1909.DCE'
     # vtSymbol = 'AP1905.CZCE'
-    vtSymbol = 'i1909.DCE'
+    vtSymbol = 'i1905.DCE'
 
     setting = {
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
         # # 经典海龟
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # "fixhands": 1, "barXmin": 120, 'BIG': True, 'UNITS': 4,
+        # "fixhands": 1, "barXmin": 15, 'BIG': False, 'UNITS': 1,
         # 'strategyClass': 'ClassicalTurtleDonchianStrategy',
 
         # # 止盈海龟
@@ -91,6 +91,11 @@ if __name__ == '__main__':
         # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
         # "fixhands": 1, "barXmin": 5, 'STD_DAYS': 10,
         # 'strategyClass': 'HighVolumeStrategy',
+
+        # 唐奇安震荡
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 30,
+        'strategyClass': 'DonchianContrarianStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')

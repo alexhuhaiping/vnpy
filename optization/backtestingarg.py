@@ -227,7 +227,7 @@ class BacktestingArg(object):
         # 依然还在上市的品种
         onMarketUS = set()
         for c in contracts:
-            if arrow.now() - c['activeEndDate'] < datetime.timedelta(days=30):
+            if arrow.now() - c['activeEndDate'] < datetime.timedelta(days=40):
                 # 一个月之内依然还活跃的品种
                 onMarketUS.add(c['underlyingSymbol'])
             else:

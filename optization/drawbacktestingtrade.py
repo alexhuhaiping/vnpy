@@ -158,7 +158,6 @@ class DrawBacktestingTrade(object):
             password=self.password,
             items={'成交单': 1}
         )
-
         if not self.originTrl:
             logging.warning('未获得成交单')
 

@@ -34,16 +34,16 @@ try:
     startTradingDay = drm.matcher.startTradingDay  # 取实盘的第一笔成交开始做对比
     endTradingDay = None
 except NameError:
-    startTradingDay = None
+    # startTradingDay = None
     endTradingDay = None
-    # startTradingDay = arrow.get('2017-01-01 00:00:00+08').datetime
+    startTradingDay = arrow.get('2018-12-01 00:00:00+08').datetime
     # startTradingDay = arrow.get('2019-04-01 00:00:00+08').datetime
     # endTradingDay = arrow.get('2013-01-01 00:00:00+08').datetime
 
 dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTradingDay, endTradingDay=endTradingDay)
 originTrlList.append(dbt)
 
-# dbt.clearCollection()  # 清空数据库
+dbt.clearCollection()  # 清空数据库
 dbt.runArg()  # 生成参数
 dbt.runBacktesting()  # 批量回测
 e = arrow.now()
@@ -52,20 +52,20 @@ import os
 costTime = e-b
 os.system('say "批量回测完成 耗时 {}"'.format(round(costTime.total_seconds() / 3600, 1)))
 
-# # optsv = 'rb,"BIG":False,"UNITS":1,"barXmin":120'
+optsv = 'i,"barXmin":30'
 # optsv = 'b,"BIG":True,"STOP_PRO_P":0.02,"UNITS":1,"barXmin":90'
-# dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
-# dsersbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
+dbt.config.set('DrawBacktestingTrade', 'optsv', optsv)
+dbt.config.set('DrawBacktestingTrade', 'underlyingSymbol', optsv.split(',')[0])
 # #
 # # # dbt.btresult = 'btresult_ClassicalTurtleDonchian_selected'
 # # # dbt.btresult = 'btresult_ClassicalTurtleDonchian_all'
 # # dbt.btresult = 'btresult_ContrarianAtrStrategy_ni'
-# dbt.btresult = 'btresult_StopProTurtleDonchianStrategy_all'
-#
-# dbt.loadTrade()  # 加载成交单
-# # dbt.loadIndLine()   # 加载技术指标
-# dbt.loadBar()  # 加载数据并绘制成交图
-# dbt.draw(PERIOD)
+# dbt.btresult = 'btresult_DonchianContrarian_i'
+
+dbt.loadTrade()  # 加载成交单
+# dbt.loadIndLine()   # 加载技术指标
+dbt.loadBar()  # 加载数据并绘制成交图
+dbt.draw(PERIOD)
 
 # ###############################
 
