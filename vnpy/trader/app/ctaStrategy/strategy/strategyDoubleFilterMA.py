@@ -4,8 +4,6 @@
 做一条MA，然后MA上最近3个MA都是涨的， 并且最近两K线都是收阳， 就开多
 """
 
-
-
 from threading import Timer
 from collections import OrderedDict
 import time
@@ -29,18 +27,19 @@ class DoubleFilterMAStrategy(CtaTemplate):
     className = '二重过滤均线策略'
     author = 'lamter'
 
-    barXmin = 60  # 1小时K线
     longBar = 55  # 5均线
-    trendMA = 5 # 取几个MA值来判断趋势
-    fixhands = 1 # 固定手数
+    trendMA = 3  # 取几个MA值来判断趋势
+    fixhands = 1  # 固定手数
+    STOP_PRO = 0.05  # 浮盈达到保证金的 50% 就止盈
+    STOP = 0.005  # 止损价位
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
     paramList.extend([
         'fixhands',
-        'barXmin',
         'longBar',
         'trendMA',
+        'STOP_PRO',
     ])
 
     # 策略变量
@@ -55,9 +54,20 @@ class DoubleFilterMAStrategy(CtaTemplate):
         """Constructor"""
         super(DoubleFilterMAStrategy, self).__init__(ctaEngine, setting)
 
+        self.hands = self.fixhands or 1
         # if self.isBackTesting():
         #     self.log.info(u'批量回测，不输出日志')
         #     self.log.propagate = False
+
+        self.techIndLine = {
+            'ma': ([], []),
+
+        }
+        self.ma = None
+
+        # 平仓单
+        self.close_stop_profile_order = None  # 止盈单
+        self.close_stop_order = None  # 止损单
 
     def initMaxBarNum(self):
         self.maxBarNum = self.longBar * 2
@@ -134,6 +144,58 @@ class DoubleFilterMAStrategy(CtaTemplate):
             # 爆仓，一键平仓
             self.closeout()
 
+        if not self.trading:
+            return
+
+        if self.pos > 0:
+            self.cancelAll()
+            stop_pro_price = self.roundToPriceTick(self.averagePrice * (1 + self.STOP_PRO))
+            stop_price = self.roundToPriceTick(self.averagePrice * (1 - self.STOP))
+            self.sell(stop_pro_price, abs(self.pos), stopProfile=True)
+            self.sell(stop_price, abs(self.pos), stop=True)
+
+        if self.pos < 0:
+            self.cancelAll()
+            stop_pro_price = self.roundToPriceTick(self.averagePrice * (1 - self.STOP_PRO))
+            stop_price = self.roundToPriceTick(self.averagePrice * (1 + self.STOP))
+            self.cover(stop_pro_price, abs(self.pos), stopProfile=True)
+            self.cover(stop_price, abs(self.pos), stop=True)
+
+        # if self.pos > 0:
+        #     # 开多单，下平仓单
+        #     # 止盈单
+        #     stop_pro_price = self.roundToPriceTick(self.averagePrice + self.margin / self.size * self.STOP_PRO)
+        #     stop_price = self.roundToPriceTick(self.averagePrice - self.margin / self.size * self.STOP)
+        #
+        #     if self.close_stop_profile_order \
+        #             and self.close_stop_profile_order.price == stop_pro_price \
+        #             and self.close_stop_order \
+        #             and self.close_stop_order.price == stop_price:
+        #         pass
+        #     else:
+        #         self.cancelAll()
+        #         self.log.info(f'止盈单 {stop_pro_price} ')
+        #         self.sell(stop_pro_price, abs(self.pos), stopProfile=True)
+        #         self.log.info(f'止损单 {stop_price} ')
+        #         self.sell(stop_price, abs(self.pos), stop=True)
+        #
+        # if self.pos < 0:
+        #     # 空单
+        #     # 止盈单
+        #     stop_pro_price = self.roundToPriceTick(self.averagePrice - self.margin / self.size * self.STOP_PRO)
+        #     stop_price = self.roundToPriceTick(self.averagePrice + self.margin / self.size * self.STOP)
+        #     if self.close_stop_profile_order \
+        #             and self.close_stop_profile_order.price == stop_pro_price \
+        #             and self.close_stop_order \
+        #             and self.close_stop_order.price == stop_price:
+        #         pass
+        #     else:
+        #         self.cancelAll()
+        #         self.log.info(f'止盈单 {stop_pro_price} ')
+        #         self.cover(stop_pro_price, abs(self.pos), stopProfile=True)
+        #         self.log.info(f'止损单 {stop_price} ')
+        #         self.cover(stop_price, abs(self.pos), stop=True)
+
     # ----------------------------------------------------------------------
     def onXminBar(self, xminBar):
         """
@@ -152,44 +214,46 @@ class DoubleFilterMAStrategy(CtaTemplate):
         if not am.inited:
             return
 
-        ma = self.am.ma(self.longBar, True)
+        # 当前均线
+        ma_array = self.am.ma(self.longBar, True)
+        self.ma = ma_array[-1]
 
-        trend = ma[-self.trendMA:] > ma[-self.trendMA-1:-1]
-        assert isinstance(trend, np.ndarray)
+        self.saveTechIndOnXminBar(bar.datetime)
 
-        if trend.all():
-            # 连续 self.trendMA 个 MA 值都是递增，多趋势
-            if self.am.close[-1] > self.am.open[-1] and self.am.close[-2] > self.am.open[-2]:
-                if self.pos <= 0:
-                    price = self.bar.close
-                    self.cancelAll()
-                    if self.pos < 0:
-                        # 已经有持仓了
-                        # 先平仓
-                        self.sendOrder(CTAORDER_COVER, price, abs(self.pos), stop=True)
-                    # 开仓
-                    self.sendOrder(CTAORDER_BUY, price, self.fixhands, stop=True)
+        if self.pos == 0:
+            self.cancelAll()
+            # 判断大趋势
+            if xminBar.close > self.ma:
+                # 可开多
+                # trendMA 连阳
+                goup = self.am.close[-self.trendMA:] > self.am.open[-self.trendMA:]
+                if goup.all():
+                    # 开多
+                    self.log.info(f'连阳 {list(zip(self.am.open[-self.trendMA:], self.am.close[-self.trendMA:]))}')
+                    self.buy(xminBar.close, self.hands, stop=True)
 
-        trend = ma[-self.trendMA:] < ma[-self.trendMA - 1:-1]
-        assert isinstance(trend, np.ndarray)
-        if trend.all():
-            # 连续 self.trendMA 个 MA 值都是递减，空趋势
-            if self.am.close[-1] < self.am.open[-1] and self.am.close[-2] < self.am.open[-2]:
-                if self.pos >= 0:
-                    price = self.bar.close
-                    self.cancelAll()
-                    if self.pos > 0:
-                        # 已经有持仓了
-                        # 先平仓
-                        self.sendOrder(CTAORDER_SELL, price, abs(self.pos), stop=True)
-                    # 开仓
-                    self.sendOrder(CTAORDER_SHORT, price, self.fixhands, stop=True)
+            if xminBar.close < self.ma:
+                # 可开空
+                godown = self.am.close[-self.trendMA:] < self.am.open[-self.trendMA:]
+                if godown.all():
+                    self.log.info(f'连阴 {list(zip(self.am.open[-self.trendMA:], self.am.close[-self.trendMA:]))}')
+                    self.short(xminBar.close, self.hands, stop=True)
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
+        # ----------------------------------------------------------------------
 
-    # ----------------------------------------------------------------------
+    def saveTechIndOnXminBar(self, dt):
+        """
+        保存技术指标
+        :return:
+        """
+        for indName, [dtList, dataList] in list(self.techIndLine.items()):
+            data = getattr(self, indName)
+            dtList.append(dt)
+            dataList.append(self.roundToPriceTick(data))
+
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         log = self.log.info
@@ -211,20 +275,15 @@ class DoubleFilterMAStrategy(CtaTemplate):
 
         originCapital, charge, profile = self._onTrade(trade)
 
-        # if trade.offset in OFFSET_CLOSE_LIST:
-        #     textList = [u'{} {} {} {}'.format(self.tradingDay, trade.price, trade.direction, trade.offset)]
-        #     textList.append(u'资金变化 {} -> {}'.format(originCapital, self.capital))
-        #     textList.append(u'仓位{} -> {}'.format(self.prePos, self.pos))
-        #     textList.append(u'手续费 {} 利润 {}'.format(round(charge, 2), round(profile, 2)))
-        #     textList.append(u'**********************')
-        #     print(u'\n'.join(textList))
+        if trade.offset in OFFSET_CLOSE_LIST:
+            # 平仓单, 直接撤单即可
+            self.cancelAll()
 
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
 
     # ----------------------------------------------------------------------
-    def onStopOrder(self, so):
+    def onStopOrder(self, so: VtStopOrder):
         """停止单推送"""
-        # print(u'{} {}'.format(self.bar.datetime, so))
         self.putEvent()

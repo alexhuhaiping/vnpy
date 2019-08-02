@@ -92,10 +92,15 @@ if __name__ == '__main__':
         # "fixhands": 1, "barXmin": 5, 'STD_DAYS': 10,
         # 'strategyClass': 'HighVolumeStrategy',
 
-        # 唐奇安震荡
+        # # 唐奇安震荡
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # "fixhands": 1, "barXmin": 30,
+        # 'strategyClass': 'DonchianContrarianStrategy',
+
+        # 双重均线过滤
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 30,
-        'strategyClass': 'DonchianContrarianStrategy',
+        "fixhands": 1, "barXmin": 60,
+        'strategyClass': 'DoubleFilterMAStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')

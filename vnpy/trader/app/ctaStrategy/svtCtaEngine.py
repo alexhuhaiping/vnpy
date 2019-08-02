@@ -260,9 +260,10 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = '{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
-                                                         so.price,
-                                                         so.volume)
+                        log = f'{so.stopOrderID} {so.vtSymbol} {so.orderType} {so.price} {so.direction} {tick.bidPrice1} {tick.askPrice1} {so.volume}'
+                        # log = '{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
+                        #                                  so.price,
+                        #                                  so.volume)
                         self.log.info('触发停止单 {}'.format(log))
 
                         if so.volume != 0:
