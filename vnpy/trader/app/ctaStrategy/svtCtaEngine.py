@@ -245,12 +245,12 @@ class CtaEngine(VtCtaEngine):
                 if so.vtSymbol == vtSymbol:
                     if so.stopProfile:
                         # 止盈停止单
-                        longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 <= so.price  # 多头止盈单被触发
-                        shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 >= so.price  # 空头止盈单被触发
+                        longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice <= so.price  # 多头止盈单被触发
+                        shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice >= so.price  # 空头止盈单被触发
                     else:
                         # 追价停止单
-                        longTriggered = so.direction == DIRECTION_LONG and tick.bidPrice1 >= so.price  # 多头停止单被触发
-                        shortTriggered = so.direction == DIRECTION_SHORT and tick.askPrice1 <= so.price  # 空头停止单被触发
+                        longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
+                        shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
 
                     if longTriggered or shortTriggered:
                         # 买入和卖出分别以涨停跌停价发单（模拟市价单）
@@ -260,9 +260,10 @@ class CtaEngine(VtCtaEngine):
                             price = tick.lowerLimit
 
                         # 发出市价委托
-                        log = '{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
-                                                         so.price,
-                                                         so.volume)
+                        log = f'{so.stopOrderID} {so.vtSymbol} {so.orderType} {so.price} {so.direction} {tick.bidPrice1} {tick.askPrice1} {so.volume}'
+                        # log = '{} {} {} {} {} {}'.format(so.stopOrderID, so.vtSymbol, so.vtSymbol, so.orderType,
+                        #                                  so.price,
+                        #                                  so.volume)
                         self.log.info('触发停止单 {}'.format(log))
 
                         if so.volume != 0:
