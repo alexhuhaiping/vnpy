@@ -203,8 +203,11 @@ def cover():
     sList = getStrategy(vtSymbol)
     # print(sList)
     for s in sList:
-        price = s.bm.bar.close - 1
-        volume = 2
+        if not s.bm.lastTick:
+            s.log.info('还没有 Tick 数据')
+            break
+        price = s.bm.lastTick.upperLimit
+        volume = 4
         stop = False
 
         s.cover(price, volume, stop)
@@ -253,23 +256,6 @@ def checkContract():
         print(vtSymbol)
 
 
-def showStopOrder():
-    sList = getStrategy(vtSymbol)
-    stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
-    stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
-    me.log.info('停止单数量{}'.format(len(ce.stopOrderDict)))
-    price = 5090
-    for os in stopOrderIDs:
-        if os.direction == '多' and os.status == '等待中':
-            # if os.direction == u'空' and os.status == u'等待中':
-            if os.status == '等待中':
-                pass
-                os.price = price
-                # price -= 2
-            log = ''
-            for k, v in list(os.toHtml().items()):
-                log += '{}:{} '.format(k, v)
-            me.log.info(log)
 
 
 def saveStrategy():
@@ -296,10 +282,10 @@ def showStopOrder():
     stopOrderIDs = ce.getAllStopOrdersSorted(vtSymbol)
     stopOrderIDs.sort(key=lambda s: (s.direction, s.stopProfile, s.price))
     me.log.info('停止单数量{}'.format(len(ce.stopOrderDict)))
-    price = 3711.0
+    price = 3673
     for os in stopOrderIDs:
-        # if os.direction == '多' and os.status == '等待中':
-        if os.direction == u'空' and os.status == u'等待中':
+        if os.direction == '多' and os.status == '等待中':
+        # if os.direction == u'空' and os.status == u'等待中':
             if os.status == '等待中':
                 pass
                 os.price = price
@@ -336,8 +322,8 @@ def run():
     load()
     return
     me.log.info('====================================================')
-    orderToShow()
-    # showStopOrder()
+    # orderToShow()
+    showStopOrder()
 
     # checkContract()
     # checkPositionDetail()

@@ -102,6 +102,7 @@ class CtaEngine(object):
         req.symbol = contract.symbol
         req.exchange = contract.exchange
         req.vtSymbol = contract.vtSymbol
+        req.exchange = contract.exchange
         req.price = self.roundToPriceTick(contract.priceTick, price)
         req.volume = volume
 

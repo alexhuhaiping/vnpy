@@ -27,9 +27,9 @@ class DoubleFilterMAStrategy(CtaTemplate):
     className = '二重过滤均线策略'
     author = 'lamter'
 
+    fixhands = 1  # 固定手数
     longBar = 55  # 5均线
     trendMA = 3  # 取几个MA值来判断趋势
-    fixhands = 1  # 固定手数
     STOP_PRO = 0.05  # 浮盈达到保证金的 50% 就止盈
     STOP = 0.005  # 止损价位
 
@@ -40,6 +40,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
         'longBar',
         'trendMA',
         'STOP_PRO',
+        'STOP',
     ])
 
     # 策略变量
@@ -116,6 +117,8 @@ class DoubleFilterMAStrategy(CtaTemplate):
         if not self.isBackTesting():
             # 实盘，可以存库。
             self.saving = True
+
+        self.orderOpen(self.preXminBar)
 
         self.putEvent()
 
@@ -220,6 +223,14 @@ class DoubleFilterMAStrategy(CtaTemplate):
 
         self.saveTechIndOnXminBar(bar.datetime)
 
+        self.orderOpen(xminBar)
+
+        # 发出状态更新事件
+        self.saveDB()
+        self.putEvent()
+        # ----------------------------------------------------------------------
+
+    def orderOpen(self, xminBar):
         if self.pos == 0:
             self.cancelAll()
             # 判断大趋势
@@ -238,11 +249,6 @@ class DoubleFilterMAStrategy(CtaTemplate):
                 if godown.all():
                     self.log.info(f'连阴 {list(zip(self.am.open[-self.trendMA:], self.am.close[-self.trendMA:]))}')
                     self.short(xminBar.close, self.hands, stop=True)
-
-        # 发出状态更新事件
-        self.saveDB()
-        self.putEvent()
-        # ----------------------------------------------------------------------
 
     def saveTechIndOnXminBar(self, dt):
         """

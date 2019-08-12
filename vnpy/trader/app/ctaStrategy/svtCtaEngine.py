@@ -52,6 +52,30 @@ class CtaEngine(VtCtaEngine):
 
     def __init__(self, mainEngine, eventEngine):
         self.accounts = {}  # {accountID: vtAccount}
+
+        # 心跳相关
+        self.heartBeatInterval = 49  # second
+        # 将心跳时间设置为1小时候开始
+        # report 之后会立即重置为当前触发心跳
+        self.nextHeatBeatTime = time.time() + 60 * 10
+        self.heatBeatTickCount = 0
+        self.nextHeartBeatCount = 100  # second
+        self.active = True
+
+        self.positionErrorCountDic = defaultdict(lambda: 0)  # {strategy: errCount}出现仓位异常的策略
+        self.checkPositionCount = 0  # 仓位检查间隔计数
+        self.checkPositionInterval = 2  # second
+        self.reportPosErrCount = 5  # 连续5次仓位异常则报告
+
+        # 维持心跳的品种
+        self.heatbeatSymbols = []
+
+        self.vtOrderReqToShow = {}  # 用于展示的限价单对象
+
+        self.stopPriceSlippage = {}  # 记录停止单的触发价，用来记录滑点
+
+        self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
+
         super(CtaEngine, self).__init__(mainEngine, eventEngine)
         assert isinstance(self.mainEngine, MainEngine)
 
@@ -89,29 +113,6 @@ class CtaEngine(VtCtaEngine):
         # 订单响应存库
         self.orderBackCol = self.mainEngine.strategyDB[ORDERBACK_COLLECTION_NAME].with_options(
             codec_options=CodecOptions(tz_aware=True, tzinfo=LOCAL_TIMEZONE))
-
-        # 心跳相关
-        self.heartBeatInterval = 49  # second
-        # 将心跳时间设置为1小时候开始
-        # report 之后会立即重置为当前触发心跳
-        self.nextHeatBeatTime = time.time() + 60 * 10
-        self.heatBeatTickCount = 0
-        self.nextHeartBeatCount = 100  # second
-        self.active = True
-
-        self.positionErrorCountDic = defaultdict(lambda: 0)  # {strategy: errCount}出现仓位异常的策略
-        self.checkPositionCount = 0  # 仓位检查间隔计数
-        self.checkPositionInterval = 2  # second
-        self.reportPosErrCount = 5  # 连续5次仓位异常则报告
-
-        # 维持心跳的品种
-        self.heatbeatSymbols = []
-
-        self.vtOrderReqToShow = {}  # 用于展示的限价单对象
-
-        self.stopPriceSlippage = {}  # 记录停止单的触发价，用来记录滑点
-
-        self.strategyByVtSymbol = defaultdict(lambda: set())  # {symbol: set(strategy1, strategy2, ...)}
 
         # self.waitStopStartTimeDic = defaultdict(lambda: None)  # 开始等待停止单的时间
         # self.waittingVtOrderIDListDic = defaultdict(list)  # 等待成交的停止单触发的订单 {'vtSymbol': vtOrderList}
@@ -565,7 +566,7 @@ class CtaEngine(VtCtaEngine):
             # 不需要更新保证金
             return
         self.log.info('查询保证金 {}'.format(s.vtSymbol))
-        self.mainEngine.qryMarginRate('CTP', s.symbol)
+        self.mainEngine.qryMarginRate('CTP', s.vtSymbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
 
@@ -581,7 +582,7 @@ class CtaEngine(VtCtaEngine):
             # 不需要更新手续费
             return
         self.log.info('查询手续费 {}'.format(s.vtSymbol))
-        self.mainEngine.qryCommissionRate('CTP', s.symbol)
+        self.mainEngine.qryCommissionRate('CTP', s.vtSymbol)
 
         ctpGatway = self.mainEngine.getGateway('CTP')
 

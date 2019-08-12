@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
         # 双重均线过滤
         'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        "fixhands": 1, "barXmin": 60,
+        "fixhands": 1, "barXmin": 60, "trendMA": 2,
         'strategyClass': 'DoubleFilterMAStrategy',
     }
 

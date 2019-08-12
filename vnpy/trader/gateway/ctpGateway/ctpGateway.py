@@ -319,7 +319,8 @@ class CtpMdApi(MdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']#.decode('gbk')
+        err.additionalInfo = 'func:onRspError '
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -345,7 +346,8 @@ class CtpMdApi(MdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg']#.decode('gbk')
+            err.errorMsg = error['ErrorMsg']
+            err.additionalInfo = 'func:onRspUserLogin '
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -363,7 +365,8 @@ class CtpMdApi(MdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']
+            err.additionalInfo = 'func:onRspUserLogout'
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -585,9 +588,10 @@ class svtCtpTdApi(TdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg']#.decode('gbk')
+            err.errorMsg = error['ErrorMsg']
+            err.additionalInfo = 'func:onRspAuthenticate'
             self.gateway.onError(err)
-            self.gateway.log.error(f'{err.errorID} {err.errorMsg}')
+
 
     # ----------------------------------------------------------------------
     def onRspUserLogin(self, data, error, n, last):
@@ -614,6 +618,7 @@ class svtCtpTdApi(TdApi):
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
             err.errorMsg = error['ErrorMsg']#.decode('gbk')
+            err.additionalInfo = 'func:onRspUserLogin'
             self.gateway.onError(err)
 
             # 标识登录失败，防止用错误信息连续重复登录
@@ -634,7 +639,8 @@ class svtCtpTdApi(TdApi):
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorMsg = error['ErrorMsg']
+            err.additionalInfo = 'func:onRspUserLogout'
             self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -672,7 +678,8 @@ class svtCtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']
+        err.additionalInfo = 'func:onRspOrderInsert'
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -691,7 +698,8 @@ class svtCtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']
+        err.additionalInfo = 'func:onRspOrderAction'
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -885,7 +893,7 @@ class svtCtpTdApi(TdApi):
         contract.symbol = data['InstrumentID']
         contract.exchange = exchangeMapReverse[data['ExchangeID']]
         # contract.vtSymbol = contract.symbol  # '.'.join([contract.symbol, contract.exchange])
-        contract.name = data['InstrumentName']#.decode('GBK')
+        contract.name = data['InstrumentName']
 
         # 合约数值
         contract.size = data['VolumeMultiple']
@@ -1070,7 +1078,8 @@ class svtCtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg']#.decode('gbk')
+        err.errorMsg = error['ErrorMsg']
+        err.additionalInfo = 'onRspError'
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1174,7 +1183,12 @@ class svtCtpTdApi(TdApi):
         order.symbol = data['InstrumentID']
         order.exchange = exchangeMapReverse[data['ExchangeID']]
         # order.vtSymbol = order.symbol
-        order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
+        try:
+            order.vtSymbol = self.gateway.symbol2contract[order.symbol].vtSymbol
+        except KeyError:
+            Timer(2, self.onErrRtnOrderInsert, (data, error)).start()
+            return
+
         order.orderID = data['OrderRef']
         # order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
         order.vtOrderID = self.getVtOrderID(order.orderID, order.symbol)
@@ -1189,7 +1203,8 @@ class svtCtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']
+        err.additionalInfo = f'func:onErrRtnOrderInsert {order.symbol} '
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1198,7 +1213,8 @@ class svtCtpTdApi(TdApi):
         err = VtErrorData()
         err.gatewayName = self.gatewayName
         err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorMsg = error['ErrorMsg']
+        err.additionalInfo = 'func:onErrRtnOrderAction  {InstrumentID}'.format(**data)
         self.gateway.onError(err)
 
     # ----------------------------------------------------------------------
@@ -1513,6 +1529,7 @@ class svtCtpTdApi(TdApi):
         req['InstrumentID'] = orderReq.symbol
         req['LimitPrice'] = orderReq.price
         req['VolumeTotalOriginal'] = orderReq.volume
+        req['ExchangeID'] = str(orderReq.exchange)
 
         # 下面如果由于传入的类型本接口不支持，则会返回空字符串
         req['OrderPriceType'] = priceTypeMap.get(orderReq.priceType, '')
@@ -1542,7 +1559,20 @@ class svtCtpTdApi(TdApi):
             req['TimeCondition'] = THOST_FTDC_TC_IOC
             req['VolumeCondition'] = THOST_FTDC_VC_CV
 
-        self.reqOrderInsert(req, self.reqID)
+        # dic = {}
+        # for k,v in req.items():
+        #     # print(f'{k}\t{v}')
+        #     dic[k] = v
+        try:
+            self.reqOrderInsert(req, self.reqID)
+            # time.sleep(1)
+            # self.reqOrderInsert(dic, self.reqID)
+
+        except RuntimeError:
+            # self.gateway.log.error(str(dic))
+            self.gateway.log.error(str(req))
+            self.gateway.log.error(traceback.format_exc())
+            raise
 
         # 返回订单号（字符串），便于某些算法进行动态管理
         # vtOrderID = '.'.join([self.gatewayName, str(self.orderRef)])
@@ -1557,7 +1587,7 @@ class svtCtpTdApi(TdApi):
         req = {}
 
         req['InstrumentID'] = cancelOrderReq.symbol
-        req['ExchangeID'] = cancelOrderReq.exchange
+        req['ExchangeID'] = str(cancelOrderReq.exchange)
         req['OrderRef'] = cancelOrderReq.orderID
         req['FrontID'] = cancelOrderReq.frontID
         req['SessionID'] = cancelOrderReq.sessionID
@@ -1588,11 +1618,11 @@ class svtCtpTdApi(TdApi):
 
 
 class CtpGateway(svtCtpGateway):
-    def qryMarginRate(self, symbol):
-        self.tdApi.qryMarginRate(symbol)
+    def qryMarginRate(self, vtSymbol):
+        self.tdApi.qryMarginRate(vtSymbol)
 
-    def qryCommissionRate(self, symbol):
-        self.tdApi.qryCommissionRate(symbol)
+    def qryCommissionRate(self, vtSymbol):
+        self.tdApi.qryCommissionRate(vtSymbol)
 
     def close(self):
         self.log.info('关闭交易、行情接口')
@@ -1604,7 +1634,7 @@ class CtpGateway(svtCtpGateway):
 
 
 class CtpTdApi(svtCtpTdApi):
-    def qryMarginRate(self, symbol):
+    def qryMarginRate(self, vtSymbol):
         """
         查询保证金率
         :param symbol:
@@ -1614,8 +1644,10 @@ class CtpTdApi(svtCtpTdApi):
         req = {}
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
-        req['InstrumentID'] = str(symbol)
+        symbol, exchange = vtSymbol.split('.')
+        req['InstrumentID'] = symbol
         req['HedgeFlag'] = THOST_FTDC_HF_Speculation# 投机单
+        # req['ExchangeID'] = str(exchange)
 
         self.reqQryInstrumentMarginRate(req, self.reqID)
 
@@ -1640,7 +1672,7 @@ class CtpTdApi(svtCtpTdApi):
 
         self.gateway.onMraginRate(mr)
 
-    def qryCommissionRate(self, symbol):
+    def qryCommissionRate(self, vtSymbol):
         """
         查询手续费率
         :param symbol:
@@ -1650,8 +1682,9 @@ class CtpTdApi(svtCtpTdApi):
         req = {}
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
-        req['InstrumentID'] = str(symbol)
-        # req['ExchangeID'] = exchangeID   # 交易所ID，目前暂时不需要
+        symbol, exchange = vtSymbol.split('.')
+        req['InstrumentID'] = symbol
+        # req['ExchangeID'] = str(exchange)
 
         self.reqQryInstrumentCommissionRate(req, self.reqID)
 
