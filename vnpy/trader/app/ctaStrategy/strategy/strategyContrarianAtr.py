@@ -37,6 +37,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     fixhands = None  # 固定手数
     loseCountAdd = 0 # 累计 n 次亏损之后重新计算风险投入，为0时不启用
     winCountAdd = 0 # 累计 n 次盈利之后重新计算风险投入，为0 时不启用
+    FIX_ATR = None # 固定atr
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -46,6 +47,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         'risk',
         'fixhands',
         'loseCountAdd',
+        'FIX_ATR'
     ])
 
     # 策略变量
@@ -277,7 +279,8 @@ class ContrarianAtrStrategy(CtaTemplate):
             return
 
         # 通道中线
-        self.atr = am.atr(self.longBar)
+
+        self.atr = self.FIX_ATR or am.atr(self.longBar)
 
         # # 通道内最高点
         # self.high, self.low = am.donchian(self.longBar)

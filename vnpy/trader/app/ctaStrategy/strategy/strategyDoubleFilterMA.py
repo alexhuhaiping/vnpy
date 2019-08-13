@@ -285,6 +285,10 @@ class DoubleFilterMAStrategy(CtaTemplate):
             # 平仓单, 直接撤单即可
             self.cancelAll()
 
+        if not self.isBackTesting():
+            self.log.warning(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
+
+
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
