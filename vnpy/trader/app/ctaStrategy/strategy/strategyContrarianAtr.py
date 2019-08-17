@@ -6,8 +6,6 @@
 意在构建一个小盈多赢的震荡策略。
 """
 
-
-
 from threading import Timer
 from collections import OrderedDict
 import time
@@ -34,10 +32,10 @@ class ContrarianAtrStrategy(CtaTemplate):
     n = 1  # 高点 n atr 算作反转
     risk = 0.6  # 每笔风险投入
     flinch = 0  # 畏缩指标
-    fixhands = None  # 固定手数
-    loseCountAdd = 0 # 累计 n 次亏损之后重新计算风险投入，为0时不启用
-    winCountAdd = 0 # 累计 n 次盈利之后重新计算风险投入，为0 时不启用
-    FIX_ATR = None # 固定atr
+    fixhands = None     # 固定手数
+    loseCountAdd = 0    # 累计 n 次亏损之后重新计算风险投入，为0时不启用
+    winCountAdd = 0     # 累计 n 次盈利之后重新计算风险投入，为0 时不启用
+    FIX_REVERSE = None  # 固定反转数值
 
     # 参数列表，保存了参数的名称
     paramList = CtaTemplate.paramList[:]
@@ -47,7 +45,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         'risk',
         'fixhands',
         'loseCountAdd',
-        'FIX_ATR'
+        'FIX_REVERSE'
     ])
 
     # 策略变量
@@ -55,7 +53,7 @@ class ContrarianAtrStrategy(CtaTemplate):
     low = None  # 低点
     atr = 0  # ATR
     stop = None  # 止损投入
-    highBalance = None # 净值高点
+    highBalance = None  # 净值高点
 
     # 变量列表，保存了变量的名称
     _varList = [
@@ -241,8 +239,10 @@ class ContrarianAtrStrategy(CtaTemplate):
 
     def getPrice(self):
         # 更新高、低点
-        shortPrice = self.roundToPriceTick(self.high - self.atr * self.n)
-        longPrice = self.roundToPriceTick(self.low + self.atr * self.n)
+        # reverse = self.FIX_REVERSE or self.atr
+        reverse = self.atr
+        shortPrice = self.roundToPriceTick(self.high - reverse * self.n)
+        longPrice = self.roundToPriceTick(self.low + reverse * self.n)
         return longPrice, shortPrice
 
     def orderClose(self):
@@ -279,8 +279,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             return
 
         # 通道中线
-
-        self.atr = self.FIX_ATR or am.atr(self.longBar)
+        self.atr = am.atr(self.longBar)
 
         # # 通道内最高点
         # self.high, self.low = am.donchian(self.longBar)
@@ -374,6 +373,7 @@ class ContrarianAtrStrategy(CtaTemplate):
             self.cancelAll()
             self.orderOpenOnBar()
             self.orderClose()
+
     # ----------------------------------------------------------------------
     def onStopOrder(self, so):
         """停止单推送"""
@@ -427,6 +427,7 @@ class ContrarianAtrStrategy(CtaTemplate):
         # 连败 flinch 次后满仓
         # self.hands = self._calHandsByLoseCount(hands, self.flinch)
         # <==================
+
     def toSave(self):
         """
         将策略新增的 varList 全部存库
@@ -436,7 +437,6 @@ class ContrarianAtrStrategy(CtaTemplate):
         # 将新增的 varList 全部存库
         dic.update({k: getattr(self, k) for k in self._varList})
         return dic
-
 
     def loadCtaDB(self, document=None):
         super(ContrarianAtrStrategy, self).loadCtaDB(document)

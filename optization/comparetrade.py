@@ -36,7 +36,7 @@ try:
 except NameError:
     startTradingDay = None
     endTradingDay = None
-    startTradingDay = arrow.get('2018-12-01 00:00:00+08').datetime
+    # startTradingDay = arrow.get('2018-12-01 00:00:00+08').datetime
     # startTradingDay = arrow.get('2019-04-01 00:00:00+08').datetime
     # endTradingDay = arrow.get('2013-01-01 00:00:00+08').datetime
 
@@ -44,7 +44,7 @@ dbt = DrawBacktestingTrade('drawtrade_backtesting.ini', startTradingDay=startTra
 originTrlList.append(dbt)
 
 # dbt.clearCollection()  # 清空数据库
-# dbt.runArg()  # 生成参数
+dbt.runArg()  # 生成参数
 dbt.runBacktesting()  # 批量回测
 e = arrow.now()
 print(('运行 {} -> {} 耗时 {}'.format(b, e, e - b)))
