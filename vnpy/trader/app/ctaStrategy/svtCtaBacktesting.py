@@ -60,6 +60,7 @@ class BacktestingEngine(VTBacktestingEngine):
         self.vtCommissionRate = None  # 手续费率
 
         self.datas = []  # 一个合约的全部基础数据，tick , 1min bar OR 1day bar
+        self.daily_datas = []  # 日线数据
 
         self.marginRate = None  # 保证金比例对象 VtMarginRate()
         self.margin = None  # 最后保证金
@@ -412,8 +413,16 @@ class BacktestingEngine(VTBacktestingEngine):
 
         # 对 datetime 排序
         self.datas.sort(key=lambda d: d.datetime)
-
         self.clearBeforeBar()
+
+        if self.collectionName != DAY_COL_NAME:
+            # 加载日线数据
+            initCursor = self.ctpCol1dayBar.find(flt, {'_id': 0, 'symbol': 0})
+            self.daily_datas = []  # 清空initData列表
+            for d in initCursor:
+                data = dataClass()
+                data.load(d)
+                self.daily_datas.append(data)
 
         self.log.info('载入完成')
 
@@ -478,6 +487,8 @@ class BacktestingEngine(VTBacktestingEngine):
             if self.strategyStartDate <= td:
                 try:
                     func(data)
+                    self.strategy.bm.preBar = self.bar
+
                 except:
                     self.log.error('异常 bar: {}'.format(data.datetime))
                     raise
@@ -486,6 +497,38 @@ class BacktestingEngine(VTBacktestingEngine):
         self.strategy.trading = False
 
     def loadBar(self, symbol, collectionName, barNum, barPeriod=1):
+        if collectionName == DAY_COL_NAME:
+            return self.loadDailyBar(symbol, barNum)
+
+        if collectionName == MINUTE_COL_NAME:
+            return self.loadMinBar(symbol, barNum, barPeriod)
+
+    def loadDailyBar(self, symbol, barNum):
+        """直接返回初始化数据列表中的Bar"""
+        initDatas = []
+        needBarNum = barNum
+
+        # 从策略起始日之前开始加载数据
+        for b in self.daily_datas:
+            if b.tradingDay < self.strategyStartDate:
+                initDatas.append(b)
+            else:
+                # 加载完成
+                break
+        # 只返回指定数量的 bar
+        initDataNum = len(initDatas)
+
+        if initDataNum < needBarNum:
+            self.log.info('{} 预加载的 daily bar 数量 {} != barAmount:{}'.format(symbol, initDataNum, needBarNum))
+            return initDatas
+
+        # 获得余数，这里一个 bar 不能从一个随意的地方开始，要从头开始计数
+        # barAmount = initDataNum % barPeriod + needBarNum
+        barAmount = needBarNum
+
+        return initDatas[-barAmount:]
+
+    def loadMinBar(self, symbol, barNum, barPeriod=1):
         """直接返回初始化数据列表中的Bar"""
         initDatas = []
         needBarNum = barPeriod * barNum

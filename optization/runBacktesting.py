@@ -55,19 +55,17 @@ if __name__ == '__main__':
     # vtSymbol = 'b1909.DCE'
     # vtSymbol = 'AP1905.CZCE'
     # vtSymbol = 'i1905.DCE'
-    vtSymbol = 'ni1910.SHFE'
-
+    vtSymbol = 'rb1905.SHFE'
 
     setting = {
 
         # "barXmin": 30, 'capital': 100000,
         # 'strategyClass': 'TestStrategy',
 
-        # ATR 反转策略， 单利模式
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1, 'FIX_REVERSE': None,
-        'strategyClass': 'ContrarianAtrStrategy',
-
+        # # ATR 反转策略， 单利模式
+        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        # 'barXmin': 140, 'longBar': 10, 'n': 1, 'fixhands': 1, 'FIX_REVERSE': None,
+        # 'strategyClass': 'ContrarianAtrStrategy',
 
         # # ATR反转抄底策略
         # 'slippage': 1, 'vtSymbol': vtSymbol, 'capital': 100000,
@@ -100,10 +98,10 @@ if __name__ == '__main__':
         # "fixhands": 1, "barXmin": 30,
         # 'strategyClass': 'DonchianContrarianStrategy',
 
-        # # 双重均线过滤
-        # 'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
-        # "fixhands": 1, "barXmin": 60, "trendMA": 2,
-        # 'strategyClass': 'DoubleFilterMAStrategy',
+        # 双重均线过滤
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        "fixhands": 1, "barXmin": 60, "STOP_PRO": 0.09, "DIREC": "多",
+        'strategyClass': 'DoubleFilterMAStrategy',
     }
 
     strategyClass = setting.pop('strategyClass')

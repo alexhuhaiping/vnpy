@@ -13,6 +13,7 @@ import logging
 import pymongo
 import datetime
 
+import numpy as np
 import pandas as pd
 import arrow
 import tradingtime as tt
@@ -125,10 +126,12 @@ class CtaTemplate(vtCtaTemplate):
 
         # K线管理器
         self.maxBarNum = 0
+        self.maxDailyBarNum = 0
         self.initMaxBarNum()
-        self.bm = BarManager(self, self.onBar, self.barXmin, self.onXminBar)  # 创建K线合成器对象
+        self.bm = BarManager(self, self.onBar, self.barXmin, self.onXminBar, self.onDailyBar)  # 创建K线合成器对象
         # 技术指标生成器
         self.am = ArrayManager(self.maxBarNum)
+        self.am_d = ArrayManager(self.maxDailyBarNum)  # 日线技术指标生成器
 
         # 是否允许一键平仓
         self.isCloseoutVaild = False
@@ -504,6 +507,10 @@ class CtaTemplate(vtCtaTemplate):
         """加载用于初始化策略的数据"""
         return self.ctaEngine.loadBar(self.vtSymbol, self.barCollection, barNum + 1, self.barXmin)
 
+    def loadDailyBar(self, barNum):
+        """用于"""
+        return self.ctaEngine.loadBar(self.vtSymbol, DAY_COL_NAME, barNum + 1, 1)
+
     @property
     def mainEngine(self):
         assert isinstance(self.ctaEngine.mainEngine, MainEngine)
@@ -652,6 +659,14 @@ class CtaTemplate(vtCtaTemplate):
     # def isNewBar(self):
     #     return self.bar1minCount % self.barXmin == 0 and self.bar1minCount != 0
 
+    def onDailyBar(self, dailyBar):
+        """
+        采用分钟线时，日线的接口
+        :param dailyBar:
+        :return:
+        """
+        raise NotImplementedError('尚未定义，如无需要则定义空函数即可')
+
     def getOrder(self, vtOrderID):
         if self.isBackTesting():
             # 回测模式中取回订单对象
@@ -776,9 +791,11 @@ class CtaTemplate(vtCtaTemplate):
         """取整价格到合约最小价格变动"""
         if not self.priceTick:
             return price
-
-        newPrice = round(price / self.priceTick, 0) * self.priceTick
-        return newPrice
+        try:
+            newPrice = round(price / self.priceTick, 0) * self.priceTick
+            return newPrice
+        except TypeError:
+            return price
 
     def barToHtml(self, bar=None):
         bar = bar or self.bm.bar
@@ -1003,7 +1020,7 @@ class CtaTemplate(vtCtaTemplate):
             if self.isBackTesting():
                 # 回测时
                 self._orderOnThreading()
-            else: # 实盘时
+            else:  # 实盘时
                 if self.bm and self.bm.lastTick and self.bm.lastTick.datetime:
                     _now = self.bm.lastTick.datetime
                 else:
@@ -1245,7 +1262,7 @@ class TargetPosTemplate(CtaTemplate, vtTargetPosTemplate):
 
 #########################################################################
 class BarManager(VtBarManager):
-    def __init__(self, strategy, onBar, xmin=0, onXminBar=None):
+    def __init__(self, strategy, onBar, xmin=0, onXminBar=None, onDailyBar=None):
         super(BarManager, self).__init__(onBar, xmin, onXminBar)
         self.strategy = strategy
         self.preBar = None  # 前一个1分钟K线对象
@@ -1255,6 +1272,9 @@ class BarManager(VtBarManager):
 
         # 当前已经加载了几个1min bar。当前未完成的 1minBar 不计入内
         self.count = 0
+        self.dailyBar = None  # 日K线
+        self.preDailyBar = None  # 前日K线
+        self.onDailyBar = onDailyBar
 
     @property
     def log(self):
@@ -1318,7 +1338,18 @@ class BarManager(VtBarManager):
             self.bar.date = self.bar.datetime.strftime('%Y%m%d')
             self.bar.time = self.bar.datetime.strftime('%H:%M:%S.%f')
 
-            # 先推送当前的bar，再从 tick 中更新数据
+            # # 先推送当前的bar，再从 tick 中更新数据
+            # if self.dailyBar and self.dailyBar.tradingDay != self.bar.tradingDay:
+            #     # 已经切换日了，onBar 之前要切换日K线
+            #     self.preDailyBar, self.dailyBar = self.dailyBar, VtBarData()
+            #     for k, v in self.bar.__dict__.items():
+            #         setattr(self.dailyBar, k, v)
+            # else:
+            #     # 没有切换日，单纯更新
+            #     self.dailyBar.close = self.bar.close
+            #     self.dailyBar.high = max(self.bar.high, self.dailyBar.high)
+            #     self.dailyBar.low = min(self.bar.low, self.dailyBar.low)
+
             self.onBar(self.bar)
 
             # 创建新的K线对象
@@ -1346,6 +1377,36 @@ class BarManager(VtBarManager):
 
         if self.lastTick:
             self.bar.volume += (tick.volume - self.lastTick.volume)  # 当前K线内的成交量
+
+    def updateDailyBar(self, bar):
+        """
+        只能在策略的 onBar 中调用，并且要首先调用
+        :return:
+        """
+        if self.dailyBar is None:
+            self.dailyBar = VtBarData()
+            self.dailyBar.vtSymbol = bar.vtSymbol
+            self.dailyBar.symbol = bar.symbol
+            self.dailyBar.exchange = bar.exchange
+
+            self.dailyBar.open = bar.open
+            self.dailyBar.high = bar.high
+            self.dailyBar.low = bar.low
+            self.dailyBar.close = bar.close
+
+        elif self.dailyBar.tradingDay != bar.tradingDay:
+            # 已经切换日了，onBar 之前要切换日K线
+            self.onDailyBar(self.dailyBar)
+
+            self.preDailyBar, self.dailyBar = self.dailyBar, VtBarData()
+            for k, v in bar.__dict__.items():
+                setattr(self.dailyBar, k, v)
+
+        else:
+            # 没有切换日，单纯更新
+            self.dailyBar.close = bar.close
+            self.dailyBar.high = max(bar.high, self.dailyBar.high)
+            self.dailyBar.low = min(bar.low, self.dailyBar.low)
 
     def updateHourBar(self, bar):
         """
@@ -1446,6 +1507,12 @@ class ArrayManager(VtArrayManager):
     def __init__(self, size=100):
         size += 1
         super(ArrayManager, self).__init__(size)
+
+        self.openArray.fill(np.nan)
+        self.highArray.fill(np.nan)
+        self.lowArray.fill(np.nan)
+        self.closeArray.fill(np.nan)
+        self.volumeArray.fill(np.nan)
 
     # ----------------------------------------------------------------------
     def atr(self, n, array=False):

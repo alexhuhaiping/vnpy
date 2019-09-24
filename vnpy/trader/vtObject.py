@@ -122,7 +122,7 @@ class VtBarData(VtBaseData):
         return self.rawData
 
     def __str__(self):
-        return 'd {} o {} h {} l {} c {}'.format(self.datetime, self.open, self.high, self.low, self.close)
+        return 'd {} t {} o {} h {} l {} c {}'.format(self.datetime, self.tradingDay, self.open, self.high, self.low, self.close)
 
 
 ########################################################################

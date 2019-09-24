@@ -46,6 +46,7 @@ class OptWoker(object):
         self.engine = None  # backtestEngine
 
         self.bars = []  # 指定的 vtSymbol 的行情缓存
+        self.daily_bars = [] # 指定的 vtSymbol 日线行情缓存
         self.vtSymbol = ''  # 当前 self.bars 的合约
 
     def pack(self, data):
@@ -102,6 +103,7 @@ class OptWoker(object):
         if vtSymbol == self.vtSymbol and self.bars:
             # 设置成历史数据已经加载
             engine.datas = self.bars
+            engine.daily_datas = self.daily_bars
             engine.loadHised = True
         else:
             # engine 需要自己重新加载合约
@@ -113,6 +115,7 @@ class OptWoker(object):
 
         # 缓存合约行情
         self.bars = engine.datas
+        self.daily_bars = engine.daily_datas
         self.vtSymbol = vtSymbol
 
         # 输出回测结果

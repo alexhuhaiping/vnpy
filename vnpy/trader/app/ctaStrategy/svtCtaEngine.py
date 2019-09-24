@@ -135,6 +135,7 @@ class CtaEngine(VtCtaEngine):
             'bar_1min': self.ctpCol1minBar,
             'bar_1day': self.ctpCol1dayBar,
         }.get(collectionName)
+
         # 假设周期 barPeriod=7, barNum=10
         cursor = collection.find({'vtSymbol': vtSymbol}).hint('vtSymbol')
         amount = cursor.count()
