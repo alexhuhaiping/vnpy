@@ -51,14 +51,18 @@ class DoubleFilterMAStrategy(CtaTemplate):
     long_tag = True  # 可开多
     short_tag = True  # 可开空
     trend = None  # 当前大趋势
-    stop_pro_times = 0
+    trend_long_times = 0  # 连阳次数
+    stop_pro_times = 0  # 已经止盈的
+    stop_pro_price = None  # 当前止盈价
 
     # 变量列表，保存了变量的名称
     _varList = [
         'long_tag',
         'short_tag',
         'trend',
+        'trend_long_times',
         'stop_pro_times',
+        'stop_pro_price',
     ]
     varList = CtaTemplate.varList[:]
     varList.extend(_varList)
@@ -244,6 +248,8 @@ class DoubleFilterMAStrategy(CtaTemplate):
         # 当前均线
         self.saveTechIndOnXminBar(bar.datetime)
 
+        self.updateTrend()
+
         # 下开仓单
         self.orderOpen(xminBar)
 
@@ -253,6 +259,38 @@ class DoubleFilterMAStrategy(CtaTemplate):
         # 发出状态更新事件
         self.saveDB()
         self.putEvent()
+
+    def updateTrend(self):
+        # 连阳次数
+        if self.ma_sd is None or self.ma_bd is None:
+            self.log.info(f'没有均线数据 ma_sd {self.ma_sd} ma_bd {self.ma_bd}')
+            return
+
+        if np.isnan(self.ma_sd) or np.isnan(self.ma_bd):
+            self.log.info(f'没有均线数据 ma_sd {self.ma_sd} ma_bd {self.ma_bd}')
+            return
+
+        if self.ma_sd > self.ma_bd:
+            # 判断是否连续收涨
+            group = self.am.close[-self.TREND:] > self.am.open[-self.TREND:]
+            self.trend_long_times = 0
+            for t in group[::-1]:
+                if t:
+                    # 连续收涨次数
+                    self.trend_long_times += 1
+                else:
+                    break
+
+        # 连阴次数
+        if self.ma_sd < self.ma_bd:
+            # 判断是否连续收跌
+            group = self.am.close[-self.TREND:] < self.am.open[-self.TREND:]
+            self.trend_long_times = 0
+            for t in group[::-1]:
+                if t:
+                    self.trend_long_times += 1
+                else:
+                    break
 
     # ----------------------------------------------------------------------
     def updateStop(self, bar):
@@ -271,6 +309,8 @@ class DoubleFilterMAStrategy(CtaTemplate):
             stop_pro_price = self.averagePrice * (1 + self.STOP_PRO * times)
             stop_pro_price = self.roundToPriceTick(stop_pro_price)
 
+            self.stop_pro_price = stop_pro_price
+
             if bar.high > stop_pro_price:
                 # 要更新价位
                 stop_pro_move = self.STOP_PRO * self.stop_pro_times
@@ -282,7 +322,11 @@ class DoubleFilterMAStrategy(CtaTemplate):
                 new_stop_pro_price = self.roundToPriceTick(new_stop_pro_price)
                 stop_pro_move = self.STOP_PRO * self.stop_pro_times
                 new_stop_price = self.roundToPriceTick(self.averagePrice * (1 + stop_pro_move - self.STOP))
-                self.log.info(f'多单 开仓均价 {self.roundToPriceTick(self.averagePrice)} 更新价格 止盈  {stop_pro_price} -> {new_stop_pro_price} 止损 {stop_price} -> {new_stop_price}')
+                self.log.info(
+                    f'多单 开仓均价 {self.roundToPriceTick(self.averagePrice)} 更新价格 止盈价  {stop_pro_price} \
+                    -> {new_stop_pro_price} 止损价 {stop_price} -> {new_stop_price}'
+                )
+                self.stop_pro_price = new_stop_price
 
         if self.pos < 0:
             # TODO 空单中
@@ -321,22 +365,11 @@ class DoubleFilterMAStrategy(CtaTemplate):
         if self.pos != 0:
             return
 
-        if self.ma_sd is None or self.ma_bd is None:
-            self.log.info(f'没有均线数据 ma_sd {self.ma_sd} ma_bd {self.ma_bd}')
-            return
+        # 开多
+        if self.long_tag and self.trend_long_times >= self.TREND:
+            self.buy(xminBar.close, self.hands, stop=True)
 
-        if np.isnan(self.ma_sd) or np.isnan(self.ma_bd):
-            self.log.info(f'没有均线数据 ma_sd {self.ma_sd} ma_bd {self.ma_bd}')
-            return
-
-        if self.long_tag and self.ma_sd > self.ma_bd:
-            # 多头
-            goup = self.am.close[-self.TREND:] > self.am.open[-self.TREND:]
-            # 开多
-            # self.log.info(f'连阳 {list(zip(self.am.open[-self.TREND - 1:], self.am.close[-self.TREND:]))}')
-            if goup.all():
-                self.buy(xminBar.close, self.hands, stop=True)
-
+        # TODO 开空
         if self.shortTag and self.ma_sd < self.ma_bd:
             # 空头
             godown = self.am.close[-self.TREND:] < self.am.open[-self.TREND:]
@@ -384,10 +417,11 @@ class DoubleFilterMAStrategy(CtaTemplate):
             if self.pos == 0:
                 # 重置止盈次数
                 self.stop_pro_times = 0
+                # 重置止盈价
+                self.stop_pro_price = None
 
             # if not self.isBackTesting():
             # self.log.warning(self.printOutOnTrade(trade, OFFSET_CLOSE_LIST, originCapital, charge, profile))
-
 
         # 发出状态更新事件
         self.saveDB()

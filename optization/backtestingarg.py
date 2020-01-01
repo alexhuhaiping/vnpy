@@ -379,7 +379,8 @@ if __name__ == '__main__':
 
     # home 配置
     # argFileName = '/Users/lamter/workspace/SlaveO/svnpy/optization/opt_rb_oscillationDonchian.json'
-    # optfile = 'optimizeHome.ini'
+    # optfile
+    # = 'optimizeHome.ini'
 
     logging.info('即将使用 {} 的配置'.format(optfile))
     time.sleep(5)

@@ -36,7 +36,7 @@ try:
 except NameError:
     startTradingDay = None
     endTradingDay = None
-    startTradingDay = arrow.get('2018-12-01 00:00:00+08').datetime
+    # startTradingDay = arrow.get('2018-12-01 00:00:00+08').datetime
     # startTradingDay = arrow.get('2019-04-01 00:00:00+08').datetime
     # endTradingDay = arrow.get('2013-01-01 00:00:00+08').datetime
 

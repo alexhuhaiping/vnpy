@@ -183,21 +183,6 @@ def showWorkingStopOrderDic():
     print((list(ce.workingStopOrderDict.keys())))
 
 
-def buy():
-    sList = getStrategy(vtSymbol)
-    # print(sList)
-    for s in sList:
-        s.log.debug('测试 buy')
-        # s.pos = -15
-
-        price = s.bm.bar.close - 2
-        volume = 1
-        stop = True
-
-        s.buy(price, volume, stop)
-
-        s.log.debug('下单完成 {}'.format(price))
-
 
 def cover():
     sList = getStrategy(vtSymbol)
@@ -216,18 +201,7 @@ def cover():
         break
 
 
-def sell():
-    sList = getStrategy(vtSymbol)
-    # print(sList)
-    for s in sList:
-        # s.log.info(u'{}'.format(vtSymbol))
-        # s.pos = -15
 
-        price = s.bm.bar.close
-        volume = 2
-        stop = True
-        s.sell(price, volume, stop)
-        s.log.debug('下单完成 {}'.format(price))
 
 
 def checkMargin():
@@ -312,9 +286,38 @@ def orderToShow():
             for k, v in list(order.items()):
                 print(('{} {}'.format(k, v)))
 
+def buy():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        s.log.debug('测试 buy')
+        # s.pos = -15
+
+        price = s.bm.bar.close - 2
+        volume = 1
+        stop = True
+
+        s.buy(price, volume, stop)
+
+        s.log.debug('下单完成 {}'.format(price))
+
+
+def sell():
+    sList = getStrategy(vtSymbol)
+    # print(sList)
+    for s in sList:
+        # s.log.info(u'{}'.format(vtSymbol))
+        # s.pos = -15
+
+        price = s.bm.bar.close
+        volume = 1
+        stop = True
+        s.sell(price, volume, stop)
+        s.log.debug('下单完成 {}'.format(price))
 
 # vtSymbol = 'AP905'
-vtSymbol = 'rb1910.SHFE'
+# vtSymbol = 'rb1910.SHFE'
+vtSymbol = 'i2001.DCE'
 import logging
 
 
@@ -323,7 +326,7 @@ def run():
     return
     me.log.info('====================================================')
     # orderToShow()
-    showStopOrder()
+    # showStopOrder()
 
     # checkContract()
     # checkPositionDetail()
@@ -332,8 +335,9 @@ def run():
     # checkMargin()
 
     # cover()
-    # sell()
+    sell()
     # buy()
+
 
     # showWorkingStopOrderDic()
     # saveStrategy()
