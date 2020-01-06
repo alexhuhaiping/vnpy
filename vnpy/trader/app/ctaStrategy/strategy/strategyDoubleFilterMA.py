@@ -49,7 +49,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
 
     # 策略变量
     long_tag = True  # 可开多
-    short_tag = True  # 可开空
+    # short_tag = True  # 可开空
     trend = None  # 当前大趋势
     trend_long_times = 0  # 连阳次数
     trend_short_times = 0  # 连阴次数
@@ -59,7 +59,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
     # 变量列表，保存了变量的名称
     _varList = [
         'long_tag',
-        'short_tag',
+        # 'short_tag',
         'trend',
         'trend_long_times',
         'trend_short_times',
@@ -371,14 +371,11 @@ class DoubleFilterMAStrategy(CtaTemplate):
         # 开多
         if self.long_tag and self.trend_long_times >= self.TREND:
             self.buy(xminBar.close, self.hands, stop=True)
-
-        # TODO 开空
-        if self.shortTag and self.ma_sd < self.ma_bd:
-            # 空头
             godown = self.am.close[-self.TREND:] < self.am.open[-self.TREND:]
-            self.log.info(f'连阴 {list(zip(self.am.open[-self.TREND - 1:], self.am.close[-self.TREND:]))}')
             if godown.all():
                 self.short(xminBar.close, self.hands, stop=True)
+
+        # TODO 开空
 
     def saveTechIndOnXminBar(self, dt):
         """
