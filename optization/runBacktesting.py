@@ -99,7 +99,7 @@ if __name__ == '__main__':
         # 'strategyClass': 'DonchianContrarianStrategy',
 
         # 双重均线过滤
-        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 100000,
+        'slippage': 2, 'vtSymbol': vtSymbol, 'capital': 10000,
         "fixhands": 1, "barXmin": 60, "STOP_PRO": 0.09, "DIREC": "多",
         'strategyClass': 'DoubleFilterMAStrategy',
     }

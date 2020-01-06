@@ -52,6 +52,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
     short_tag = True  # 可开空
     trend = None  # 当前大趋势
     trend_long_times = 0  # 连阳次数
+    trend_short_times = 0  # 连阴次数
     stop_pro_times = 0  # 已经止盈的
     stop_pro_price = None  # 当前止盈价
 
@@ -61,6 +62,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
         'short_tag',
         'trend',
         'trend_long_times',
+        'trend_short_times',
         'stop_pro_times',
         'stop_pro_price',
     ]
@@ -281,16 +283,16 @@ class DoubleFilterMAStrategy(CtaTemplate):
                 else:
                     break
 
-        # 连阴次数
-        if self.ma_sd < self.ma_bd:
-            # 判断是否连续收跌
-            group = self.am.close[-self.TREND:] < self.am.open[-self.TREND:]
-            self.trend_long_times = 0
-            for t in group[::-1]:
-                if t:
-                    self.trend_long_times += 1
-                else:
-                    break
+        # todo 连阴次数
+        # if self.ma_sd < self.ma_bd:
+        #     # 判断是否连续收跌
+        #     group = self.am.close[-self.TREND:] < self.am.open[-self.TREND:]
+        #     self.trend_short_times = 0
+        #     for t in group[::-1]:
+        #         if t:
+        #             self.trend_short_times += 1
+        #         else:
+        #             break
 
     # ----------------------------------------------------------------------
     def updateStop(self, bar):
@@ -336,6 +338,7 @@ class DoubleFilterMAStrategy(CtaTemplate):
     def orderClose(self):
         """
         这种情况下不需要止盈单了
+        只需要止损单
         :return:
         """
         if self.pos > 0:
